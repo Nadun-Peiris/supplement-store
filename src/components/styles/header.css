@@ -1,0 +1,215 @@
+/* Overall header */
+.site-header {
+  background: #000;
+  color: #fff;
+  width: 100%;
+  font-family: var(--font-montserrat), sans-serif;
+  position: relative;
+  z-index: 50;
+}
+
+/* Top bar */
+.header-top {
+  display: flex;
+  justify-content: center; /* logo centered */
+  align-items: center;
+  padding: 0.75rem 1rem;
+  position: relative;
+}
+
+.header-logo img {
+  max-height: 50px;
+  width: auto;
+}
+
+/* Desktop nav */
+.header-bottom {
+  border-top: 1px solid #404040;
+  padding: 1rem 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* (no fixed header padding needed) */
+
+.header-bottom ul {
+  display: flex;
+  gap: 2rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.header-bottom a {
+  color: #fff;
+  text-decoration: none;
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: color 0.2s ease;
+}
+
+.header-bottom a:hover,
+.header-bottom a.active {
+  color: #03c7fe;
+}
+
+/* Desktop right icons */
+.nav-right {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 0.75rem;
+}
+
+/* Icon buttons */
+.icon-btn {
+  display: inline-flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  justify-content: center;
+  align-items: center;
+  border-radius: 9999px;
+  border: 1px solid #525252;
+  background-color: #262626;
+  font-size: 1.2rem;
+  color: #ffffff;
+  transition: all 0.3s ease;
+  }
+
+.icon-btn:hover {
+  border-color: #03C7FE;
+  background-color: #111;
+  color: #ffffff;
+}
+
+/* Hamburger */
+.hamburger-btn {
+  position: absolute;
+  left: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  color: #fff;
+  cursor: pointer;
+  display: none; /* hidden on desktop */
+}
+
+/* Mobile nav */
+.mobile-menu {
+  background: #111;
+  border-top: 1px solid #333;
+  padding: 1rem;
+}
+
+.mobile-menu ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.mobile-menu li {
+  margin-bottom: 1rem;
+}
+
+.mobile-menu a {
+  display: block;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.mobile-menu a:hover {
+  color: #03c7fe;
+}
+
+/* Mobile cart/login row */
+.mobile-icons {
+  display: flex;
+  gap: 1.5rem;
+  margin-top: 1rem;
+  justify-content: flex-start;
+}
+
+.mobile-icons .icon-btn {
+  border: none;         /* remove border */
+  background: none;     /* remove background */
+  height: auto;         /* reset sizing */
+  width: auto;
+  font-size: 1.3rem;    /* slightly larger icon */
+  color: #fff;
+  padding: 0;
+}
+
+.mobile-icons .icon-btn:hover {
+  color: #03c7fe;       /* blue hover for consistency */
+  background: none;
+}
+
+/* Cart count badge */
+.cart-btn {
+  position: relative;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #ef4444; /* red */
+  color: #fff;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9999px;
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  border: 2px solid #000; /* ring against dark header */
+}
+
+/* Auth text button (pill) */
+.auth-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.5rem;
+  padding: 0 12px;
+  border-radius: 9999px;
+  border: 1px solid #525252;
+  background-color: #262626;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.auth-btn:hover {
+  border-color: #03C7FE;
+  background-color: #111;
+}
+
+
+/* Responsive rules */
+@media (max-width: 768px) {
+  .desktop-nav {
+    display: none; /* hide desktop nav on mobile */
+  }
+
+  .nav-right {
+    display: none; /* hide icons on mobile */
+  }
+
+  .hamburger-btn {
+    display: inline-flex; /* show hamburger */
+  }
+}

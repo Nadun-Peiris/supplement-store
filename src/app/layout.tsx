@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { AuthProvider } from "@/context/AuthContext";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "AI-Powered Supplement Store",
-  description: "Smart supplement e-commerce platform for Sri Lanka",
+  title: "Supplement Store",
+  description: "Your trusted source for fitness supplements in Sri Lanka",
 };
 
 export default function RootLayout({
@@ -15,7 +16,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <AuthProvider>{children}</AuthProvider>
+        <Header />
+        <main>{children}</main>
+        <Footer />
       </body>
     </html>
   );

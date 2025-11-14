@@ -1,0 +1,83 @@
+.slider { 
+  position: relative; 
+}
+.slider-viewport { 
+  position: relative; 
+  overflow: hidden; 
+}
+.slider-track { 
+  display: flex; 
+  transition: transform 0.5s ease-in-out; 
+}
+.slide { 
+  min-width: 100%; 
+}
+.slide-img { 
+  display: block; 
+  width: 100%; 
+  height: auto;
+  object-fit: cover; 
+}
+@media (min-width: 768px) { 
+  .slide-img { height: auto; } 
+}
+
+/* Nav buttons (prev/next) */
+.nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 2.5rem;
+  width: 2.5rem;
+  border-radius: 9999px; /* full circle */
+  border: 1px solid #525252;
+  background-color: #262626;
+  color: #ffffff;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.prev { left: 12px; }
+.next { right: 12px; }
+
+.nav:hover {
+  border-color: #03c7fe;   /* blue accent */
+  background-color: #111;  /* darker bg */
+  color: #ffffff;          /* keep icons white */
+}
+
+/* Pagination dots */
+.dots {
+  position: absolute;
+  bottom: 12px;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.dot {
+  height: 12px;
+  width: 12px;
+  border-radius: 50%; /* perfect circle */
+  border: 1px solid #525252;
+  background-color: #262626;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.dot:hover {
+  border-color: #03c7fe;
+  background-color: #111;
+}
+
+.dot.active {
+  background-color: #03c7fe; /* accent color for active */
+  border-color: #03c7fe;
+}
