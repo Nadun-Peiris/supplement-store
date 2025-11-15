@@ -2,14 +2,16 @@ import mongoose, { Schema, models } from "mongoose";
 
 const ProductSchema = new Schema(
   {
-    name: String,
-    brand: String,
-    category: String,
-    price: Number,
-    stock: Number,
-    imageUrl: String,
+    name: { type: String, required: true },
+    category: { type: String, required: true },
+    price: { type: Number, required: true },
+    image: { type: String, required: true },        // normal image
+    hoverImage: { type: String, required: false },  // hover image
+    description: { type: String },
+    createdAt: { type: Date, default: Date.now },
   },
-  { timestamps: true, collection: "products" } // ✅ matches Atlas
+  { collection: "products" }
 );
 
-export default models.Product || mongoose.model("Product", ProductSchema);
+const Product = models.Product || mongoose.model("Product", ProductSchema);
+export default Product;
