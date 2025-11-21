@@ -1,3 +1,7 @@
+/* --------------------------------------------- */
+/*  MAIN CAROUSEL                               */
+/* --------------------------------------------- */
+
 .carousel-section {
   width: 100%;
   background: #fff;
@@ -24,7 +28,7 @@
   justify-content: center;
   height: 2.5rem;
   padding: 0 1.25rem;
-  border-radius: 9999px; /* pill shape */
+  border-radius: 9999px;
   border: 1px solid #525252;
   background: #262626;
   color: #fff;
@@ -35,7 +39,7 @@
 }
 
 .view-all:hover {
-  border-color: #15d1f5; /* your brand accent */
+  border-color: #15d1f5;
   background: #111;
   color: #fff;
 }
@@ -47,7 +51,7 @@
 .carousel-track {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: calc(25% - 1rem); /* 4 per row desktop */
+  grid-auto-columns: calc(25% - 1rem);
   gap: 1.5rem;
   overflow-x: auto;
   scroll-behavior: smooth;
@@ -60,9 +64,13 @@
 
 @media (max-width: 768px) {
   .carousel-track {
-    grid-auto-columns: calc(50% - 1rem); /* 2 per row mobile */
+    grid-auto-columns: calc(50% - 1rem);
   }
 }
+
+/* --------------------------------------------- */
+/*  NAV BUTTONS                                  */
+/* --------------------------------------------- */
 
 .carousel-btn {
   position: absolute;
@@ -81,11 +89,10 @@
   cursor: pointer;
   transition: all 0.3s ease;
   z-index: 5;
-  box-shadow: none;
 }
 
 .carousel-btn:hover {
-  border-color: #15d1f5; /* your brand accent */
+  border-color: #15d1f5;
   background: #111;
   color: #fff;
 }
@@ -100,7 +107,125 @@
 
 @media (max-width: 768px) {
   .carousel-btn {
-    display: none; /* hide on small screens */
+    display: none;
   }
 }
 
+/* --------------------------------------------- */
+/*  SKELETON LOADING (FULL PRODUCT CARD)         */
+/* --------------------------------------------- */
+
+.skeleton-track {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: calc(25% - 1rem);
+  gap: 1.5rem;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@media (max-width: 768px) {
+  .skeleton-track {
+    grid-auto-columns: calc(50% - 1rem);
+  }
+}
+
+.skeleton-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Skeleton Image (3:4 ratio like product image) */
+.skeleton-image {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
+  background: #e5e7eb;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Info section matching ProductCard spacing */
+.skeleton-info {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 0.5rem;
+  align-items: center;
+}
+
+.skeleton-line {
+  height: 14px;
+  background: #e5e7eb;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton-line.long {
+  width: 80%;
+}
+
+.skeleton-line.medium {
+  width: 60%;
+}
+
+.skeleton-line.short {
+  width: 40%;
+}
+
+/* Skeleton button */
+.skeleton-button {
+  width: 100px;
+  height: 2.5rem;
+  border-radius: 9999px;
+  background: #e5e7eb;
+  position: relative;
+  overflow: hidden;
+}
+
+/* --------------------------------------------- */
+/*  SHIMMER EFFECT                               */
+/* --------------------------------------------- */
+
+.shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -150%;
+  height: 100%;
+  width: 150%;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0) 0%,
+    rgba(255,255,255,0.6) 50%,
+    rgba(255,255,255,0) 100%
+  );
+  animation: shimmerMove 1.3s infinite;
+}
+
+@keyframes shimmerMove {
+  0% { left: -150%; }
+  100% { left: 150%; }
+}
+
+/* --------------------------------------------- */
+/*  SMOOTH FADE-IN WHEN LOADED                   */
+/* --------------------------------------------- */
+
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.6s ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
