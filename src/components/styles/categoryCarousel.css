@@ -1,0 +1,87 @@
+.category-section {
+  width: 100%;
+  background: #fff;
+  padding: 3rem 2rem;
+  overflow: hidden;
+}
+
+/* Title */
+.category-title {
+  font-size: 4rem;
+  font-weight: 700;
+  color: #111;
+}
+
+.shopby {
+  color: #03c7fe;   /* change to any color you want */
+}
+
+/* Carousel */
+.category-carousel {
+  display: flex;
+  gap: 3rem;
+  overflow-x: auto;
+  padding: 1rem 0;
+  scrollbar-width: none;
+}
+.category-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+/* Item */
+.category-item {
+  text-decoration: none;
+  color: black;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+/* Circle */
+.circle-bg {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: #f3f3f3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* ALLOW IMAGE TO EXPAND OUTSIDE */
+  overflow: visible;
+
+  transition: 0.35s ease;
+  position: relative;
+  z-index: 1;
+}
+
+/* Image */
+.category-img {
+  width: 130px;
+  height: 130px;
+  object-fit: contain;
+
+  /* Make image appear ABOVE the circle */
+  position: relative;
+  z-index: 5;
+
+  transition: transform 0.35s ease;
+}
+
+/* Hover effects */
+.category-item:hover .circle-bg {
+  background: #03c7fe;
+}
+
+.category-item:hover .category-img {
+  transform: scale(1.2);   /* bigger zoom */
+}
+  
+/* Category name */
+.cat-name {
+  margin-top: 0.8rem;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+}

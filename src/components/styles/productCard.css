@@ -12,6 +12,7 @@
 
 .card.clean:hover {
   border-color: #d4d4d4;
+  background: #F8F8F8;
 }
 
 /* ---------- WRAPPER ---------- */
@@ -29,7 +30,7 @@
 
 .card-title {
   font-size: 1.45rem;
-  font-weight: 700;
+  font-weight: 500;
   color: #111;
   margin-bottom: 0.35rem;
 }
@@ -134,12 +135,12 @@
 .add-to-cart {
   width: 100%;
   padding: 0.85rem;
-  background: #96ff3f;
+  background: #15D1F5;
   border: none;
   border-radius: 0 0 30px 30px;
   font-weight: 700;
   font-size: 0.95rem;
-  color: #000;
+  color: white;
   display: flex;
   justify-content: center;
   align-items: center;

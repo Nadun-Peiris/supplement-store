@@ -10,22 +10,17 @@ import { useCart } from "@/context/CartContext";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [user, setUser] = useState<any>(null);
-  const [scrolled, setScrolled] = useState(false);
+  const [headerState, setHeaderState] = useState<"header-topstate" | "header-scrolled">(
+    "header-topstate"
+  );
+  const [user, setUser] = useState<import("firebase/auth").User | null>(null);
 
-  const { count } = useCart(); // live cart count
+  const { count, refreshCart } = useCart();
 
-  // Auth listener
+  // Track Firebase Auth
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u));
     return () => unsub();
-  }, []);
-
-  // SCROLL BEHAVIOUR → solid at top + blur after scroll
-  useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleLogout = async () => {
@@ -34,44 +29,48 @@ export default function Header() {
   };
 
   return (
-    <header className={`site-header ${scrolled ? "header-scrolled" : "header-topstate"}`}>
-      {/* TOP ROW */}
+    <header className={`site-header ${headerState}`}>
+      {/* TOP BAR */}
       <div className="header-top">
 
-        {/* MOBILE MENU BUTTON */}
+        {/* Mobile Hamburger */}
         <button
           className="hamburger-btn md:hidden"
           onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Toggle Menu"
         >
           {menuOpen ? <FaTimes /> : <FaBars />}
         </button>
 
-        {/* LOGO */}
+        {/* Logo */}
         <Link href="/" className="header-logo">
           <img src="/logo.png" alt="Supplement Logo" />
         </Link>
 
-        {/* DESKTOP RIGHT ICONS */}
+        {/* RIGHT ICONS (Desktop Only) */}
         <div className="nav-right hidden md:flex">
-          {/* CART */}
-          <Link href="/cart" className="icon-btn cart-btn" aria-label="Cart">
+
+          {/* CART ICON */}
+          <Link href="/cart" className="icon-btn cart-btn">
             <FaShoppingCart />
             {count > 0 && <span className="cart-badge">{count}</span>}
           </Link>
 
           {/* AUTH */}
           {user ? (
-            <button className="auth-btn" onClick={handleLogout}>Logout</button>
+            <button onClick={handleLogout} className="auth-btn">
+              Logout
+            </button>
           ) : (
-            <Link href="/login" className="auth-btn">Login</Link>
+            <Link href="/login" className="auth-btn">
+              Login
+            </Link>
           )}
         </div>
       </div>
 
       {/* DESKTOP NAV */}
       <div className="header-bottom desktop-nav">
-        <nav className="nav-center">
+        <nav>
           <ul>
             <li><Link href="/">HOME</Link></li>
             <li><Link href="/protein">PROTEIN</Link></li>
@@ -103,17 +102,28 @@ export default function Header() {
               <li><Link href="/about" onClick={() => setMenuOpen(false)}>ABOUT US</Link></li>
               <li><Link href="/contact" onClick={() => setMenuOpen(false)}>CONTACT US</Link></li>
 
-              {/* MOBILE ICON ROW */}
+              <br />
+
+              {/* MOBILE CART + LOGIN */}
               <li className="mobile-icons">
-                <Link href="/cart" className="icon-btn cart-btn" onClick={() => setMenuOpen(false)}>
+
+                <Link
+                  href="/cart"
+                  onClick={() => setMenuOpen(false)}
+                  className="icon-btn cart-btn"
+                >
                   <FaShoppingCart />
                   {count > 0 && <span className="cart-badge">{count}</span>}
                 </Link>
 
                 {user ? (
-                  <button onClick={handleLogout} className="auth-btn">Logout</button>
+                  <button onClick={handleLogout} className="auth-btn">
+                    Logout
+                  </button>
                 ) : (
-                  <Link href="/login" onClick={() => setMenuOpen(false)} className="auth-btn">Login</Link>
+                  <Link href="/login" className="auth-btn">
+                    Login
+                  </Link>
                 )}
               </li>
             </ul>

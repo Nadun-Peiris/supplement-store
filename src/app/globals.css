@@ -38,7 +38,7 @@
   --color-border: var(--border);
   --color-muted: var(--muted);
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-body, "Roboto", Arial, Helvetica, sans-serif);
   --font-mono: var(--font-geist-mono);
 }
 
@@ -46,8 +46,27 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+  font-family: var(--font-body, "Roboto", Arial, Helvetica, sans-serif);
   transition: background 0.3s ease, color 0.3s ease;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.section-title,
+.hero-heading,
+.hero-title {
+  font-family: var(--font-heading, "Oswald", Arial, sans-serif);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
 }
 
 /* Accent link/button utility */
