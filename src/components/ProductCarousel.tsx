@@ -99,12 +99,12 @@ export default function ProductCarousel({ category }: { category: string }) {
           {products.map((p) => (
             <ProductCard
               key={p._id}
+              id={p._id}                    // ✅ CRITICAL FIX
               name={p.name}
               category={p.category}
               price={p.price}
               image={p.image}
-              hoverImage={p.hoverImage}
-              href={`/product/${p.slug || p._id}`}
+              slug={p.slug}                 // optional
             />
           ))}
         </div>

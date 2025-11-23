@@ -1,0 +1,82 @@
+/* --------------------------------------------- */
+/* SECTION WRAPPER                               */
+/* --------------------------------------------- */
+
+.brand-section {
+  width: 100%;
+  padding: 3rem 2rem;
+  background: #fff;
+}
+
+.brand-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: #111;
+}
+
+.brand-title span {
+  color: #15D1F5;
+  font-weight: 900;
+}
+
+/* --------------------------------------------- */
+/* GRID LAYOUT                                   */
+/* --------------------------------------------- */
+
+.brand-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1.5rem;
+}
+
+/* --------------------------------------------- */
+/* BRAND CARD                                    */
+/* --------------------------------------------- */
+
+.brand-card {
+  background: #ffffff;
+  border: 1px solid #eeeeee;
+  border-radius: 20px;
+  padding: 2rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.35s ease;
+  height: 170px;
+  cursor: pointer;
+}
+
+/* Brand Logo Default Look */
+.brand-image {
+  filter: grayscale(1);
+  opacity: 0.3;
+  transition: all 0.35s ease;
+  transform: scale(0.95);
+}
+
+/* Hover — Enable Color + Higher Visibility */
+.brand-card:hover .brand-image {
+  filter: grayscale(0);
+  opacity: 1;
+}
+
+/* Hover — Slight Card Lift + Darker Border */
+.brand-card:hover {
+  border-color: #ccc;
+}
+
+/* --------------------------------------------- */
+/* RESPONSIVE                                    */
+/* --------------------------------------------- */
+
+@media (max-width: 768px) {
+  .brand-title {
+    font-size: 1.5rem;
+  }
+
+  .brand-card {
+    height: 130px;
+    padding: 1.5rem 1rem;
+  }
+}

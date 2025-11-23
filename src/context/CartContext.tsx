@@ -1,0 +1,144 @@
+"use client";
+
+import { createContext, useContext, useEffect, useState } from "react";
+
+interface CartItem {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+}
+
+interface CartContextType {
+  count: number;
+  refreshCart: () => Promise<void>;
+  addToCart: (product: Omit<CartItem, "quantity">) => Promise<void>;
+  updateQuantity: (productId: string, qty: number) => Promise<void>;
+  removeFromCart: (productId: string) => Promise<void>;
+}
+
+const CartContext = createContext<CartContextType>({
+  count: 0,
+  refreshCart: async () => {},
+  addToCart: async () => {},
+  updateQuantity: async () => {},
+  removeFromCart: async () => {},
+});
+
+export const CartProvider = ({ children }: { children: React.ReactNode }) => {
+  const [count, setCount] = useState(0);
+
+  /* --------------------------------------------
+     Helper: Load cart from API & update count
+  --------------------------------------------- */
+  const refreshCart = async () => {
+    try {
+      let guestId = localStorage.getItem("guestId");
+      if (!guestId) {
+        guestId = crypto.randomUUID();
+        localStorage.setItem("guestId", guestId);
+      }
+
+      const res = await fetch("/api/cart", {
+        method: "GET",
+        headers: { "x-guest-id": guestId },
+      });
+
+      const data = await res.json();
+      const items: CartItem[] = data.cart?.items || [];
+
+      setCount(items.reduce((sum, item) => sum + item.quantity, 0));
+    } catch (error) {
+      console.error("Failed to load cart:", error);
+    }
+  };
+
+  /* --------------------------------------------
+     Add To Cart
+  --------------------------------------------- */
+  const addToCart = async ({ productId, name, price, image }: Omit<CartItem, "quantity">) => {
+    let guestId = localStorage.getItem("guestId");
+    if (!guestId) {
+      guestId = crypto.randomUUID();
+      localStorage.setItem("guestId", guestId);
+    }
+
+    await fetch("/api/cart", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-guest-id": guestId,
+      },
+      body: JSON.stringify({
+        productId,
+        name,
+        price,
+        image,
+      }),
+    });
+
+    await refreshCart();
+  };
+
+  /* --------------------------------------------
+     Update Quantity
+  --------------------------------------------- */
+  const updateQuantity = async (productId: string, qty: number) => {
+    if (qty < 1) return;
+
+    let guestId = localStorage.getItem("guestId") as string;
+
+    await fetch("/api/cart/update", {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        "x-guest-id": guestId,
+      },
+      body: JSON.stringify({ productId, quantity: qty }),
+    });
+
+    await refreshCart();
+  };
+
+  /* --------------------------------------------
+     Remove Item
+  --------------------------------------------- */
+  const removeFromCart = async (productId: string) => {
+    let guestId = localStorage.getItem("guestId") as string;
+
+    await fetch("/api/cart/remove", {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+        "x-guest-id": guestId,
+      },
+      body: JSON.stringify({ productId }),
+    });
+
+    await refreshCart();
+  };
+
+  /* --------------------------------------------
+     Load cart once on mount
+  --------------------------------------------- */
+  useEffect(() => {
+    refreshCart();
+  }, []);
+
+  return (
+    <CartContext.Provider
+      value={{
+        count,
+        refreshCart,
+        addToCart,
+        updateQuantity,
+        removeFromCart,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
+};
+
+export const useCart = () => useContext(CartContext);

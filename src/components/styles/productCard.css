@@ -1,81 +1,160 @@
-.product-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  background: #ffffff;
-  border-radius: 10px;
+/* ---------- CARD ---------- */
+.card.clean {
+  background: #fff;
+  border: 1px solid #ececec;
+  border-radius: 30px;
   overflow: hidden;
-  transition: box-shadow 0.3s ease;
+  position: relative;
+  transition: all 0.35s ease;
+  min-height: 590px;
+  z-index: 1;
 }
 
-.product-card:hover {
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+.card.clean:hover {
+  border-color: #d4d4d4;
 }
 
-/* Image container */
-.image-container {
-  width: 100%;
+/* ---------- WRAPPER ---------- */
+.card-wrapper {
+  padding: 2.4rem;
   display: block;
   position: relative;
+  z-index: 1;
 }
 
-.image-wrapper {
-  position: relative;
-  width: 100%;
-  overflow: hidden;
-  aspect-ratio: 3 / 4;
+/* ---------- TITLE ---------- */
+.card-header {
+  margin-bottom: 1.4rem;
 }
 
-.product-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  position: absolute;
-  top: 0;
-  left: 0;
-  transition: opacity 0.6s ease-in-out;
-}
-
-/* Base image visible by default */
-.product-image.base {
-  opacity: 1;
-}
-
-/* Hover image hidden by default */
-.product-image.hover {
-  opacity: 0;
-}
-
-/* When hovered, fade between images */
-.image-wrapper:hover .product-image.base {
-  opacity: 0;
-}
-
-.image-wrapper:hover .product-image.hover {
-  opacity: 1;
-}
-
-/* Info section */
-.product-info {
-  text-align: center;
-  padding: 1rem 0;
-}
-
-.product-name {
-  font-size: 1rem;
-  font-weight: 500;
-  color: #111;
-  margin-bottom: 0.25rem;
-}
-
-.product-category {
-  font-size: 0.9rem;
-  color: #666;
-  margin-bottom: 0.5rem;
-}
-
-.product-price {
-  font-size: 1rem;
+.card-title {
+  font-size: 1.45rem;
   font-weight: 700;
-  color: #15d1f5; /* Brand blue */
+  color: #111;
+  margin-bottom: 0.35rem;
+}
+
+.card-category {
+  font-size: 1rem;
+  color: #8b8b8b;
+}
+
+/* ---------- HOVER ICONS ---------- */
+.card-icons {
+  position: absolute;
+  top: 34%;
+  right: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  opacity: 0;
+  transform: translateX(12px);
+  transition: all 0.35s ease;
+  pointer-events: none;
+  z-index: 30;
+}
+
+.card.clean:hover .card-icons {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+.card-icon {
+  width: 44px;
+  height: 44px;
+  background: white;
+  border: 1px solid #e3e3e3;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  color: #444;
+  transition: all 0.25s ease;
+  z-index: 40;
+}
+
+.card-icon:hover {
+  background: #f3f3f3;
+}
+
+/* ---------- IMAGE ---------- */
+.image-container.large {
+  width: 100%;
+  height: 360px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.card-image {
+  max-height: 300px;
+  width: auto;
+  object-fit: contain;
+  transition: transform 0.45s ease;
+}
+
+/* Lift image on hover */
+.card.clean:hover .card-image {
+  transform: translateY(-18px);
+}
+
+/* ---------- PRICE AREA ---------- */
+.card-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 1.3rem;
+  transition: transform 0.45s ease;
+}
+
+.card-price {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #111;
+}
+
+.badge {
+  background: #eef5ff;
+  border: 1px solid #cfe0ff;
+  padding: 0.4rem 1rem;
+  border-radius: 18px;
+  font-size: 0.78rem;
+  color: #4d7eff;
+}
+
+/* Move price up on hover */
+.card.clean:hover .card-bottom {
+  transform: translateY(-30px);
+}
+
+/* ---------- ADD TO CART BUTTON ---------- */
+.add-to-cart {
+  width: 100%;
+  padding: 0.85rem;
+  background: #96ff3f;
+  border: none;
+  border-radius: 0 0 30px 30px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  position: absolute;
+  bottom: -90px;
+  left: 0;
+
+  opacity: 0;
+  z-index: 50;
+  transition: all 0.35s ease;
+}
+
+/* Slide up reveal */
+.card.clean:hover .add-to-cart {
+  bottom: 0;
+  opacity: 1;
 }

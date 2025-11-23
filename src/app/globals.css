@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* 🌈 Light mode base colors */
+/* 🌈 Light mode base colors (Always Enabled) */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -14,17 +14,18 @@
   --muted: #6b7280;
 }
 
-/* 🔮 Dark mode support */
+/* ❌ Dark Mode Disabled For Entire Site */
+/* Nutreko theme is ALWAYS light, so override dark mode back to light */
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ffffff;
+    --foreground: #171717;
 
-    /* Slightly dim accent for dark mode */
-    --accent: #12bfe0;
-    --accent-hover: #0ea9c5;
-    --border: #262626;
-    --muted: #9ca3af;
+    --accent: #15d1f5;
+    --accent-hover: #0bb3d6;
+
+    --border: #e5e7eb;
+    --muted: #6b7280;
   }
 }
 
@@ -55,11 +56,13 @@ a {
   text-decoration: none;
   transition: color 0.2s ease;
 }
+
 a:hover {
   color: var(--accent-hover);
 }
 
 /* Optional global border style */
-hr, .divider {
+hr,
+.divider {
   border-color: var(--border);
 }

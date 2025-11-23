@@ -3,22 +3,29 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import "@/components/styles/header.css";
-import { FaShoppingCart, FaUser, FaBars, FaTimes } from "react-icons/fa";
-import { useCartStore } from "@/store/cartStore";
+import { FaShoppingCart, FaBars, FaTimes } from "react-icons/fa";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import { useCart } from "@/context/CartContext";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [user, setUser] = useState<import("firebase/auth").User | null>(null);
-  const cartCount = useCartStore((state) =>
-    state.items.reduce((n, i) => n + i.quantity, 0)
-  );
+  const [user, setUser] = useState<any>(null);
+  const [scrolled, setScrolled] = useState(false);
 
-  // 🔹 Track logged-in user
+  const { count } = useCart(); // live cart count
+
+  // Auth listener
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => setUser(u));
-    return () => unsubscribe();
+    const unsub = onAuthStateChanged(auth, (u) => setUser(u));
+    return () => unsub();
+  }, []);
+
+  // SCROLL BEHAVIOUR → solid at top + blur after scroll
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 10);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const handleLogout = async () => {
@@ -27,10 +34,11 @@ export default function Header() {
   };
 
   return (
-    <header className="site-header">
-      {/* ─── Top Section ─── */}
+    <header className={`site-header ${scrolled ? "header-scrolled" : "header-topstate"}`}>
+      {/* TOP ROW */}
       <div className="header-top">
-        {/* Hamburger Menu (Mobile) */}
+
+        {/* MOBILE MENU BUTTON */}
         <button
           className="hamburger-btn md:hidden"
           onClick={() => setMenuOpen(!menuOpen)}
@@ -39,42 +47,29 @@ export default function Header() {
           {menuOpen ? <FaTimes /> : <FaBars />}
         </button>
 
-        {/* Logo */}
+        {/* LOGO */}
         <Link href="/" className="header-logo">
           <img src="/logo.png" alt="Supplement Logo" />
         </Link>
 
-        {/* Right Side Icons (Desktop only) */}
+        {/* DESKTOP RIGHT ICONS */}
         <div className="nav-right hidden md:flex">
-          <Link href="/cart" aria-label="Cart" className="icon-btn cart-btn">
+          {/* CART */}
+          <Link href="/cart" className="icon-btn cart-btn" aria-label="Cart">
             <FaShoppingCart />
-            {cartCount > 0 && (
-              <span
-                className="cart-badge"
-                aria-label={`${cartCount} items in cart`}
-              >
-                {cartCount}
-              </span>
-            )}
+            {count > 0 && <span className="cart-badge">{count}</span>}
           </Link>
 
+          {/* AUTH */}
           {user ? (
-            <button
-              onClick={handleLogout}
-              className="auth-btn"
-              aria-label="Logout"
-            >
-              Logout
-            </button>
+            <button className="auth-btn" onClick={handleLogout}>Logout</button>
           ) : (
-            <Link href="/login" aria-label="Login" className="auth-btn">
-              Login
-            </Link>
+            <Link href="/login" className="auth-btn">Login</Link>
           )}
         </div>
       </div>
 
-      {/* ─── Desktop Navigation ─── */}
+      {/* DESKTOP NAV */}
       <div className="header-bottom desktop-nav">
         <nav className="nav-center">
           <ul>
@@ -92,7 +87,7 @@ export default function Header() {
         </nav>
       </div>
 
-      {/* ─── Mobile Dropdown Menu ─── */}
+      {/* MOBILE MENU */}
       {menuOpen && (
         <div className="mobile-menu md:hidden">
           <nav>
@@ -108,43 +103,17 @@ export default function Header() {
               <li><Link href="/about" onClick={() => setMenuOpen(false)}>ABOUT US</Link></li>
               <li><Link href="/contact" onClick={() => setMenuOpen(false)}>CONTACT US</Link></li>
 
-              <br />
-
-              {/* Cart & Login (Mobile only) */}
+              {/* MOBILE ICON ROW */}
               <li className="mobile-icons">
-                <Link
-                  href="/cart"
-                  onClick={() => setMenuOpen(false)}
-                  aria-label="Cart"
-                  className="icon-btn cart-btn"
-                >
+                <Link href="/cart" className="icon-btn cart-btn" onClick={() => setMenuOpen(false)}>
                   <FaShoppingCart />
-                  {cartCount > 0 && (
-                    <span
-                      className="cart-badge"
-                      aria-label={`${cartCount} items in cart`}
-                    >
-                      {cartCount}
-                    </span>
-                  )}
+                  {count > 0 && <span className="cart-badge">{count}</span>}
                 </Link>
+
                 {user ? (
-                  <button
-                    onClick={handleLogout}
-                    aria-label="Logout"
-                    className="auth-btn"
-                  >
-                    Logout
-                  </button>
+                  <button onClick={handleLogout} className="auth-btn">Logout</button>
                 ) : (
-                  <Link
-                    href="/login"
-                    onClick={() => setMenuOpen(false)}
-                    aria-label="Login"
-                    className="auth-btn"
-                  >
-                    Login
-                  </Link>
+                  <Link href="/login" onClick={() => setMenuOpen(false)} className="auth-btn">Login</Link>
                 )}
               </li>
             </ul>

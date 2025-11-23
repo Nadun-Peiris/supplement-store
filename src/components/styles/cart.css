@@ -1,0 +1,298 @@
+/* ------------------------------------------------------ */
+/* CART PAGE LAYOUT — PERFECT NUTREKO STYLE               */
+/* ------------------------------------------------------ */
+
+.cart-page-container {
+  padding: 5rem 6rem;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+/* Title */
+.cart-title {
+  font-size: 4.2rem;
+  font-weight: 900;
+  text-align: center;
+  letter-spacing: 1.2px;
+  margin-bottom: 0.3rem;
+}
+
+.cart-breadcrumb {
+  text-align: center;
+  color: #8f8f8f;
+  font-size: 1rem;
+  margin-bottom: 4rem;
+}
+
+/* ------------------------------------------------------ */
+/* MAIN GRID                                               */
+/* ------------------------------------------------------ */
+.cart-layout {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr;
+  gap: 3.5rem;
+}
+
+/* ------------------------------------------------------ */
+/* TABLE HEADER                                           */
+/* ------------------------------------------------------ */
+.cart-table-header {
+  display: grid;
+  grid-template-columns: 2.4fr 0.9fr 1.1fr 1fr;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f1f1f1;
+  color: #555;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ------------------------------------------------------ */
+/* CART ITEMS LIST                                         */
+/* ------------------------------------------------------ */
+.cart-items {
+  margin-top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* ------------------------------------------------------ */
+/* CART ITEM ROW — MORE ACCURATE NOW                      */
+/* ------------------------------------------------------ */
+.cart-item-row {
+  display: grid;
+  grid-template-columns: 0.3fr 2.3fr 0.9fr 1.1fr 1fr;
+  align-items: center;
+  padding-bottom: 1.8rem;
+  border-bottom: 1px solid #eee;
+}
+
+/* REMOVE BUTTON */
+.remove-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.7rem;
+  cursor: pointer;
+  color: #b1b1b1;
+  transition: 0.2s;
+}
+.remove-btn:hover {
+  color: #000;
+}
+
+/* PRODUCT DISPLAY */
+.cart-product-info {
+  display: flex;
+  align-items: center;
+  gap: 1.4rem;
+}
+
+.cart-item-image {
+  width: 70px;
+  height: 70px;
+  object-fit: contain;
+  border-radius: 10px;
+}
+
+.cart-item-name {
+  font-size: 1.05rem;
+  font-weight: 500;
+  color: #222;
+}
+
+/* PRICE */
+.cart-item-price {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #111;
+}
+
+/* QUANTITY PILL */
+.cart-qty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 999px;
+  width: 130px;
+  height: 42px;
+  padding: 0 14px;
+  gap: 22px;
+  border: 1px solid #e5e5e5;
+}
+
+/* Buttons */
+.cart-qty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f5f5f5;
+  border-radius: 999px;
+  width: 135px;
+  height: 44px;
+  padding: 0 14px;
+  gap: 22px;
+  border: 1.5px solid #e6e6e6;
+  transition: 0.2s ease;
+}
+
+.cart-qty:hover {
+  background: #efefef;
+}
+
+/* Buttons */
+.qty-btn {
+  font-size: 1.4rem;
+  font-weight: 700;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #333;
+  padding: 0 8px;
+  line-height: 1;
+  transition: 0.15s ease;
+  user-select: none;
+}
+
+.qty-btn:hover {
+  color: black;
+  transform: scale(1.15);
+}
+
+.qty-btn:active {
+  transform: scale(0.9);
+}
+
+/* Disabled state for minus at quantity=1 */
+.qty-btn.disabled,
+.qty-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Number animation */
+.qty-number {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #222;
+  display: inline-block;
+  animation: qtyFade 0.25s ease;
+}
+
+@keyframes qtyFade {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+
+/* SUBTOTAL */
+.cart-item-subtotal {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #111;
+}
+
+/* ------------------------------------------------------ */
+/* SUMMARY BOX – EXACT NUTREKO LOOK                       */
+/* ------------------------------------------------------ */
+.cart-summary {
+  padding: 2.5rem;
+  border: 2px solid #ebebeb;
+  border-radius: 24px;
+  background: white;
+  height: fit-content;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.cart-summary h3 {
+  font-size: 1.55rem;
+  font-weight: 900;
+  margin-bottom: 1.8rem;
+}
+
+/* SUMMARY ROW */
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1rem;
+  margin-bottom: 1.5rem;
+  color: #333;
+}
+
+/* SHIPPING OPTIONS */
+.shipping-options {
+  margin-top: -0.4rem;
+  margin-bottom: 1.3rem;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 0.95rem;
+  color: #666;
+}
+
+.shipping-options label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* TOTAL */
+.summary-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.5rem;
+  font-weight: 900;
+  margin: 2.2rem 0;
+}
+
+/* CHECKOUT BUTTON */
+.checkout-btn {
+  width: 100%;
+  padding: 1.2rem;
+  background: #000;
+  color: white;
+  border-radius: 999px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.checkout-btn:hover {
+  opacity: 0.9;
+}
+
+/* ------------------------------------------------------ */
+/* COUPON ROW (Below Items) — Added for accuracy          */
+/* ------------------------------------------------------ */
+.coupon-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-top: 1.8rem;
+}
+
+.coupon-input {
+  flex: 1;
+  padding: 1rem 1.2rem;
+  border-radius: 999px;
+  border: 1px solid #ddd;
+  font-size: 0.95rem;
+}
+
+.coupon-btn {
+  padding: 0.9rem 1.8rem;
+  background: #f1f1f1;
+  border-radius: 999px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border: none;
+}

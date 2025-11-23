@@ -1,5 +1,6 @@
 import HeroSlider from "@/components/HeroSlider";
 import ProductCarousel from "@/components/ProductCarousel";
+import BrandLogoSlider from "@/components/BrandLogoSlider";
 
 export default function HomePage() {
   const slides = [
@@ -12,6 +13,8 @@ export default function HomePage() {
       <HeroSlider slides={slides} autoPlayMs={5000} />
 
       <ProductCarousel category="Protein" />
+
+      <BrandLogoSlider />
 
       <HeroSlider slides={slides} autoPlayMs={5000} />
 
