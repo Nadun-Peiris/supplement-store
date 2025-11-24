@@ -27,27 +27,15 @@
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  height: 2.5rem;
-  width: 2.5rem;
-  border-radius: 9999px; /* full circle */
-  border: 1px solid #525252;
-  background-color: #262626;
-  color: #ffffff;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
+  z-index: 5;
 }
 
-.prev { left: 12px; }
-.next { right: 12px; }
+.prev {
+  left: 12px;
+}
 
-.nav:hover {
-  border-color: #03c7fe;   /* blue accent */
-  background-color: #111;  /* darker bg */
-  color: #ffffff;          /* keep icons white */
+.next {
+  right: 12px;
 }
 
 /* Pagination dots */

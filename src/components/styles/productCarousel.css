@@ -5,7 +5,7 @@
 .carousel-section {
   width: 100%;
   background: #fff;
-  padding: 3rem 2rem;
+  padding: 4rem 4rem;
   overflow: hidden;
 }
 
@@ -46,6 +46,8 @@
 
 .carousel-container {
   position: relative;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .carousel-track {
@@ -62,6 +64,18 @@
   display: none;
 }
 
+@media (max-width: 1200px) {
+  .carousel-section {
+    padding: 3rem 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .carousel-section {
+    padding: 2.5rem 1.5rem;
+  }
+}
+
 @media (max-width: 768px) {
   .carousel-track {
     grid-auto-columns: calc(50% - 1rem);
@@ -74,27 +88,9 @@
 
 .carousel-btn {
   position: absolute;
-  top: 45%;
+  top: 50%;
   transform: translateY(-50%);
-  height: 2.5rem;
-  width: 2.5rem;
-  border-radius: 50%;
-  border: 1px solid #525252;
-  background: #262626;
-  color: #fff;
-  font-size: 1.2rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
   z-index: 5;
-}
-
-.carousel-btn:hover {
-  border-color: #15d1f5;
-  background: #111;
-  color: #fff;
 }
 
 .carousel-btn.left {

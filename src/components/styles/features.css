@@ -1,0 +1,77 @@
+.features-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 4rem 4rem;
+  background: #fff;
+}
+
+.features-card {
+  width: 100%;
+  padding: 3rem 2rem;
+  background: white;
+  border: 1px solid #e6e6e6;
+  border-radius: 22px;
+
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 2.5rem;
+  text-align: center;
+  align-items: start;
+}
+
+.feature-item {
+  position: relative;
+  padding: 0 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.feature-item:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: -1.25rem;
+  top: 12%;
+  bottom: 12%;
+  width: 1px;
+  background: #e6e6e6;
+}
+
+.feature-item h3 {
+  margin-top: 1.2rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #111;
+  letter-spacing: 0.5px;
+}
+
+.feature-item p {
+  margin-top: 0.4rem;
+  font-size: 0.9rem;
+  color: #7a7a7a;
+}
+
+@media (max-width: 900px) {
+  .features-card {
+    grid-template-columns: 1fr;
+    gap: 1.75rem;
+  }
+
+  .feature-item:not(:last-child)::after {
+    display: none;
+  }
+}
+
+@media (max-width: 1200px) {
+  .features-wrapper {
+    padding: 3rem 2rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .features-wrapper {
+    padding: 2.5rem 1.5rem;
+  }
+}

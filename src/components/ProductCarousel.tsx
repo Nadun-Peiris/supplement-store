@@ -91,7 +91,11 @@ export default function ProductCarousel({ category }: { category: string }) {
       </div>
 
       <div className="carousel-container">
-        <button className="carousel-btn left" onClick={scrollLeft}>
+        <button
+          className="carousel-btn nav-arrow left"
+          onClick={scrollLeft}
+          aria-label="Scroll products left"
+        >
           <FaChevronLeft />
         </button>
 
@@ -109,7 +113,11 @@ export default function ProductCarousel({ category }: { category: string }) {
           ))}
         </div>
 
-        <button className="carousel-btn right" onClick={scrollRight}>
+        <button
+          className="carousel-btn nav-arrow right"
+          onClick={scrollRight}
+          aria-label="Scroll products right"
+        >
           <FaChevronRight />
         </button>
       </div>

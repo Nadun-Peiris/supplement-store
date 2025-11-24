@@ -12,6 +12,7 @@
   /* Neutral helpers */
   --border: #e5e7eb;
   --muted: #6b7280;
+  --section-gap: 4rem;
 }
 
 /* ❌ Dark Mode Disabled For Entire Site */
@@ -84,4 +85,37 @@ a:hover {
 hr,
 .divider {
   border-color: var(--border);
+}
+
+/* Consistent vertical rhythm between homepage sections */
+main > * + * {
+  margin-top: var(--section-gap);
+}
+
+@media (max-width: 768px) {
+  :root {
+    --section-gap: 2.5rem;
+  }
+}
+
+/* Shared navigation arrow buttons */
+.nav-arrow {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 9999px;
+  border: 1px solid #525252;
+  background-color: #262626;
+  color: #ffffff;
+  font-size: 1.1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.nav-arrow:hover {
+  border-color: #03c7fe;
+  background-color: #111;
+  color: #ffffff;
 }

@@ -64,10 +64,10 @@
   margin: 0.4rem 0;
 }
 
-.footer-row span {
+.footer-icon {
   flex-shrink: 0;
-  width: 20px;
-  text-align: center;
+  font-size: 1.15rem;
+  color: #03c7fe;
 }
 
 /* Divider and logo */

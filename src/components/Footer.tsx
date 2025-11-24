@@ -1,6 +1,13 @@
 import Link from "next/link";
 import "./styles/footer.css";
-import { FaInstagram, FaFacebookF, FaTiktok } from "react-icons/fa";
+import {
+  FaInstagram,
+  FaFacebookF,
+  FaTiktok,
+  FaMapMarkerAlt,
+  FaPhoneAlt,
+  FaEnvelope,
+} from "react-icons/fa";
 
 export default function Footer() {
   return (
@@ -11,15 +18,19 @@ export default function Footer() {
         <div className="footer-col">
           <h4>MAIN BRANCH</h4>
           <div className="footer-row">
-            <span>🏢</span>
-            <p>No 271, Thalawathugoda Road,<br />Sri Jayawardenepura Kotte</p>
+            <FaMapMarkerAlt className="footer-icon" aria-hidden />
+            <p>
+              No 271, Thalawathugoda Road,
+              <br />
+              Sri Jayawardenepura Kotte
+            </p>
           </div>
           <div className="footer-row">
-            <span>📞</span>
+            <FaPhoneAlt className="footer-icon" aria-hidden />
             <a href="tel:+94777658483">+94 77 765 8483</a>
           </div>
           <div className="footer-row">
-            <span>✉️</span>
+            <FaEnvelope className="footer-icon" aria-hidden />
             <a href="mailto:info@supplement.com">info@supplement.com</a>
           </div>
         </div>
