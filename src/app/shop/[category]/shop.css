@@ -1,0 +1,194 @@
+.shop-hero {
+  width: 100%;
+  background: #f5f5f5;
+  padding: 4rem 0;
+  border-radius: 25px;
+  margin-bottom: 3rem;
+  text-align: center;
+}
+
+.shop-hero h1 {
+  font-size: 3rem;
+  font-weight: 900;
+  margin: 0;
+}
+
+.shop-container {
+  max-width: 100%;
+  margin: 2rem auto;
+  padding: 4rem 4rem;
+  overflow: hidden;
+
+  display: grid;
+  grid-template-columns: minmax(170px, 260px) 1fr; /* 🔥 Sidebar matches card width */
+  gap: 2rem;
+}
+
+
+/* =============================== */
+/* SIDEBAR (WooCommerce Style)     */
+/* =============================== */
+
+.sidebar-card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  padding: 2rem;
+  border-radius: 20px;
+  height: fit-content;
+  width: 100%;
+}
+
+/* Each section inside sidebar */
+.sidebar-section {
+  margin-bottom: 2rem;
+}
+
+/* Title row: PRODUCT CATEGORIES, PRICE, BRANDS */
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+}
+
+.sidebar-header h3 {
+  font-weight: 900;
+  font-size: 1.2rem;
+  margin: 0;
+}
+
+.toggle-icon {
+  font-size: 1.5rem;
+  font-weight: 900;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Divider line between groups */
+.divider {
+  border: none;
+  border-top: 1px solid #eee;
+  margin: 1rem 0;
+}
+
+/* Category + Brand checkbox lists */
+.sidebar-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.sidebar-list li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0;
+  font-size: 1rem;
+}
+
+.sidebar-list input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+
+
+/* =============================== */
+/* PRICE SLIDER                    */
+/* =============================== */
+
+.price-slider {
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.price-text {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 1rem;
+}
+
+/* Filter Button */
+.filter-btn {
+  background: #03c7fe;
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 40px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.filter-btn:hover {
+  background: #0097c2;
+}
+
+
+/* =============================== */
+/* PRODUCTS MAIN SECTION           */
+/* =============================== */
+
+.shop-main {
+  width: 100%;
+}
+
+.shop-heading {
+  font-size: 2.4rem;
+  font-weight: 900;
+  margin-bottom: 2rem;
+}
+
+
+/* =============================== */
+/* PRODUCT GRID                    */
+/* =============================== */
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(3, calc(33.333% - 1rem));
+  gap: 1.5rem;
+  justify-content: start;
+}
+
+/* Make product cards visually match sidebar */
+.card.clean {
+  border-radius: 20px !important;
+  border: 1px solid #e5e5e5;
+}
+
+/* =============================== */
+/* PAGINATION                      */
+/* =============================== */
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 3rem;
+  gap: 10px;
+}
+
+.page-btn {
+  border: 1px solid #ddd;
+  background: #fff;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+}
+
+.page-btn:hover {
+  background: #f1f1f1;
+}
+
+.page-btn.active {
+  background: #03c7fe;
+  color: white;
+  border-color: #03c7fe;
+}
+

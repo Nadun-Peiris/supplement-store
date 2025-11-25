@@ -2,12 +2,17 @@
 .card.clean {
   background: #fff;
   border: 1px solid #ececec;
-  border-radius: 30px;
+  border-radius: 24px;
   overflow: hidden;
   position: relative;
   transition: all 0.35s ease;
-  min-height: 590px;
-  z-index: 1;
+
+  width: 100%;              /* Width controlled by grid */
+  min-height: 550px;        /* Target height */
+  max-height: 550px;        /* Locks height consistently */
+
+  display: flex;
+  flex-direction: column;
 }
 
 .card.clean:hover {
@@ -17,42 +22,41 @@
 
 /* ---------- WRAPPER ---------- */
 .card-wrapper {
-  padding: 2.4rem;
-  display: block;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1.8rem;
   position: relative;
-  z-index: 1;
 }
 
 /* ---------- TITLE ---------- */
 .card-header {
-  margin-bottom: 1.4rem;
+  margin-bottom: 1rem;
 }
 
 .card-title {
-  font-size: 1.45rem;
-  font-weight: 500;
+  font-size: 1.28rem;        /* Slightly smaller */
+  font-weight: 600;
   color: #111;
-  margin-bottom: 0.35rem;
 }
 
 .card-category {
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: #8b8b8b;
 }
 
-/* ---------- HOVER ICONS ---------- */
+/* ---------- ICONS ---------- */
 .card-icons {
   position: absolute;
-  top: 34%;
-  right: 1.4rem;
+  top: 32%;
+  right: 1.2rem;
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 0.65rem;
   opacity: 0;
-  transform: translateX(12px);
+  transform: translateX(10px);
   transition: all 0.35s ease;
   pointer-events: none;
-  z-index: 30;
 }
 
 .card.clean:hover .card-icons {
@@ -62,28 +66,21 @@
 }
 
 .card-icon {
-  width: 44px;
-  height: 44px;
-  background: white;
-  border: 1px solid #e3e3e3;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
+  border: 1px solid #e3e3e3;
+  background: #fff;
+  font-size: 1rem;
   display: flex;
-  align-items: center;
   justify-content: center;
-  font-size: 1.05rem;
-  color: #444;
-  transition: all 0.25s ease;
-  z-index: 40;
-}
-
-.card-icon:hover {
-  background: #f3f3f3;
+  align-items: center;
 }
 
 /* ---------- IMAGE ---------- */
 .image-container.large {
   width: 100%;
-  height: 360px;
+  height: 250px;              /* Reduced to match 550px height */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -91,28 +88,31 @@
 }
 
 .card-image {
-  max-height: 300px;
-  width: auto;
+  max-height: 210px;          /* Adjusted */
   object-fit: contain;
-  transition: transform 0.45s ease;
+  transition: transform 0.4s ease;
 }
 
-/* Lift image on hover */
 .card.clean:hover .card-image {
-  transform: translateY(-18px);
+  transform: translateY(-14px);
 }
 
 /* ---------- PRICE AREA ---------- */
 .card-bottom {
+  margin-top: auto;               /* pushes it to the bottom */
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding-top: 1.3rem;
-  transition: transform 0.45s ease;
+  padding-top: 1rem;
+  transition: transform 0.35s ease;
+}
+
+.card.clean:hover .card-bottom {
+  transform: translateY(-25px);
 }
 
 .card-price {
-  font-size: 1.3rem;
+  font-size: 1.18rem;
   font-weight: 700;
   color: #111;
 }
@@ -120,41 +120,30 @@
 .badge {
   background: #eef5ff;
   border: 1px solid #cfe0ff;
-  padding: 0.4rem 1rem;
-  border-radius: 18px;
-  font-size: 0.78rem;
-  color: #4d7eff;
+  padding: 0.32rem 0.8rem;
+  border-radius: 14px;
+  font-size: 0.75rem;
 }
 
-/* Move price up on hover */
-.card.clean:hover .card-bottom {
-  transform: translateY(-30px);
-}
-
-/* ---------- ADD TO CART BUTTON ---------- */
+/* ---------- REVEAL CTA BUTTON ---------- */
 .add-to-cart {
   width: 100%;
-  padding: 0.85rem;
+  padding: 0.8rem;
   background: #15D1F5;
   border: none;
-  border-radius: 0 0 30px 30px;
+  border-radius: 0 0 24px 24px;
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   color: white;
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  text-align: center;
 
   position: absolute;
-  bottom: -90px;
+  bottom: -70px;
   left: 0;
-
   opacity: 0;
-  z-index: 50;
   transition: all 0.35s ease;
 }
 
-/* Slide up reveal */
 .card.clean:hover .add-to-cart {
   bottom: 0;
   opacity: 1;
