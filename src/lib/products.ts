@@ -13,8 +13,8 @@ export const normalizeProduct = (product: LeanProduct): ProductDTO => ({
   category: product.category,
   price: product.price,
   image: product.image,
-  hoverImage: product.hoverImage,
-  description: product.description,
+  hoverImage: product.hoverImage ?? undefined,
+  description: product.description ?? undefined,
 });
 
 export const getProductBySlug = async (slug: string): Promise<ProductDTO | null> => {
