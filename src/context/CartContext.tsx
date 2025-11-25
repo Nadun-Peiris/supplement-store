@@ -10,10 +10,18 @@ interface CartItem {
   image: string;
 }
 
+interface CartItemInput {
+  productId: string;
+  name: string;
+  price: number;
+  image: string;
+  quantity?: number;
+}
+
 interface CartContextType {
   count: number;
   refreshCart: () => Promise<void>;
-  addToCart: (product: CartItem) => Promise<void>;
+  addToCart: (product: CartItemInput) => Promise<void>;
   updateQuantity: (productId: string, qty: number) => Promise<void>;
   removeFromCart: (productId: string) => Promise<void>;
 }
@@ -63,7 +71,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     price,
     image,
     quantity = 1,
-  }: CartItem) => {
+  }: CartItemInput) => {
     let guestId = localStorage.getItem("guestId");
     if (!guestId) {
       guestId = crypto.randomUUID();
