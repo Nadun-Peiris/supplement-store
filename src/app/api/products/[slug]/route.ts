@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getProductBySlug } from "@/lib/products";
 
 // ✔ Next.js App Router passes params as the *2nd argument*
 export async function GET(
-  req: Request,
-  { params }: { params: { slug: string } }
+  req: NextRequest,
+  context: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const slug = params.slug; // ✔ Now works
+    const { slug } = await context.params;
     console.log("Fetching product with slug:", slug);
 
     const product = await getProductBySlug(slug);
