@@ -6,16 +6,18 @@ import { FaHeart, FaRepeat, FaExpand } from "react-icons/fa6";
 import "./styles/productCard.css";
 import toast from "react-hot-toast";
 import { useCart } from "@/context/CartContext";
+import type { MouseEvent } from "react";
 
 interface Props {
-  id: string; // MongoDB _id
+  id: string;
   name: string;
   category: string;
   price: number;
   image: string;
-  slug?: string;
+  slug: string; // REQUIRED
   isNew?: boolean;
 }
+
 
 export default function ProductCard({
   id,
@@ -33,7 +35,7 @@ export default function ProductCard({
   // ------------------------------
   // ADD TO CART (Using Context)
   // ------------------------------
-  const handleAddToCart = async (e: any) => {
+  const handleAddToCart = async (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault(); // avoid navigating to product page
 
     await addToCart({
@@ -50,7 +52,7 @@ export default function ProductCard({
     <div className="card clean">
 
       {/* CLICKABLE PRODUCT AREA */}
-      <Link href={`/product/${slug || id}`} className="card-wrapper">
+      <Link href={`/product/${slug}`} className="card-wrapper">
 
         {/* TITLE */}
         <div className="card-header">

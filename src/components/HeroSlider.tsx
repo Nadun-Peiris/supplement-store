@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { FaChevronLeft, FaChevronRight } from "react-icons/fa";
 import "./styles/hero.css";
 
 type Slide = { src: string; alt: string; href?: string };
@@ -45,18 +44,6 @@ export default function HeroSlider({
     if (realCount <= 1) return;
     setAnimate(true);
     setIdx(i + 1);
-  };
-
-  const next = () => {
-    if (realCount <= 1) return;
-    setAnimate(true);
-    setIdx((i) => i + 1);
-  };
-
-  const prev = () => {
-    if (realCount <= 1) return;
-    setAnimate(true);
-    setIdx((i) => i - 1);
   };
 
   // 🔁 Seamless looping logic
@@ -102,22 +89,6 @@ export default function HeroSlider({
             );
           })}
         </div>
-
-        {/* Controls */}
-        <button
-          className="nav nav-arrow prev"
-          onClick={prev}
-          aria-label="Previous slide"
-        >
-          <FaChevronLeft />
-        </button>
-        <button
-          className="nav nav-arrow next"
-          onClick={next}
-          aria-label="Next slide"
-        >
-          <FaChevronRight />
-        </button>
 
         {/* Dots */}
         {realCount > 1 && (

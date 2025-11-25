@@ -1,19 +1,14 @@
 import { NextResponse } from "next/server";
-import { connectDB } from "@/lib/mongoose";
-import Product from "@/models/Product";
+import { getProducts } from "@/lib/products";
 
 export async function GET(req: Request) {
   try {
-    await connectDB();
-
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const limit = parseInt(searchParams.get("limit") || "0");
 
     const query = category ? { category } : {};
-    const products = await Product.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit || 0);
+    const products = await getProducts(query, limit || undefined);
 
     return NextResponse.json(products);
   } catch (error) {

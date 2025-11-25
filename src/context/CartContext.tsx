@@ -13,7 +13,7 @@ interface CartItem {
 interface CartContextType {
   count: number;
   refreshCart: () => Promise<void>;
-  addToCart: (product: Omit<CartItem, "quantity">) => Promise<void>;
+  addToCart: (product: CartItem) => Promise<void>;
   updateQuantity: (productId: string, qty: number) => Promise<void>;
   removeFromCart: (productId: string) => Promise<void>;
 }
@@ -30,7 +30,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [count, setCount] = useState(0);
 
   /* --------------------------------------------
-     Helper: Load cart from API & update count
+     Load cart and update count
   --------------------------------------------- */
   const refreshCart = async () => {
     try {
@@ -48,16 +48,22 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       const data = await res.json();
       const items: CartItem[] = data.cart?.items || [];
 
-      setCount(items.reduce((sum, item) => sum + item.quantity, 0));
-    } catch (error) {
-      console.error("Failed to load cart:", error);
+      setCount(items.reduce((sum, i) => sum + i.quantity, 0));
+    } catch (err) {
+      console.error("Cart refresh failed:", err);
     }
   };
 
   /* --------------------------------------------
-     Add To Cart
+     Add To Cart (with quantity support)
   --------------------------------------------- */
-  const addToCart = async ({ productId, name, price, image }: Omit<CartItem, "quantity">) => {
+  const addToCart = async ({
+    productId,
+    name,
+    price,
+    image,
+    quantity = 1,
+  }: CartItem) => {
     let guestId = localStorage.getItem("guestId");
     if (!guestId) {
       guestId = crypto.randomUUID();
@@ -75,10 +81,15 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         name,
         price,
         image,
+        quantity,
       }),
     });
 
-    await refreshCart();
+    // Instant frontend update (no delay)
+    setCount((prev) => prev + quantity);
+
+    // Full sync in background
+    refreshCart();
   };
 
   /* --------------------------------------------
@@ -98,7 +109,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       body: JSON.stringify({ productId, quantity: qty }),
     });
 
-    await refreshCart();
+    refreshCart();
   };
 
   /* --------------------------------------------
@@ -116,11 +127,11 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       body: JSON.stringify({ productId }),
     });
 
-    await refreshCart();
+    refreshCart();
   };
 
   /* --------------------------------------------
-     Load cart once on mount
+     Auto-load cart on mount
   --------------------------------------------- */
   useEffect(() => {
     refreshCart();

@@ -108,26 +108,34 @@ export default function CategoryCarousel() {
       {!loading && !error && categories.length > 0 && (
         <div className="category-carousel-wrapper">
           <div className="category-carousel" ref={carouselRef}>
-            {categories.map((cat) => (
-              <Link
-                href={`/category/${cat._id}`}
-                key={cat._id}
-                className="category-item"
-              >
-                <div className="category-visual">
-                  <span className="circle-bg" aria-hidden="true" />
-                  <Image
-                    src={cat.image}
-                    alt={cat.name}
-                    width={140}
-                    height={140}
-                    className="category-img"
-                  />
-                </div>
+            {categories.map((cat) => {
+              // Ensure Next Image always receives an alt string even if API data is missing
+              const imageAlt =
+                typeof cat.name === "string" && cat.name.trim().length > 0
+                  ? cat.name
+                  : "Category image";
 
-                <p className="cat-name">{cat.name}</p>
-              </Link>
-            ))}
+              return (
+                <Link
+                  href={`/category/${cat._id}`}
+                  key={cat._id}
+                  className="category-item"
+                >
+                  <div className="category-visual">
+                    <span className="circle-bg" aria-hidden="true" />
+                    <Image
+                      src={cat.image}
+                      alt={imageAlt}
+                      width={140}
+                      height={140}
+                      className="category-img"
+                    />
+                  </div>
+
+                  <p className="cat-name">{cat.name}</p>
+                </Link>
+              );
+            })}
           </div>
         </div>
       )}

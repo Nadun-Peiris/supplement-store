@@ -31,12 +31,20 @@ export async function POST(req: Request) {
   try {
     await connectDB();
 
-    const { productId, name, price, image } = await req.json();
+    const {
+      productId,
+      name,
+      price,
+      image,
+      quantity: rawQty = 1,
+    } = await req.json();
     const { userId, guestId } = await getCartOwner(req);
 
     if (!productId) {
       return NextResponse.json({ error: "Missing productId" }, { status: 400 });
     }
+
+    const quantity = Math.max(1, Number(rawQty) || 1);
 
     // FIND OWNER CART
     let cart = await Cart.findOne(userId ? { userId } : { guestId });
@@ -51,7 +59,7 @@ export async function POST(req: Request) {
             productId,
             name,
             price,
-            quantity: 1,
+            quantity,
             image,
           },
         ],
@@ -64,13 +72,13 @@ export async function POST(req: Request) {
     const index = cart.items.findIndex((item: any) => item.productId === productId);
 
     if (index >= 0) {
-      cart.items[index].quantity += 1;
+      cart.items[index].quantity += quantity;
     } else {
       cart.items.push({
         productId,
         name,
         price,
-        quantity: 1,
+        quantity,
         image,
       });
     }

@@ -1,0 +1,108 @@
+.promo-section {
+  width: 100%;
+  padding: 3rem 0;
+}
+
+/* Carousel Row */
+.promo-carousel {
+  display: flex;
+  gap: 2rem;
+  justify-content: space-between;
+  padding: 0 2rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.promo-carousel::-webkit-scrollbar {
+  display: none;
+}
+
+/* Card – now taller */
+.promo-card {
+  position: relative;
+  width: 530px;
+  height: 380px;    /* ⬅️ MADE TALLER */
+  flex: 0 0 auto;
+  border-radius: 22px;
+  overflow: hidden;
+  text-decoration: none;
+  color: white;
+  background: #000;
+}
+
+/* BG image */
+.promo-bg {
+  object-fit: cover;
+  z-index: 1;
+}
+
+/* Text block (top-left) */
+.promo-content {
+  position: absolute;
+  z-index: 6;
+  top: 2rem;
+  left: 2rem;
+}
+.promo-content h2 {
+  font-size: 2.7rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+/* Product image */
+.promo-product-wrapper {
+  position: absolute;
+  right: 0;
+  bottom: 3rem; /* higher so button fits */
+  z-index: 8;
+}
+.promo-product {
+  transition: transform 0.4s ease;
+}
+.promo-card:hover .promo-product {
+  transform: scale(1.18);
+}
+
+/* ---------------------------------- */
+/* BOTTOM BUTTON (cart icon styling)  */
+/* ---------------------------------- */
+.promo-btn {
+  position: absolute;
+  bottom: 1.6rem;
+  left: 2rem;
+
+  padding: 0.7rem 1.6rem;
+  border-radius: 999px;
+
+  /* SAME STYLE AS CART ICON */
+  background: #262626;
+  border: 1px solid #525252;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.95rem;
+
+  z-index: 10;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.promo-btn:hover {
+  border-color: #03c7fe;
+  background: #111;
+  color: #fff;
+}
+
+.promo-btn:active {
+  transform: scale(0.96);
+}
+
+/* Mobile: make carousel scrollable */
+@media (max-width: 768px) {
+  .promo-card {
+    width: 85%;
+    height: 340px; /* slightly smaller on mobile */
+  }
+
+  .promo-content h2 {
+    font-size: 2rem;
+  }
+}

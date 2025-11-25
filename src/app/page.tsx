@@ -2,6 +2,7 @@ import HeroSlider from "@/components/HeroSlider";
 import ProductCarousel from "@/components/ProductCarousel";
 import BrandLogoSlider from "@/components/BrandLogoSlider";
 import CategoryCarousel from "@/components/CategoryCarousel";
+import PromoSection from "@/components/PromoSection";
 import FeaturesSection from "@/components/FeaturesSection";
 
 export default function HomePage() {
@@ -15,6 +16,8 @@ export default function HomePage() {
       <HeroSlider slides={slides} autoPlayMs={5000} />
 
       <CategoryCarousel />
+
+      <PromoSection />
 
       <ProductCarousel category="Protein" />
 
