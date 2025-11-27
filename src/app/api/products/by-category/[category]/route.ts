@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Product from "@/models/Product";
+import { buildCategoryFilter } from "@/lib/productFilters";
 
 export async function GET(
   req: Request,
@@ -10,17 +11,10 @@ export async function GET(
     await connectDB();
 
     const { category } = await context.params;
-
-    // Convert URL slug → real category format
-    const formattedCategory = category
-      .replace(/-/g, " ")               // sports-nutrition → sports nutrition
-      .replace(/\b\w/g, (c) => c.toUpperCase()); // capitalize each word
-
-    console.log("Filtering category:", formattedCategory);
-
-    const products = await Product.find({
-      category: formattedCategory,
-    }).lean();
+    const categoryFilter = buildCategoryFilter([category]) ?? {};
+    const products = await Product.find(categoryFilter)
+      .sort({ createdAt: -1 })
+      .lean();
 
     return NextResponse.json({ products }, { status: 200 });
 

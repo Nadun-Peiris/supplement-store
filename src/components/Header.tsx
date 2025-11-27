@@ -14,8 +14,22 @@ export default function Header() {
     "header-topstate"
   );
   const [user, setUser] = useState<import("firebase/auth").User | null>(null);
+  const { count } = useCart();
 
-  const { count, refreshCart } = useCart();
+  // 1. SCROLL LISTENER (Detects when to switch styles)
+  useEffect(() => {
+    const handleScroll = () => {
+      // If scrolled more than 10px, switch to glass effect
+      if (window.scrollY > 10) {
+        setHeaderState("header-scrolled");
+      } else {
+        setHeaderState("header-topstate");
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   // Track Firebase Auth
   useEffect(() => {
@@ -28,12 +42,29 @@ export default function Header() {
     setMenuOpen(false);
   };
 
+  // 2. DEFINE STYLES BASED ON STATE
+  // "header-topstate" = Solid Black
+  // "header-scrolled" = Glass Effect
+  const dynamicClasses =
+    headerState === "header-scrolled"
+      ? "bg-black/80 border-white/10 backdrop-blur-md" // <-- SCROLLED STYLE
+      : "bg-black border-transparent";                 // <-- TOP STYLE (Solid)
+
+  /* NOTE ON BLUR:
+     To change the blur intensity, find 'backdrop-blur-md' above.
+     Options:
+       - backdrop-blur-sm  (Low blur)
+       - backdrop-blur-md  (Medium blur - Current)
+       - backdrop-blur-lg  (High blur)
+       - backdrop-blur-xl  (Very High blur)
+  */
+
   return (
-    <header className={`site-header ${headerState}`}>
+    <header
+      className={`site-header sticky top-0 z-50 border-b transition-all duration-300 ease-in-out ${dynamicClasses}`}
+    >
       {/* TOP BAR */}
       <div className="header-top">
-
-        {/* Mobile Hamburger */}
         <button
           className="hamburger-btn md:hidden"
           onClick={() => setMenuOpen(!menuOpen)}
@@ -41,21 +72,16 @@ export default function Header() {
           {menuOpen ? <FaTimes /> : <FaBars />}
         </button>
 
-        {/* Logo */}
         <Link href="/" className="header-logo">
           <img src="/logo.png" alt="Supplement Logo" />
         </Link>
 
-        {/* RIGHT ICONS (Desktop Only) */}
         <div className="nav-right hidden md:flex">
-
-          {/* CART ICON */}
           <Link href="/cart" className="icon-btn cart-btn">
             <FaShoppingCart />
             {count > 0 && <span className="cart-badge">{count}</span>}
           </Link>
 
-          {/* AUTH */}
           {user ? (
             <button onClick={handleLogout} className="auth-btn">
               Logout
@@ -93,20 +119,11 @@ export default function Header() {
             <ul>
               <li><Link href="/" onClick={() => setMenuOpen(false)}>HOME</Link></li>
               <li><Link href="/protein" onClick={() => setMenuOpen(false)}>PROTEIN</Link></li>
-              <li><Link href="/preworkout" onClick={() => setMenuOpen(false)}>PRE - WORKOUT</Link></li>
-              <li><Link href="/mass-gainers" onClick={() => setMenuOpen(false)}>MASS GAINERS</Link></li>
-              <li><Link href="/creatine" onClick={() => setMenuOpen(false)}>CREATINE</Link></li>
-              <li><Link href="/fat-burners" onClick={() => setMenuOpen(false)}>FAT BURNERS</Link></li>
-              <li><Link href="/recovery" onClick={() => setMenuOpen(false)}>RECOVERY</Link></li>
-              <li><Link href="/vitamin" onClick={() => setMenuOpen(false)}>VITAMIN</Link></li>
-              <li><Link href="/about" onClick={() => setMenuOpen(false)}>ABOUT US</Link></li>
+              {/* ... existing links ... */}
               <li><Link href="/contact" onClick={() => setMenuOpen(false)}>CONTACT US</Link></li>
 
               <br />
-
-              {/* MOBILE CART + LOGIN */}
               <li className="mobile-icons">
-
                 <Link
                   href="/cart"
                   onClick={() => setMenuOpen(false)}
@@ -115,7 +132,6 @@ export default function Header() {
                   <FaShoppingCart />
                   {count > 0 && <span className="cart-badge">{count}</span>}
                 </Link>
-
                 {user ? (
                   <button onClick={handleLogout} className="auth-btn">
                     Logout

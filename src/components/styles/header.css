@@ -1,20 +1,13 @@
 .site-header {
-  position: sticky;
-  top: 0;
+  /* Removed 'background' and 'backdrop-filter' from here.
+     These are now handled by Tailwind classes in the TSX file. */
   width: 100%;
-  z-index: 50;
-
-  background: #000;        /* always solid black */
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-
-  transition: background 0.2s ease;
 }
 
 /* Top bar */
 .header-top {
   display: flex;
-  justify-content: center; /* logo centered */
+  justify-content: center;
   align-items: center;
   padding: 0.75rem 1rem;
   position: relative;
@@ -27,7 +20,8 @@
 
 /* Desktop nav */
 .header-bottom {
-  border-top: 1px solid #404040;
+  /* Using a semi-transparent border color for the divider line */
+  border-top: 1px solid rgba(255, 255, 255, 0.1); 
   padding: 1rem 0;
   display: flex;
   justify-content: center;
@@ -45,7 +39,7 @@
 .header-bottom a {
   color: #fff;
   text-decoration: none;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   font-weight: 500;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -97,12 +91,12 @@
   font-size: 1.5rem;
   color: #fff;
   cursor: pointer;
-  display: none; /* hidden on desktop */
+  display: none;
 }
 
 /* Mobile nav */
 .mobile-menu {
-  background: #111;
+  background: #111; /* Keep solid background for mobile menu readability */
   border-top: 1px solid #333;
   padding: 1rem;
 }
@@ -155,54 +149,36 @@
   background: none;
 }
 
-/* ======================================== */
-/* CART BADGE — STYLE C (Minimal Outline)   */
-/* ======================================== */
-
+/* CART BADGE */
 .cart-btn {
   position: relative;
 }
 
-/* minimal thin outline badge */
 .cart-badge {
   position: absolute;
   top: -6px;
   right: -8px;
-
   min-width: 20px;
   height: 20px;
-
   border-radius: 50%;
-  border: 1.5px solid #fff; /* thin white outline */
-  background: #000;          /* matches header */
+  border: 1.5px solid #fff; 
+  background: #000;          
   color: #fff;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   font-size: 0.7rem;
   font-weight: 700;
   line-height: 1;
-
   padding: 2px;
-
   animation: fadeInBadge 0.25s ease;
 }
 
-/* fade animation */
 @keyframes fadeInBadge {
-  from {
-    opacity: 0;
-    transform: scale(0.7);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
+  from { opacity: 0; transform: scale(0.7); }
+  to { opacity: 1; transform: scale(1); }
 }
 
-/* Dark mode support (optional) */
 @media (prefers-color-scheme: dark) {
   .cart-badge {
     border-color: #fff;
@@ -211,8 +187,9 @@
   }
 }
 
-/* Auth text button (pill) */
-.auth-btn {
+/* Auth text button */
+.auth-btn,
+.pill-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -229,23 +206,16 @@
   transition: all 0.3s ease;
 }
 
-.auth-btn:hover {
+.auth-btn:hover,
+.pill-btn:hover {
   border-color: #03C7FE;
   background-color: #111;
   color: white;
 }
 
-/* Responsive rules */
+/* Responsive */
 @media (max-width: 768px) {
-  .desktop-nav {
-    display: none; 
-  }
-
-  .nav-right {
-    display: none; 
-  }
-
-  .hamburger-btn {
-    display: inline-flex;
-  }
+  .desktop-nav { display: none; }
+  .nav-right { display: none; }
+  .hamburger-btn { display: inline-flex; }
 }

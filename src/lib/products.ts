@@ -3,6 +3,7 @@ import { connectDB } from "./mongoose";
 import { isValidObjectId, type FilterQuery, Types } from "mongoose";
 import type { ProductDTO } from "@/types/product";
 import type { ProductDocument } from "@/models/Product";
+import { normalizeSlug } from "./productFilters";
 
 type LeanProduct = ProductDocument & { _id: Types.ObjectId };
 
@@ -11,6 +12,13 @@ export const normalizeProduct = (product: LeanProduct): ProductDTO => ({
   name: product.name,
   slug: product.slug ?? product._id.toString(),
   category: product.category,
+  categorySlug:
+    product.categorySlug ??
+    (product.category ? normalizeSlug(product.category) : undefined),
+  brandName: product.brandName ?? "",
+  brandSlug:
+    product.brandSlug ??
+    (product.brandName ? normalizeSlug(product.brandName) : undefined),
   price: product.price,
   image: product.image,
   hoverImage: product.hoverImage ?? undefined,

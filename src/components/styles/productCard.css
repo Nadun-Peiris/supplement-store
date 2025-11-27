@@ -53,6 +53,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
+  color: #111;
   opacity: 0;
   transform: translateX(10px);
   transition: all 0.35s ease;
@@ -88,7 +89,7 @@
 }
 
 .card-image {
-  max-height: 210px;          /* Adjusted */
+  max-height: 250px;          /* Adjusted */
   object-fit: contain;
   transition: transform 0.4s ease;
 }
@@ -145,6 +146,6 @@
 }
 
 .card.clean:hover .add-to-cart {
-  bottom: 0;
+  bottom: -4;
   opacity: 1;
 }

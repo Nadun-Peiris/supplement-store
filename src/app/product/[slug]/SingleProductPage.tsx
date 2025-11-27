@@ -1,21 +1,16 @@
 "use client";
 
 import Image from "next/image";
-import {
-  FiTruck,
-  FiLock,
-  FiUsers,
-  FiHeart,
-  FiRefreshCcw,
-} from "react-icons/fi";
+import { FiHeart, FiRefreshCcw } from "react-icons/fi";
 import "./singleProduct.css";
 import toast from "react-hot-toast";
 import { useState } from "react";
 import ProductCarousel from "@/components/ProductCarousel";
 import FeaturesSection from "@/components/FeaturesSection";
 import { useCart } from "@/context/CartContext";
+import type { ProductDTO } from "@/types/product";
 
-export default function SingleProductPage({ product }: { product: any }) {
+export default function SingleProductPage({ product }: { product: ProductDTO }) {
   const [qty, setQty] = useState(1);
 
   // 🌟 Use global cart context
@@ -60,7 +55,7 @@ export default function SingleProductPage({ product }: { product: any }) {
           <h1 className="sp-title">{product.name}</h1>
 
           <div className="sp-meta">
-            <b>Brand:</b> Fitness Pro
+            <b>Brand:</b> {product.brandName?.trim() || "Unbranded"}
             <span className="sp-stock">✔ In stock</span>
           </div>
 

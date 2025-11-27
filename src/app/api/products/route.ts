@@ -1,14 +1,31 @@
 import { NextResponse } from "next/server";
 import { getProducts } from "@/lib/products";
+import {
+  buildBrandFilter,
+  buildCategoryFilter,
+  buildPriceFilter,
+  combineFilters,
+  parseListParam,
+  parseNumberParam,
+} from "@/lib/productFilters";
 
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const category = searchParams.get("category");
-    const limit = parseInt(searchParams.get("limit") || "0");
+    const categories = parseListParam(searchParams.get("category"));
+    const brands = parseListParam(searchParams.get("brand"));
+    const minPrice = parseNumberParam(searchParams.get("min"));
+    const maxPrice = parseNumberParam(searchParams.get("max"));
+    const limitParam = parseInt(searchParams.get("limit") || "0", 10);
+    const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : undefined;
 
-    const query = category ? { category } : {};
-    const products = await getProducts(query, limit || undefined);
+    const filter = combineFilters(
+      buildCategoryFilter(categories),
+      buildBrandFilter(brands),
+      buildPriceFilter(minPrice, maxPrice)
+    );
+
+    const products = await getProducts(filter, limit);
 
     return NextResponse.json(products);
   } catch (error) {

@@ -7,15 +7,27 @@ import { FaArrowRight } from "react-icons/fa";
 import "./styles/productCarousel.css";
 import type { ProductDTO } from "@/types/product";
 
+const toSlug = (value: string) =>
+  value
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
 export default function ProductCarousel({ category }: { category: string }) {
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [loading, setLoading] = useState(true);
   const carouselRef = useRef<HTMLDivElement | null>(null);
+  const categorySlug = toSlug(category);
+  const queryCategory = categorySlug || category;
+  const viewAllHref = categorySlug ? `/shop/${categorySlug}` : "/shop";
 
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const res = await fetch(`/api/products?category=${category}&limit=10`);
+        const res = await fetch(
+          `/api/products?category=${encodeURIComponent(queryCategory)}&limit=10`
+        );
         const data: ProductDTO[] = await res.json();
         setProducts(data);
       } catch (error) {
@@ -25,7 +37,7 @@ export default function ProductCarousel({ category }: { category: string }) {
       }
     }
     fetchProducts();
-  }, [category]);
+  }, [queryCategory]);
 
   /* -------------------------------------------------- */
   /* LOADING SKELETON                                   */
@@ -70,7 +82,7 @@ export default function ProductCarousel({ category }: { category: string }) {
       <div className="carousel-header">
         <h2>{category.toUpperCase()}</h2>
 
-        <Link href={`/category/${category.toLowerCase()}`} className="view-all">
+        <Link href={viewAllHref} className="view-all">
           View All <FaArrowRight className="arrow-icon" />
         </Link>
       </div>

@@ -3,6 +3,9 @@ export interface ProductDTO {
   name: string;
   slug: string;
   category: string;
+  categorySlug?: string;
+  brandName?: string;
+  brandSlug?: string;
   price: number;
   image: string;
   hoverImage?: string;

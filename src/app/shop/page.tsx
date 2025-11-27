@@ -1,10 +1,9 @@
-import ShopPage from "./ShopPage";
+import ShopPage from "./[category]/ShopPage";
 
-export default async function Page(props: { params: Promise<{ category: string }> }) {
-  const { category } = await props.params;
+export default async function ShopIndexPage() {
   const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+
   const query = new URLSearchParams({
-    category,
     page: "1",
     limit: "9",
   });
@@ -13,12 +12,15 @@ export default async function Page(props: { params: Promise<{ category: string }
     cache: "no-store",
   });
 
+  if (!res.ok) {
+    console.error("Failed to load products", await res.text());
+  }
+
   const data = await res.json();
 
   return (
-    
     <ShopPage
-      categorySlug={category}
+      categorySlug=""
       initialProducts={Array.isArray(data.products) ? data.products : []}
       initialPage={data.currentPage ?? 1}
       initialTotalPages={data.totalPages ?? 1}

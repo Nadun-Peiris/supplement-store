@@ -1,0 +1,24 @@
+/* Container: Applied to the <section> holding the content */
+.molecular-section {
+  position: relative;     /* Essential for absolute positioning of canvas */
+  width: 100%;
+  overflow: hidden;       /* Prevents scrollbars if atoms hit edges */
+  background-color: #000; /* Fallback background color */
+}
+
+/* Canvas: The animation layer */
+.molecular-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;             /* Puts it behind the content */
+  pointer-events: none;   /* CRITICAL: Allows clicks to pass through to buttons */
+}
+
+/* Content: Applied to the div holding your text/cards */
+.molecular-content {
+  position: relative;
+  z-index: 10;            /* Ensures text sits on top of particles */
+}
