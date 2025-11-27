@@ -1,4 +1,6 @@
 "use client";
+
+import "./shop.css";
 import ProductCard from "@/components/ProductCard";
 import type { ProductDTO } from "@/types/product";
 import { useEffect, useMemo, useRef, useState } from "react";
