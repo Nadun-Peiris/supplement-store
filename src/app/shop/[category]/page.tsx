@@ -1,4 +1,5 @@
 import ShopPage from "./ShopPage";
+import "./shop.css";
 
 export default async function Page(props: { params: Promise<{ category: string }> }) {
   const { category } = await props.params;
