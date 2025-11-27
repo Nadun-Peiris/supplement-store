@@ -18,31 +18,41 @@ const toSlug = (value: string) =>
 export default function ProductCarousel({ category }: { category: string }) {
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [loading, setLoading] = useState(true);
-  const carouselRef = useRef<HTMLDivElement | null>(null);
   const categorySlug = toSlug(category);
-  const queryCategory = categorySlug || category;
   const viewAllHref = categorySlug ? `/shop/${categorySlug}` : "/shop";
 
   useEffect(() => {
-    async function fetchProducts() {
+    async function load() {
       try {
+        const params = new URLSearchParams({
+          limit: "10",
+          page: "1",
+          sort: "newest",
+        });
+
+        // filter by category using the new API
+        if (categorySlug) {
+          params.append("category", categorySlug);
+        }
+
         const res = await fetch(
-          absoluteUrl(
-            `/api/products?category=${encodeURIComponent(
-              queryCategory
-            )}&limit=10`
-          )
+          absoluteUrl(`/api/products/filter?${params.toString()}`)
         );
-        const data: ProductDTO[] = await res.json();
-        setProducts(data);
-      } catch (error) {
-        console.error("Error fetching products:", error);
+
+        const data = await res.json();
+
+        // Shop filter API returns: { products, totalPages, ... }
+        setProducts(Array.isArray(data.products) ? data.products : []);
+      } catch (err) {
+        console.error("Carousel load error:", err);
+        setProducts([]);
       } finally {
         setLoading(false);
       }
     }
-    fetchProducts();
-  }, [queryCategory]);
+
+    load();
+  }, [categorySlug]);
 
   /* -------------------------------------------------- */
   /* LOADING SKELETON                                   */
@@ -60,7 +70,6 @@ export default function ProductCarousel({ category }: { category: string }) {
             {[1, 2, 3, 4].map((i) => (
               <div className="skeleton-card" key={i}>
                 <div className="skeleton-image shimmer"></div>
-
                 <div className="skeleton-info">
                   <div className="skeleton-line long shimmer"></div>
                   <div className="skeleton-line medium shimmer"></div>
@@ -93,7 +102,7 @@ export default function ProductCarousel({ category }: { category: string }) {
       </div>
 
       <div className="carousel-container">
-        <div className="carousel-track" ref={carouselRef}>
+        <div className="carousel-track">
           {products.map((p) => (
             <ProductCard
               key={p._id}
@@ -106,7 +115,6 @@ export default function ProductCarousel({ category }: { category: string }) {
             />
           ))}
         </div>
-
       </div>
     </section>
   );
