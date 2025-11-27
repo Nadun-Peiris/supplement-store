@@ -16,8 +16,8 @@ export async function GET(req: Request) {
 
     const { searchParams } = new URL(req.url);
 
-    const categories = parseListParam(searchParams.get("category"));
-    const brands = parseListParam(searchParams.get("brand"));
+    const categories = parseListParam(searchParams.getAll("category"));
+    const brands = parseListParam(searchParams.getAll("brand"));
     const minPrice = parseNumberParam(searchParams.get("min"));
     const maxPrice = parseNumberParam(searchParams.get("max"));
     const sort = searchParams.get("sort") || "default"; // <-- NEW

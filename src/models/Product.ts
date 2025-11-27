@@ -7,7 +7,13 @@ const toSlug = (value: string) => slugify(value, slugOptions);
 const ProductSchema = new Schema(
   {
     name: { type: String, required: true },
-    slug: { type: String, unique: true },
+    slug: {
+      type: String,
+      unique: true,
+      required: true,
+      lowercase: true,
+      trim: true,
+    },
 
     // Keep existing category field (so nothing breaks)
     category: { type: String, required: true },
@@ -27,7 +33,11 @@ const ProductSchema = new Schema(
 );
 
 ProductSchema.pre("save", function (next) {
-  if (!this.slug || this.isModified("name")) {
+  if (this.slug) {
+    this.slug = toSlug(this.slug);
+  }
+
+  if ((!this.slug && this.name) || this.isModified("name")) {
     this.slug = toSlug(this.name);
   }
 

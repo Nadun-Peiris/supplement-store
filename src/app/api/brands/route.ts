@@ -16,7 +16,13 @@ export async function GET() {
       .lean();
 
     if (brands.length) {
-      return NextResponse.json({ brands });
+      return NextResponse.json({
+        brands: brands.map((brand) => ({
+          _id: brand._id,
+          name: brand.name,
+          slug: brand.slug || toSlug(brand.name),
+        })),
+      });
     }
 
     const productBrands = await Product.find(

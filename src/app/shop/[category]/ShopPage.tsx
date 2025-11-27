@@ -3,12 +3,18 @@
 import "./shop.css";
 import ProductCard from "@/components/ProductCard";
 import type { ProductDTO } from "@/types/product";
-import { useEffect, useMemo, useRef, useState } from "react";
 import { absoluteUrl } from "@/lib/absoluteUrl";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type FilterOption = { id: string; name: string; slug: string };
-type CategoryResponse = { _id?: string; slug?: string; name?: string | null };
-type BrandResponse = { _id?: string; slug?: string; name?: string | null };
+type CategoryResponse = {
+  _id?: string;
+  slug?: string | null;
+  name?: string | null;
+  title?: string | null;
+  image?: string | null;
+};
+type BrandResponse = { _id?: string; slug?: string | null; name?: string | null };
 
 type ShopPageProps = {
   categorySlug: string;
@@ -18,7 +24,6 @@ type ShopPageProps = {
   initialTotalProducts: number;
 };
 
-// Helpers
 const slugifyText = (value: string) =>
   value
     .toLowerCase()
@@ -52,19 +57,15 @@ const buildPageWindow = (page: number, pages: number) => {
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 };
 
-// Skeleton loader
-function SkeletonList({ count = 10 }: { count?: number }) {
-  return (
-    <ul className="sidebar-list">
-      {Array.from({ length: count }).map((_, i) => (
-        <li key={i} className="skeleton-item">
-          <div className="skeleton skeleton-checkbox" />
-          <div className="skeleton skeleton-line" style={{ width: "70%" }} />
-        </li>
-      ))}
-    </ul>
-  );
-}
+const normalizeOptions = (options: FilterOption[]) =>
+  Array.from(
+    new Map(options.map((option) => [option.slug, option])).values()
+  ).sort((a, b) => a.name.localeCompare(b.name));
+
+const PRODUCTS_PER_PAGE = 9;
+
+const clampPriceValue = (value: number) =>
+  Number.isFinite(value) ? Math.max(0, value) : 0;
 
 export default function ShopPage({
   categorySlug,
@@ -73,41 +74,49 @@ export default function ShopPage({
   initialTotalPages,
   initialTotalProducts,
 }: ShopPageProps) {
-  const [products, setProducts] = useState(initialProducts);
-  const [totalPages, setTotalPages] = useState(initialTotalPages);
+  const initialCategoryFilter =
+    categorySlug && categorySlug.trim().length
+      ? [slugifyText(categorySlug)]
+      : [];
+
+  const [products, setProducts] = useState<ProductDTO[]>(initialProducts);
+  const [totalPages, setTotalPages] = useState(Math.max(initialTotalPages, 1));
   const [totalProducts, setTotalProducts] = useState(initialTotalProducts);
-  const [currentPage, setCurrentPage] = useState(initialPage);
+  const [currentPage, setCurrentPage] = useState(Math.max(initialPage, 1));
 
   const [categoryOptions, setCategoryOptions] = useState<FilterOption[]>([]);
   const [brandOptions, setBrandOptions] = useState<FilterOption[]>([]);
 
-  const [selectedCategories, setSelectedCategories] = useState<string[]>(
-    categorySlug ? [categorySlug] : []
-  );
+  const [selectedCategories, setSelectedCategories] =
+    useState<string[]>(initialCategoryFilter);
   const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
 
-  const [priceInput, setPriceInput] = useState({ min: 0, max: 100000 });
-  const [priceRange, setPriceRange] = useState(priceInput);
+  const [priceInput, setPriceInput] = useState(() => ({
+    min: 0,
+    max: 100000,
+  }));
+  const [priceRange, setPriceRange] = useState(() => ({
+    min: 0,
+    max: 100000,
+  }));
 
   const [sortOption, setSortOption] = useState("default");
-
   const [loadingFilters, setLoadingFilters] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const didBootstrap = useRef(false);
 
-  const categoryKey = selectedCategories.join(",");
-  const brandKey = selectedBrands.join(",");
-
   const heroTitle = useMemo(() => {
     const active = selectedCategories[0] ?? categorySlug;
     return slugToLabel(active || "Shop").toUpperCase();
   }, [selectedCategories, categorySlug]);
 
-  // Load categories & brands
   useEffect(() => {
+    let active = true;
+
     async function loadFilters() {
+      setLoadingFilters(true);
       try {
         const [cr, br] = await Promise.all([
           fetch(absoluteUrl("/api/categories")),
@@ -117,36 +126,74 @@ export default function ShopPage({
         const categoryData = await cr.json();
         const brandData = await br.json();
 
-        setCategoryOptions(
-          categoryData?.categories?.map((cat: CategoryResponse) => ({
-            id: cat._id ?? cat.slug ?? cat.name ?? slugifyText("category"),
-            name: cat.name ?? "Category",
-            slug: cat.slug ?? slugifyText(cat.name ?? ""),
-          })) ?? []
+        if (!active) return;
+
+        const normalizedCategories = normalizeOptions(
+          (Array.isArray(categoryData?.categories)
+            ? categoryData.categories
+            : []
+          ).map((cat: CategoryResponse) => {
+            const fallback = cat.name || cat.title || "Category";
+            const name =
+              typeof fallback === "string" && fallback.trim().length
+                ? fallback.trim()
+                : "Category";
+            const slug = slugifyText(cat.slug || name);
+
+            return {
+              id: cat._id ?? slug ?? name,
+              name,
+              slug,
+            };
+          })
         );
 
-        setBrandOptions(
-          brandData?.brands?.map((brand: BrandResponse) => ({
-            id: brand._id ?? brand.slug ?? brand.name ?? slugifyText("brand"),
-            name: brand.name ?? "Brand",
-            slug: brand.slug ?? slugifyText(brand.name ?? ""),
-          })) ?? []
+        const normalizedBrands = normalizeOptions(
+          (Array.isArray(brandData?.brands) ? brandData.brands : []).map(
+            (brand: BrandResponse) => {
+              const fallback = brand.name || brand.slug || "Brand";
+              const name =
+                typeof fallback === "string" && fallback.trim().length
+                  ? fallback.trim()
+                  : "Brand";
+              const slug = slugifyText(brand.slug || name);
+
+              return {
+                id: brand._id ?? slug ?? name,
+                name,
+                slug,
+              };
+            }
+          )
         );
+
+        setCategoryOptions(normalizedCategories);
+        setBrandOptions(normalizedBrands);
       } catch (err) {
-        console.error("Failed to load filters", err);
+        if (active) {
+          console.error("Failed to load filters", err);
+          setCategoryOptions([]);
+          setBrandOptions([]);
+        }
       } finally {
-        setLoadingFilters(false);
+        if (active) setLoadingFilters(false);
       }
     }
+
     loadFilters();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  // Load products when filters change
   useEffect(() => {
     if (!didBootstrap.current) {
       didBootstrap.current = true;
       return;
     }
+
+    const controller = new AbortController();
 
     async function loadProducts() {
       setLoadingProducts(true);
@@ -155,65 +202,118 @@ export default function ShopPage({
       try {
         const params = new URLSearchParams();
 
-        if (categoryKey) params.set("category", categoryKey);
-        if (brandKey) params.set("brand", brandKey);
+        selectedCategories.forEach((slug) => params.append("category", slug));
+        selectedBrands.forEach((slug) => params.append("brand", slug));
         params.set("min", String(priceRange.min));
         params.set("max", String(priceRange.max));
         params.set("page", String(currentPage));
-        params.set("limit", "9");
+        params.set("limit", String(PRODUCTS_PER_PAGE));
 
-        if (sortOption !== "default") params.set("sort", sortOption);
+        if (sortOption !== "default") {
+          params.set("sort", sortOption);
+        }
 
         const res = await fetch(
-          absoluteUrl(`/api/products/filter?${params.toString()}`)
+          absoluteUrl(`/api/products/filter?${params.toString()}`),
+          { signal: controller.signal }
         );
 
-        if (!res.ok) throw new Error("Failed to load products");
+        if (!res.ok) {
+          throw new Error(await res.text());
+        }
 
         const data = await res.json();
 
-        setProducts(data.products ?? []);
-        setTotalPages(Math.max(data.totalPages ?? 1, 1));
-        setTotalProducts(data.totalProducts ?? 0);
-        setCurrentPage((p) => Math.min(p, data.totalPages ?? 1));
+        if (controller.signal.aborted) return;
+
+        const safeProducts = Array.isArray(data.products) ? data.products : [];
+        const safeTotalPages = Math.max(data.totalPages ?? 1, 1);
+        const safeTotalProducts =
+          typeof data.totalProducts === "number"
+            ? data.totalProducts
+            : safeProducts.length;
+
+        setProducts(safeProducts);
+        setTotalPages(safeTotalPages);
+        setTotalProducts(safeTotalProducts);
+        setCurrentPage((prev) => {
+          const requested = data.currentPage ?? prev;
+          const safePage = Math.min(
+            Math.max(requested, 1),
+            safeTotalPages || 1
+          );
+          return prev === safePage ? prev : safePage;
+        });
       } catch (err) {
+        if (controller.signal.aborted) return;
         console.error("Filter load error", err);
         setError("Unable to load products right now.");
         setProducts([]);
+        setTotalProducts(0);
+        setTotalPages(1);
       } finally {
-        setLoadingProducts(false);
+        if (!controller.signal.aborted) {
+          setLoadingProducts(false);
+        }
       }
     }
 
     loadProducts();
+
+    return () => controller.abort();
   }, [
-    categoryKey,
-    brandKey,
+    selectedCategories,
+    selectedBrands,
     priceRange.min,
     priceRange.max,
     sortOption,
     currentPage,
   ]);
 
-  // Reset page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [categoryKey, brandKey, priceRange.min, priceRange.max, sortOption]);
-
-  // 🔥 FIX: Add this line
   const pageWindow = buildPageWindow(currentPage, totalPages);
+
+  const toggleCategory = (slug: string) => {
+    setSelectedCategories((prev) => {
+      const next = prev.includes(slug)
+        ? prev.filter((value) => value !== slug)
+        : [...prev, slug];
+      return next;
+    });
+    setCurrentPage(1);
+  };
+
+  const toggleBrand = (slug: string) => {
+    setSelectedBrands((prev) => {
+      const next = prev.includes(slug)
+        ? prev.filter((value) => value !== slug)
+        : [...prev, slug];
+      return next;
+    });
+    setCurrentPage(1);
+  };
+
+  const updatePriceInput = (key: "min" | "max", value: number) => {
+    setPriceInput((prev) => ({
+      ...prev,
+      [key]: clampPriceValue(value),
+    }));
+  };
+
+  const applyPriceFilter = () => {
+    const min = clampPriceValue(Math.min(priceInput.min, priceInput.max));
+    const max = clampPriceValue(Math.max(min, priceInput.max));
+    setPriceRange({ min, max });
+    setCurrentPage(1);
+  };
 
   return (
     <>
-      {/* HERO */}
       <div className="shop-hero">
         <h1>{heroTitle}</h1>
       </div>
 
       <div className="shop-container">
-        {/* SIDEBAR */}
         <aside className="sidebar-card">
-          {/* Categories */}
           <div className="sidebar-section">
             <div className="sidebar-header">
               <h3>PRODUCT CATEGORIES</h3>
@@ -228,13 +328,7 @@ export default function ShopPage({
                     <input
                       type="checkbox"
                       checked={selectedCategories.includes(cat.slug)}
-                      onChange={() =>
-                        setSelectedCategories((prev) =>
-                          prev.includes(cat.slug)
-                            ? prev.filter((c) => c !== cat.slug)
-                            : [...prev, cat.slug]
-                        )
-                      }
+                      onChange={() => toggleCategory(cat.slug)}
                     />
                     {cat.name}
                   </li>
@@ -245,7 +339,6 @@ export default function ShopPage({
             <hr className="divider" />
           </div>
 
-          {/* Price Filter */}
           <div className="sidebar-section">
             <div className="sidebar-header">
               <h3>FILTER BY PRICE</h3>
@@ -259,10 +352,7 @@ export default function ShopPage({
                   min={0}
                   value={priceInput.min}
                   onChange={(e) =>
-                    setPriceInput((p) => ({
-                      ...p,
-                      min: Math.max(0, Number(e.target.value)),
-                    }))
+                    updatePriceInput("min", Number(e.target.value))
                   }
                 />
               </label>
@@ -274,33 +364,19 @@ export default function ShopPage({
                   min={0}
                   value={priceInput.max}
                   onChange={(e) =>
-                    setPriceInput((p) => ({
-                      ...p,
-                      max: Math.max(0, Number(e.target.value)),
-                    }))
+                    updatePriceInput("max", Number(e.target.value))
                   }
                 />
               </label>
             </div>
 
-            <button
-              className="filter-btn"
-              onClick={() => {
-                const min = Math.max(
-                  0,
-                  Math.min(priceInput.min, priceInput.max)
-                );
-                const max = Math.max(min, priceInput.max);
-                setPriceRange({ min, max });
-              }}
-            >
+            <button className="filter-btn" onClick={applyPriceFilter}>
               Apply Price
             </button>
 
             <hr className="divider" />
           </div>
 
-          {/* Brands */}
           <div className="sidebar-section">
             <div className="sidebar-header">
               <h3>BRANDS</h3>
@@ -315,13 +391,7 @@ export default function ShopPage({
                     <input
                       type="checkbox"
                       checked={selectedBrands.includes(brand.slug)}
-                      onChange={() =>
-                        setSelectedBrands((prev) =>
-                          prev.includes(brand.slug)
-                            ? prev.filter((b) => b !== brand.slug)
-                            : [...prev, brand.slug]
-                        )
-                      }
+                      onChange={() => toggleBrand(brand.slug)}
                     />
                     {brand.name}
                   </li>
@@ -331,7 +401,6 @@ export default function ShopPage({
           </div>
         </aside>
 
-        {/* PRODUCTS */}
         <main className="shop-main">
           <div className="shop-toolbar">
             <div className="shop-status">
@@ -348,14 +417,16 @@ export default function ShopPage({
               )}
             </div>
 
-            {/* Sort Bar */}
             <div className="sort-bar">
               <span className="sort-label">Sort by:</span>
 
               <select
                 className="sort-select"
                 value={sortOption}
-                onChange={(e) => setSortOption(e.target.value)}
+                onChange={(e) => {
+                  setSortOption(e.target.value);
+                  setCurrentPage(1);
+                }}
               >
                 <option value="default">Default sorting</option>
                 <option value="price-asc">Price: Low → High</option>
@@ -376,12 +447,11 @@ export default function ShopPage({
                 category={product.category}
                 price={product.price}
                 image={product.image}
-                slug={product.slug}
+                slug={product.slug ?? product._id}
               />
             ))}
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="pagination">
               <button
@@ -420,5 +490,18 @@ export default function ShopPage({
         </main>
       </div>
     </>
+  );
+}
+
+function SkeletonList({ count = 10 }: { count?: number }) {
+  return (
+    <ul className="sidebar-list">
+      {Array.from({ length: count }).map((_, i) => (
+        <li key={i} className="skeleton-item">
+          <div className="skeleton skeleton-checkbox" />
+          <div className="skeleton skeleton-line" style={{ width: "70%" }} />
+        </li>
+      ))}
+    </ul>
   );
 }

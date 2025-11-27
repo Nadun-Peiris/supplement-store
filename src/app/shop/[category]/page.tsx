@@ -1,11 +1,23 @@
 import ShopPage from "./ShopPage";
 import { absoluteUrl } from "@/lib/absoluteUrl";
 
-export default async function ShopIndexPage() {
+type ShopCategoryPageProps = {
+  params: { category: string };
+};
+
+export default async function ShopCategoryPage({
+  params,
+}: ShopCategoryPageProps) {
+  const categorySlug = params.category;
+
   const query = new URLSearchParams({
     page: "1",
     limit: "9",
   });
+
+  if (categorySlug) {
+    query.append("category", categorySlug);
+  }
 
   const res = await fetch(
     absoluteUrl(`/api/products/filter?${query.toString()}`),
@@ -20,7 +32,7 @@ export default async function ShopIndexPage() {
 
   return (
     <ShopPage
-      categorySlug=""
+      categorySlug={categorySlug}
       initialProducts={Array.isArray(data.products) ? data.products : []}
       initialPage={data.currentPage ?? 1}
       initialTotalPages={data.totalPages ?? 1}

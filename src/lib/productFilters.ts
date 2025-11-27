@@ -16,13 +16,25 @@ const slugToRegex = (slug: string) => {
 export const normalizeSlug = (value: string) =>
   slugify(value, slugOptions);
 
-export const parseListParam = (value: string | null): string[] =>
-  value
-    ? value
-        .split(",")
-        .map((segment) => segment.trim())
-        .filter(Boolean)
-    : [];
+export const parseListParam = (
+  value: string | string[] | null
+): string[] => {
+  if (Array.isArray(value)) {
+    return value
+      .flatMap((segment) => segment.split(","))
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string" && value.length) {
+    return value
+      .split(",")
+      .map((segment) => segment.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+};
 
 export const buildCategoryFilter = (
   values: string[]
