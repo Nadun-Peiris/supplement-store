@@ -11,10 +11,8 @@ export default function CartPage() {
   const [cart, setCart] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔥 NEW → Update Header Counter
   const { refreshCart } = useCart();
 
-  // Load Cart
   useEffect(() => {
     async function loadCart() {
       let guestId = localStorage.getItem("guestId");
@@ -24,20 +22,19 @@ export default function CartPage() {
       }
 
       const res = await fetch(absoluteUrl("/api/cart"), {
-        headers: { "x-guest-id": guestId },
+        headers: { "guest-id": guestId },   // ✅ FIXED
       });
 
       const data = await res.json();
       setCart(data.cart || { items: [] });
 
-      refreshCart(); // ← Update header badge on page load
+      refreshCart();
       setLoading(false);
     }
 
     loadCart();
   }, [refreshCart]);
 
-  // Update quantity
   const updateQuantity = async (productId: string, qty: number) => {
     if (qty < 1) return;
 
@@ -47,7 +44,7 @@ export default function CartPage() {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "x-guest-id": guestId,
+        "guest-id": guestId,   // ✅ FIXED
       },
       body: JSON.stringify({ productId, quantity: qty }),
     });
@@ -56,13 +53,12 @@ export default function CartPage() {
 
     if (res.ok) {
       setCart(data.cart);
-      refreshCart(); // 🔥 FIX → Update header after qty change
+      refreshCart();
     } else {
       toast.error(data.error);
     }
   };
 
-  // Remove item
   const removeItem = async (productId: string) => {
     let guestId = localStorage.getItem("guestId") as string;
 
@@ -70,7 +66,7 @@ export default function CartPage() {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        "x-guest-id": guestId,
+        "guest-id": guestId,   // ✅ FIXED
       },
       body: JSON.stringify({ productId }),
     });
@@ -80,7 +76,7 @@ export default function CartPage() {
     if (res.ok) {
       setCart(data.cart);
       toast.success("Item removed");
-      refreshCart(); // 🔥 FIX → Update header after delete
+      refreshCart();
     }
   };
 
@@ -96,7 +92,6 @@ export default function CartPage() {
       <p className="cart-breadcrumb">Home Page • Cart</p>
 
       <div className="cart-layout">
-        {/* LEFT SIDE */}
         <div className="cart-left">
           <div className="cart-table-header">
             <span>PRODUCT</span>
@@ -123,7 +118,6 @@ export default function CartPage() {
           </div>
         </div>
 
-        {/* RIGHT — TOTALS */}
         <div className="cart-summary">
           <h3>CART TOTALS</h3>
 

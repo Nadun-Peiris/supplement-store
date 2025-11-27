@@ -3,50 +3,45 @@ import { connectDB } from "@/lib/mongoose";
 import Cart from "@/models/Cart";
 import { adminAuth } from "@/lib/firebaseAdmin";
 
-// Utility: get user or guest ID
+// Normalize: ALWAYS use "guest-id"
 async function getCartOwner(req: Request) {
-  // Logged-in user (via Firebase token)
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.split(" ")[1];
 
+  // Logged-in user
   if (token) {
     try {
       const decoded = await adminAuth().verifyIdToken(token);
       return { userId: decoded.uid, guestId: null };
-    } catch (err) {
-      console.error("Firebase token invalid.");
+    } catch {
+      console.error("Invalid Firebase token");
     }
   }
 
   // Guest user
-  const guestId = req.headers.get("x-guest-id");
-
+  const guestId = req.headers.get("guest-id") || null;
   return { userId: null, guestId };
 }
 
-/* ============================================
-   POST — Add to Cart
-============================================ */
+/* -----------------------------------------
+    POST – Add to cart
+------------------------------------------ */
 export async function POST(req: Request) {
   try {
     await connectDB();
 
-    const {
-      productId,
-      name,
-      price,
-      image,
-      quantity: rawQty = 1,
-    } = await req.json();
+    const { productId, name, price, image, quantity: rawQty = 1 } =
+      await req.json();
     const { userId, guestId } = await getCartOwner(req);
 
-    if (!productId) {
-      return NextResponse.json({ error: "Missing productId" }, { status: 400 });
-    }
+    if (!productId)
+      return NextResponse.json(
+        { error: "Missing productId" },
+        { status: 400 }
+      );
 
     const quantity = Math.max(1, Number(rawQty) || 1);
 
-    // FIND OWNER CART
     let cart = await Cart.findOne(userId ? { userId } : { guestId });
 
     // Create new cart if none exists
@@ -54,47 +49,33 @@ export async function POST(req: Request) {
       cart = await Cart.create({
         userId,
         guestId,
-        items: [
-          {
-            productId,
-            name,
-            price,
-            quantity,
-            image,
-          },
-        ],
+        items: [{ productId, name, price, quantity, image }],
       });
 
       return NextResponse.json({ success: true, cart });
     }
 
-    // Check if product already exists
-    const index = cart.items.findIndex((item: any) => item.productId === productId);
+    // Update existing product quantity
+    const index = cart.items.findIndex((i: any) => i.productId === productId);
 
     if (index >= 0) {
       cart.items[index].quantity += quantity;
     } else {
-      cart.items.push({
-        productId,
-        name,
-        price,
-        quantity,
-        image,
-      });
+      cart.items.push({ productId, name, price, quantity, image });
     }
 
     await cart.save();
 
     return NextResponse.json({ success: true, cart });
   } catch (err) {
-    console.error("CART POST ERROR", err);
+    console.error("CART POST ERROR:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
-/* ============================================
-   GET — Fetch Cart
-============================================ */
+/* -----------------------------------------
+    GET – Fetch cart
+------------------------------------------ */
 export async function GET(req: Request) {
   try {
     await connectDB();
@@ -105,14 +86,14 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ cart: cart || { items: [] } });
   } catch (err) {
-    console.error("CART GET ERROR", err);
+    console.error("CART GET ERROR:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
 
-/* ============================================
-   DELETE — Clear Cart
-============================================ */
+/* -----------------------------------------
+    DELETE – Clear cart
+------------------------------------------ */
 export async function DELETE(req: Request) {
   try {
     await connectDB();
@@ -123,7 +104,7 @@ export async function DELETE(req: Request) {
 
     return NextResponse.json({ success: true, message: "Cart cleared" });
   } catch (err) {
-    console.error("CART DELETE ERROR", err);
+    console.error("CART DELETE ERROR:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

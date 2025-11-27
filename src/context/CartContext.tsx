@@ -35,23 +35,29 @@ const CartContext = createContext<CartContextType>({
   removeFromCart: async () => {},
 });
 
+// Generate / get guest ID
+function getGuestId() {
+  let id = localStorage.getItem("guestId");
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("guestId", id);
+  }
+  return id;
+}
+
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [count, setCount] = useState(0);
 
   /* --------------------------------------------
-     Load cart and update count
+      REFRESH CART
   --------------------------------------------- */
   const refreshCart = async () => {
     try {
-      let guestId = localStorage.getItem("guestId");
-      if (!guestId) {
-        guestId = crypto.randomUUID();
-        localStorage.setItem("guestId", guestId);
-      }
+      const guestId = getGuestId();
 
       const res = await fetch(absoluteUrl("/api/cart"), {
         method: "GET",
-        headers: { "x-guest-id": guestId },
+        headers: { "guest-id": guestId },
       });
 
       const data = await res.json();
@@ -64,7 +70,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   /* --------------------------------------------
-     Add To Cart (with quantity support)
+      ADD TO CART
   --------------------------------------------- */
   const addToCart = async ({
     productId,
@@ -73,17 +79,13 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     image,
     quantity = 1,
   }: CartItemInput) => {
-    let guestId = localStorage.getItem("guestId");
-    if (!guestId) {
-      guestId = crypto.randomUUID();
-      localStorage.setItem("guestId", guestId);
-    }
+    const guestId = getGuestId();
 
     await fetch(absoluteUrl("/api/cart"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-guest-id": guestId,
+        "guest-id": guestId,
       },
       body: JSON.stringify({
         productId,
@@ -94,26 +96,26 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       }),
     });
 
-    // Instant frontend update (no delay)
+    // Instant update
     setCount((prev) => prev + quantity);
 
-    // Full sync in background
+    // Sync backend
     refreshCart();
   };
 
   /* --------------------------------------------
-     Update Quantity
+      UPDATE QUANTITY
   --------------------------------------------- */
   const updateQuantity = async (productId: string, qty: number) => {
     if (qty < 1) return;
 
-    let guestId = localStorage.getItem("guestId") as string;
+    const guestId = getGuestId();
 
     await fetch(absoluteUrl("/api/cart/update"), {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "x-guest-id": guestId,
+        "guest-id": guestId,
       },
       body: JSON.stringify({ productId, quantity: qty }),
     });
@@ -122,16 +124,16 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   /* --------------------------------------------
-     Remove Item
+      REMOVE ITEM
   --------------------------------------------- */
   const removeFromCart = async (productId: string) => {
-    let guestId = localStorage.getItem("guestId") as string;
+    const guestId = getGuestId();
 
     await fetch(absoluteUrl("/api/cart/remove"), {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        "x-guest-id": guestId,
+        "guest-id": guestId,
       },
       body: JSON.stringify({ productId }),
     });
@@ -140,7 +142,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   /* --------------------------------------------
-     Auto-load cart on mount
+      ON MOUNT
   --------------------------------------------- */
   useEffect(() => {
     refreshCart();

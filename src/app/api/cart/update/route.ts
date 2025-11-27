@@ -3,7 +3,6 @@ import { connectDB } from "@/lib/mongoose";
 import Cart from "@/models/Cart";
 import { adminAuth } from "@/lib/firebaseAdmin";
 
-// Helper: identify owner
 async function getOwner(req: Request) {
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.split(" ")[1];
@@ -12,12 +11,10 @@ async function getOwner(req: Request) {
     try {
       const decoded = await adminAuth().verifyIdToken(token);
       return { userId: decoded.uid, guestId: null };
-    } catch (err) {
-      console.log("Invalid token, fallback to guest.");
-    }
+    } catch {}
   }
 
-  return { guestId: req.headers.get("x-guest-id"), userId: null };
+  return { userId: null, guestId: req.headers.get("guest-id") };
 }
 
 export async function PUT(req: Request) {
@@ -27,32 +24,28 @@ export async function PUT(req: Request) {
     const { productId, quantity } = await req.json();
     const { userId, guestId } = await getOwner(req);
 
-    if (!productId || !quantity) {
-      return NextResponse.json(
-        { error: "Missing productId or quantity" },
-        { status: 400 }
-      );
-    }
+    if (!productId)
+      return NextResponse.json({ error: "Missing productId" }, { status: 400 });
 
     const cart = await Cart.findOne(userId ? { userId } : { guestId });
-    if (!cart) {
-      return NextResponse.json({ error: "Cart not found" }, { status: 404 });
-    }
 
-    const item = cart.items.find((i: any) => i.productId === productId);
-    if (!item) {
+    if (!cart)
+      return NextResponse.json({ error: "Cart not found" }, { status: 404 });
+
+    const index = cart.items.findIndex((i: any) => i.productId === productId);
+
+    if (index === -1)
       return NextResponse.json(
-        { error: "Item not found in cart" },
+        { error: "Product not in cart" },
         { status: 404 }
       );
-    }
 
-    item.quantity = quantity;
+    cart.items[index].quantity = Math.max(1, quantity);
     await cart.save();
 
     return NextResponse.json({ success: true, cart });
   } catch (err) {
-    console.error("UPDATE ERROR:", err);
+    console.error("UPDATE CART ERROR:", err);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }
