@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { absoluteUrl } from "@/lib/absoluteUrl";
 import "@/components/styles/cart.css";
 import CartItem from "@/components/CartItem";
 import toast from "react-hot-toast";
@@ -22,7 +23,7 @@ export default function CartPage() {
         localStorage.setItem("guestId", guestId);
       }
 
-      const res = await fetch("/api/cart", {
+      const res = await fetch(absoluteUrl("/api/cart"), {
         headers: { "x-guest-id": guestId },
       });
 
@@ -42,7 +43,7 @@ export default function CartPage() {
 
     let guestId = localStorage.getItem("guestId") as string;
 
-    const res = await fetch("/api/cart/update", {
+    const res = await fetch(absoluteUrl("/api/cart/update"), {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -65,7 +66,7 @@ export default function CartPage() {
   const removeItem = async (productId: string) => {
     let guestId = localStorage.getItem("guestId") as string;
 
-    const res = await fetch("/api/cart/remove", {
+    const res = await fetch(absoluteUrl("/api/cart/remove"), {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",

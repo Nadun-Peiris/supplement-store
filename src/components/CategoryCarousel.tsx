@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { absoluteUrl } from "@/lib/absoluteUrl";
 import "./styles/categoryCarousel.css";
 
 interface Category {
@@ -22,7 +23,7 @@ export default function CategoryCarousel() {
     const controller = new AbortController();
     async function loadCategories() {
       try {
-        const res = await fetch("/api/categories", {
+        const res = await fetch(absoluteUrl("/api/categories"), {
           signal: controller.signal,
         });
         if (!res.ok) throw new Error("Failed to load categories");

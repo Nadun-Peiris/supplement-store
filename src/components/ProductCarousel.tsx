@@ -6,6 +6,7 @@ import ProductCard from "./ProductCard";
 import { FaArrowRight } from "react-icons/fa";
 import "./styles/productCarousel.css";
 import type { ProductDTO } from "@/types/product";
+import { absoluteUrl } from "@/lib/absoluteUrl";
 
 const toSlug = (value: string) =>
   value
@@ -26,7 +27,11 @@ export default function ProductCarousel({ category }: { category: string }) {
     async function fetchProducts() {
       try {
         const res = await fetch(
-          `/api/products?category=${encodeURIComponent(queryCategory)}&limit=10`
+          absoluteUrl(
+            `/api/products?category=${encodeURIComponent(
+              queryCategory
+            )}&limit=10`
+          )
         );
         const data: ProductDTO[] = await res.json();
         setProducts(data);

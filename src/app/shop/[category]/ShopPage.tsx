@@ -4,6 +4,7 @@ import "./shop.css";
 import ProductCard from "@/components/ProductCard";
 import type { ProductDTO } from "@/types/product";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { absoluteUrl } from "@/lib/absoluteUrl";
 
 type FilterOption = { id: string; name: string; slug: string };
 type CategoryResponse = { _id?: string; slug?: string; name?: string | null };
@@ -109,8 +110,8 @@ export default function ShopPage({
     async function loadFilters() {
       try {
         const [cr, br] = await Promise.all([
-          fetch("/api/categories"),
-          fetch("/api/brands"),
+          fetch(absoluteUrl("/api/categories")),
+          fetch(absoluteUrl("/api/brands")),
         ]);
 
         const categoryData = await cr.json();
@@ -163,7 +164,9 @@ export default function ShopPage({
 
         if (sortOption !== "default") params.set("sort", sortOption);
 
-        const res = await fetch(`/api/products/filter?${params.toString()}`);
+        const res = await fetch(
+          absoluteUrl(`/api/products/filter?${params.toString()}`)
+        );
 
         if (!res.ok) throw new Error("Failed to load products");
 

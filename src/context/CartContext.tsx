@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState } from "react";
+import { absoluteUrl } from "@/lib/absoluteUrl";
 
 interface CartItem {
   productId: string;
@@ -48,7 +49,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
         localStorage.setItem("guestId", guestId);
       }
 
-      const res = await fetch("/api/cart", {
+      const res = await fetch(absoluteUrl("/api/cart"), {
         method: "GET",
         headers: { "x-guest-id": guestId },
       });
@@ -78,7 +79,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       localStorage.setItem("guestId", guestId);
     }
 
-    await fetch("/api/cart", {
+    await fetch(absoluteUrl("/api/cart"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -108,7 +109,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
 
     let guestId = localStorage.getItem("guestId") as string;
 
-    await fetch("/api/cart/update", {
+    await fetch(absoluteUrl("/api/cart/update"), {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -126,7 +127,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const removeFromCart = async (productId: string) => {
     let guestId = localStorage.getItem("guestId") as string;
 
-    await fetch("/api/cart/remove", {
+    await fetch(absoluteUrl("/api/cart/remove"), {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
