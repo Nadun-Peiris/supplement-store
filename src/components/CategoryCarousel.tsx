@@ -9,6 +9,7 @@ import "./styles/categoryCarousel.css";
 interface Category {
   _id: string;
   name: string;
+  slug: string;
   image: string;
 }
 
@@ -19,16 +20,25 @@ export default function CategoryCarousel() {
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const autoPlayTimer = useRef<number | null>(null);
 
+  /* ---------------------------------------- */
+  /* LOAD CATEGORIES                          */
+  /* ---------------------------------------- */
   useEffect(() => {
     const controller = new AbortController();
+
     async function loadCategories() {
       try {
         const res = await fetch(absoluteUrl("/api/categories"), {
           signal: controller.signal,
         });
+
         if (!res.ok) throw new Error("Failed to load categories");
+
         const data = await res.json();
-        setCategories(Array.isArray(data.categories) ? data.categories : []);
+
+        setCategories(
+          Array.isArray(data.categories) ? data.categories : []
+        );
         setError(null);
       } catch (err) {
         if (controller.signal.aborted) return;
@@ -44,6 +54,9 @@ export default function CategoryCarousel() {
     return () => controller.abort();
   }, []);
 
+  /* ---------------------------------------- */
+  /* AUTOPLAY SCROLLING                       */
+  /* ---------------------------------------- */
   useEffect(() => {
     const node = carouselRef.current;
     if (!node || categories.length <= 1) return;
@@ -58,10 +71,8 @@ export default function CategoryCarousel() {
       const atEnd = node.scrollLeft >= maxScroll - 4;
 
       if (atEnd) {
-        if (autoPlayTimer.current) {
-          window.clearInterval(autoPlayTimer.current);
-          autoPlayTimer.current = null;
-        }
+        window.clearInterval(autoPlayTimer.current!);
+        autoPlayTimer.current = null;
         node.scrollTo({ left: maxScroll, behavior: "smooth" });
         return;
       }
@@ -77,6 +88,9 @@ export default function CategoryCarousel() {
     };
   }, [categories.length]);
 
+  /* ---------------------------------------- */
+  /* SKELETON LOADER                         */
+  /* ---------------------------------------- */
   const renderSkeleton = () => (
     <div className="category-skeleton-row">
       {Array.from({ length: 6 }).map((_, idx) => (
@@ -90,6 +104,9 @@ export default function CategoryCarousel() {
     </div>
   );
 
+  /* ---------------------------------------- */
+  /* RENDER                                   */
+  /* ---------------------------------------- */
   return (
     <section className="category-section">
       <h2 className="category-title">
@@ -110,7 +127,6 @@ export default function CategoryCarousel() {
         <div className="category-carousel-wrapper">
           <div className="category-carousel" ref={carouselRef}>
             {categories.map((cat) => {
-              // Ensure Next Image always receives an alt string even if API data is missing
               const imageAlt =
                 typeof cat.name === "string" && cat.name.trim().length > 0
                   ? cat.name
@@ -118,7 +134,7 @@ export default function CategoryCarousel() {
 
               return (
                 <Link
-                  href={`/category/${cat._id}`}
+                  href={`/shop/${cat.slug}`}   // ✅ FIXED
                   key={cat._id}
                   className="category-item"
                 >
