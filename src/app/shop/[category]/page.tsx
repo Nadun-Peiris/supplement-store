@@ -23,13 +23,10 @@ export default async function Page(props: { params: Promise<{ category: string }
 
   if (!base) {
     const hdrs = await headers();
-    const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
-    const proto = hdrs.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+    const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host") ?? "";
+    const proto = hdrs.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
     if (host) {
       base = `${proto}://${host}`;
-    } else {
-      const port = process.env.PORT ?? "3000";
-      base = `http://127.0.0.1:${port}`;
     }
   }
   const query = new URLSearchParams({
@@ -39,9 +36,12 @@ export default async function Page(props: { params: Promise<{ category: string }
   });
 
   let data: FilterResponse = {};
+  const fetchFromApi = async () => {
+    const url = base
+      ? `${base}/api/products/filter?${query.toString()}`
+      : `/api/products/filter?${query.toString()}`;
 
-  try {
-    const res = await fetch(`${base}/api/products/filter?${query.toString()}`, {
+    const res = await fetch(url, {
       cache: "no-store",
     });
 
@@ -51,6 +51,10 @@ export default async function Page(props: { params: Promise<{ category: string }
     }
 
     data = await res.json();
+  };
+
+  try {
+    await fetchFromApi();
   } catch (error) {
     console.error("Shop page preload failed:", error);
   }
