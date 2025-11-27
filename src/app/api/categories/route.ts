@@ -5,7 +5,7 @@ import type { Types } from "mongoose";
 import slugify from "slugify";
 
 type CategoryLean = {
-  _id: Types.ObjectId;
+  _id: Types.ObjectId | string;
   name?: string | null;
   title?: string | null;
   slug?: string | null;
@@ -16,7 +16,7 @@ export async function GET() {
   try {
     await connectDB();
 
-    const categories: CategoryLean[] = await Category.find().lean();
+    const categories = (await Category.find().lean()) as CategoryLean[];
 
     const formatted = categories.map((cat) => {
       const name = cat.name ?? cat.title ?? "Category";
@@ -24,7 +24,7 @@ export async function GET() {
         cat.slug ?? slugify(name, { lower: true, strict: true }) ?? "category";
 
       return {
-        id: cat._id.toString(),
+        id: String(cat._id),
         name,
         slug,
         image: cat.image ?? "",
