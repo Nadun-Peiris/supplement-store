@@ -3,20 +3,17 @@ import slugify from "slugify";
 
 export interface ICategory extends Document {
   name: string;
-  image: string;
   slug: string;
+  image: string;
 }
 
-const CategorySchema = new Schema<ICategory>(
-  {
-    name: { type: String, required: true, unique: true },
-    image: { type: String, required: true },
-    slug: { type: String, unique: true },
-  },
-  { timestamps: true }
-);
+const CategorySchema = new Schema<ICategory>({
+  name: { type: String, required: true },
+  slug: { type: String, unique: true },
+  image: { type: String, required: true },
+});
 
-// Auto-generate slug when saving
+// Auto-generate slug
 CategorySchema.pre("save", function (next) {
   if (!this.slug || this.isModified("name")) {
     this.slug = slugify(this.name, { lower: true, strict: true });

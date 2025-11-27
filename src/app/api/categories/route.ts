@@ -6,20 +6,22 @@ export async function GET() {
   try {
     await connectDB();
 
-    const categories = await Category.find().lean();
+    const categories = await Category.find({})
+      .sort({ title: 1 }) // sort by title because name does not exist
+      .lean();
 
-    const formatted = categories.map((cat) => ({
-      id: cat._id.toString(),
-      name: cat.title,                // 👈 FIXED (from title → name)
-      slug: cat.slug,                 // correct field
-      image: cat.image,
-    }));
-
-    return NextResponse.json({ categories: formatted });
+    return NextResponse.json({
+      categories: categories.map((cat) => ({
+        _id: cat._id,
+        name: cat.title,     // FIX: map title → name
+        slug: cat.slug,
+        image: cat.image,
+      })),
+    });
   } catch (error) {
-    console.error("Category API error:", error);
+    console.error("CATEGORIES API ERROR:", error);
     return NextResponse.json(
-      { message: "Failed to load categories" },
+      { error: "Failed to load categories" },
       { status: 500 }
     );
   }
