@@ -1,19 +1,27 @@
 import ShopPage from "./[category]/ShopPage";
 
 export default async function ShopIndexPage() {
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
 
   const query = new URLSearchParams({
     page: "1",
     limit: "9",
   });
 
-  const res = await fetch(`${base}/api/products/filter?${query.toString()}`, {
+  const res = await fetch(`/api/products/filter?${query.toString()}`, {
     cache: "no-store",
   });
 
   if (!res.ok) {
     console.error("Failed to load products", await res.text());
+    return (
+      <ShopPage
+        categorySlug=""
+        initialProducts={[]}
+        initialPage={1}
+        initialTotalPages={1}
+        initialTotalProducts={0}
+      />
+    );
   }
 
   const data = await res.json();

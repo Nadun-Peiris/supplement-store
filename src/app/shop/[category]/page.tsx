@@ -3,8 +3,6 @@ import ShopPage from "./ShopPage";
 export default async function Page(props: { params: Promise<{ category: string }> }) {
   const { category } = await props.params;
 
-  // --- SAFE FETCH FOR SERVER & VERCEL ---
-  // Always use RELATIVE API ROUTE (no localhost!)
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/products/by-category/${category}`,
     { cache: "no-store" }
