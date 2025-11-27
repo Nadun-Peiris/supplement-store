@@ -22,7 +22,7 @@ export default async function Page(props: { params: Promise<{ category: string }
   let base = resolveBaseUrl();
 
   if (!base) {
-    const hdrs = headers();
+    const hdrs = await headers();
     const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
     const proto = hdrs.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
     if (host) {
