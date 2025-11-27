@@ -2,13 +2,16 @@ import ShopPage from "./ShopPage";
 import { absoluteUrl } from "@/lib/absoluteUrl";
 
 type ShopCategoryPageProps = {
-  params: { category: string };
+  params: Promise<{ category: string }>; // ✅ FIX: params is now a Promise
 };
 
 export default async function ShopCategoryPage({
   params,
 }: ShopCategoryPageProps) {
-  const categorySlug = params.category;
+
+  // ✅ FIX: Must await params (Next.js 16 requirement)
+  const { category } = await params;
+  const categorySlug = category;
 
   const query = new URLSearchParams({
     page: "1",
