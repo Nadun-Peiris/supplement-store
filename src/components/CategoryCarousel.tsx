@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { absoluteUrl } from "@/lib/absoluteUrl";
 import "./styles/categoryCarousel.css";
 
 interface Category {
@@ -20,29 +19,24 @@ export default function CategoryCarousel() {
   const carouselRef = useRef<HTMLDivElement | null>(null);
   const autoPlayTimer = useRef<number | null>(null);
 
-  /* ---------------------------------------- */
-  /* LOAD CATEGORIES                          */
-  /* ---------------------------------------- */
+  // 🚨 CLIENT FETCH MUST USE RELATIVE URL — NEVER absoluteUrl()
   useEffect(() => {
     const controller = new AbortController();
 
     async function loadCategories() {
       try {
-        const res = await fetch(absoluteUrl("/api/categories"), {
+        const res = await fetch("/api/categories", {
           signal: controller.signal,
         });
 
         if (!res.ok) throw new Error("Failed to load categories");
 
         const data = await res.json();
-
-        setCategories(
-          Array.isArray(data.categories) ? data.categories : []
-        );
+        setCategories(Array.isArray(data.categories) ? data.categories : []);
         setError(null);
       } catch (err) {
         if (controller.signal.aborted) return;
-        console.error("Category carousel error:", err);
+        console.error("Carousel load error:", err);
         setError("Unable to load categories right now.");
         setCategories([]);
       } finally {
@@ -54,26 +48,24 @@ export default function CategoryCarousel() {
     return () => controller.abort();
   }, []);
 
-  /* ---------------------------------------- */
-  /* AUTOPLAY SCROLLING                       */
-  /* ---------------------------------------- */
+  // Auto-scrolling
   useEffect(() => {
     const node = carouselRef.current;
     if (!node || categories.length <= 1) return;
 
     if (autoPlayTimer.current) {
-      window.clearInterval(autoPlayTimer.current);
+      clearInterval(autoPlayTimer.current);
       autoPlayTimer.current = null;
     }
 
     autoPlayTimer.current = window.setInterval(() => {
-      const maxScroll = node.scrollWidth - node.clientWidth;
-      const atEnd = node.scrollLeft >= maxScroll - 4;
+      const max = node.scrollWidth - node.clientWidth;
+      const atEnd = node.scrollLeft >= max - 4;
 
       if (atEnd) {
-        window.clearInterval(autoPlayTimer.current!);
+        clearInterval(autoPlayTimer.current!);
         autoPlayTimer.current = null;
-        node.scrollTo({ left: maxScroll, behavior: "smooth" });
+        node.scrollTo({ left: max, behavior: "smooth" });
         return;
       }
 
@@ -82,19 +74,17 @@ export default function CategoryCarousel() {
 
     return () => {
       if (autoPlayTimer.current) {
-        window.clearInterval(autoPlayTimer.current);
+        clearInterval(autoPlayTimer.current);
         autoPlayTimer.current = null;
       }
     };
   }, [categories.length]);
 
-  /* ---------------------------------------- */
-  /* SKELETON LOADER                         */
-  /* ---------------------------------------- */
+  // Skeleton loader
   const renderSkeleton = () => (
     <div className="category-skeleton-row">
-      {Array.from({ length: 6 }).map((_, idx) => (
-        <div className="category-skeleton" key={idx}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div className="category-skeleton" key={i}>
           <div className="category-visual">
             <span className="circle-bg skeleton" aria-hidden="true" />
           </div>
@@ -104,9 +94,6 @@ export default function CategoryCarousel() {
     </div>
   );
 
-  /* ---------------------------------------- */
-  /* RENDER                                   */
-  /* ---------------------------------------- */
   return (
     <section className="category-section">
       <h2 className="category-title">
@@ -114,11 +101,7 @@ export default function CategoryCarousel() {
       </h2>
 
       {loading && renderSkeleton()}
-
-      {!loading && error && (
-        <p className="category-message error">{error}</p>
-      )}
-
+      {!loading && error && <p className="category-message error">{error}</p>}
       {!loading && !error && categories.length === 0 && (
         <p className="category-message">No categories available.</p>
       )}
@@ -126,33 +109,26 @@ export default function CategoryCarousel() {
       {!loading && !error && categories.length > 0 && (
         <div className="category-carousel-wrapper">
           <div className="category-carousel" ref={carouselRef}>
-            {categories.map((cat) => {
-              const imageAlt =
-                typeof cat.name === "string" && cat.name.trim().length > 0
-                  ? cat.name
-                  : "Category image";
+            {categories.map((cat) => (
+              <Link
+                href={`/shop/${cat.slug}`}
+                key={cat._id}
+                className="category-item"
+              >
+                <div className="category-visual">
+                  <span className="circle-bg" aria-hidden="true" />
+                  <Image
+                    src={cat.image}
+                    alt={cat.name}
+                    width={140}
+                    height={140}
+                    className="category-img"
+                  />
+                </div>
 
-              return (
-                <Link
-                  href={`/shop/${cat.slug}`}   // ✅ FIXED
-                  key={cat._id}
-                  className="category-item"
-                >
-                  <div className="category-visual">
-                    <span className="circle-bg" aria-hidden="true" />
-                    <Image
-                      src={cat.image}
-                      alt={imageAlt}
-                      width={140}
-                      height={140}
-                      className="category-img"
-                    />
-                  </div>
-
-                  <p className="cat-name">{cat.name}</p>
-                </Link>
-              );
-            })}
+                <p className="cat-name">{cat.name}</p>
+              </Link>
+            ))}
           </div>
         </div>
       )}
