@@ -17,12 +17,15 @@ type FilterResponse = {
 };
 
 export default async function ShopIndexPage() {
+  const incomingHeaders = await headers();
   let base = resolveBaseUrl();
 
   if (!base) {
-    const hdrs = await headers();
-    const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host") ?? "";
-    const proto = hdrs.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+    const host =
+      incomingHeaders.get("x-forwarded-host") ?? incomingHeaders.get("host") ?? "";
+    const proto =
+      incomingHeaders.get("x-forwarded-proto") ??
+      (host.startsWith("localhost") ? "http" : "https");
     if (host) {
       base = `${proto}://${host}`;
     }
@@ -34,6 +37,15 @@ export default async function ShopIndexPage() {
   });
 
   let data: FilterResponse = {};
+  const requestHeaders: Record<string, string> = {};
+  const authCookie = incomingHeaders.get("cookie");
+  if (authCookie) requestHeaders.cookie = authCookie;
+  const authHeader = incomingHeaders.get("authorization");
+  if (authHeader) requestHeaders.authorization = authHeader;
+  const protectionBypass = incomingHeaders.get("x-vercel-protection-bypass");
+  if (protectionBypass) {
+    requestHeaders["x-vercel-protection-bypass"] = protectionBypass;
+  }
 
   try {
     const url = base
@@ -41,6 +53,7 @@ export default async function ShopIndexPage() {
       : `/api/products/filter?${query.toString()}`;
     const res = await fetch(url, {
       cache: "no-store",
+      headers: requestHeaders,
     });
 
     const contentType = res.headers.get("content-type") ?? "";

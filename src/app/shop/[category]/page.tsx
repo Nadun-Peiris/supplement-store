@@ -19,12 +19,15 @@ type FilterResponse = {
 
 export default async function Page(props: { params: Promise<{ category: string }> }) {
   const { category } = await props.params;
+  const incomingHeaders = await headers();
   let base = resolveBaseUrl();
 
   if (!base) {
-    const hdrs = await headers();
-    const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host") ?? "";
-    const proto = hdrs.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+    const host =
+      incomingHeaders.get("x-forwarded-host") ?? incomingHeaders.get("host") ?? "";
+    const proto =
+      incomingHeaders.get("x-forwarded-proto") ??
+      (host.startsWith("localhost") ? "http" : "https");
     if (host) {
       base = `${proto}://${host}`;
     }
@@ -36,6 +39,16 @@ export default async function Page(props: { params: Promise<{ category: string }
   });
 
   let data: FilterResponse = {};
+  const requestHeaders: Record<string, string> = {};
+  const authCookie = incomingHeaders.get("cookie");
+  if (authCookie) requestHeaders.cookie = authCookie;
+  const authHeader = incomingHeaders.get("authorization");
+  if (authHeader) requestHeaders.authorization = authHeader;
+  const protectionBypass = incomingHeaders.get("x-vercel-protection-bypass");
+  if (protectionBypass) {
+    requestHeaders["x-vercel-protection-bypass"] = protectionBypass;
+  }
+
   const fetchFromApi = async () => {
     const url = base
       ? `${base}/api/products/filter?${query.toString()}`
@@ -43,6 +56,7 @@ export default async function Page(props: { params: Promise<{ category: string }
 
     const res = await fetch(url, {
       cache: "no-store",
+      headers: requestHeaders,
     });
 
     const contentType = res.headers.get("content-type") ?? "";

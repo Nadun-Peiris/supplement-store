@@ -119,32 +119,3 @@ main > * + * {
   background-color: #111;
   color: #ffffff;
 }
-
-/* Simple placeholder info pages */
-.info-page {
-  padding: 4rem 1rem;
-  display: flex;
-  justify-content: center;
-}
-
-.info-card {
-  max-width: 640px;
-  width: 100%;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 20px;
-  padding: 2.5rem;
-  text-align: center;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
-}
-
-.info-card h1 {
-  font-size: 2.25rem;
-  margin-bottom: 1rem;
-}
-
-.info-lead {
-  font-size: 1.05rem;
-  color: #4b5563;
-  margin-bottom: 1.5rem;
-}
