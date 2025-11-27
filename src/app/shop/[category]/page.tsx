@@ -1,4 +1,5 @@
 import type { ProductDTO } from "@/types/product";
+import { headers } from "next/headers";
 import ShopPage from "./ShopPage";
 import "./shop.css";
 
@@ -6,8 +7,7 @@ const resolveBaseUrl = () => {
   if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
   if (process.env.BASE_URL) return process.env.BASE_URL;
   if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  const port = process.env.PORT ?? "3000";
-  return `http://localhost:${port}`;
+  return null;
 };
 
 type FilterResponse = {
@@ -19,7 +19,19 @@ type FilterResponse = {
 
 export default async function Page(props: { params: Promise<{ category: string }> }) {
   const { category } = await props.params;
-  const base = resolveBaseUrl();
+  let base = resolveBaseUrl();
+
+  if (!base) {
+    const hdrs = headers();
+    const host = hdrs.get("x-forwarded-host") ?? hdrs.get("host");
+    const proto = hdrs.get("x-forwarded-proto") ?? (host?.startsWith("localhost") ? "http" : "https");
+    if (host) {
+      base = `${proto}://${host}`;
+    } else {
+      const port = process.env.PORT ?? "3000";
+      base = `http://127.0.0.1:${port}`;
+    }
+  }
   const query = new URLSearchParams({
     category,
     page: "1",
