@@ -83,7 +83,7 @@ export default function CategoryCarousel() {
   // Skeleton loader
   const renderSkeleton = () => (
     <div className="category-skeleton-row">
-      {Array.from({ length: 6 }).map((_, i) => (
+      {Array.from({ length: 8 }).map((_, i) => (
         <div className="category-skeleton" key={i}>
           <div className="category-visual">
             <span className="circle-bg skeleton" aria-hidden="true" />
