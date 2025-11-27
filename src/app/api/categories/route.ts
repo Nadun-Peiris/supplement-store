@@ -16,7 +16,7 @@ export async function GET() {
   try {
     await connectDB();
 
-    const categories = await Category.find().lean<CategoryLean>();
+    const categories: CategoryLean[] = await Category.find().lean();
 
     const formatted = categories.map((cat) => {
       const name = cat.name ?? cat.title ?? "Category";
