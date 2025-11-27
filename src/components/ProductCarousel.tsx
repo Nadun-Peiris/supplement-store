@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import ProductCard from "./ProductCard";
 import { FaArrowRight } from "react-icons/fa";
 import "./styles/productCarousel.css";
 import type { ProductDTO } from "@/types/product";
-import { absoluteUrl } from "@/lib/absoluteUrl";
 
 const toSlug = (value: string) =>
   value
@@ -18,6 +17,7 @@ const toSlug = (value: string) =>
 export default function ProductCarousel({ category }: { category: string }) {
   const [products, setProducts] = useState<ProductDTO[]>([]);
   const [loading, setLoading] = useState(true);
+
   const categorySlug = toSlug(category);
   const viewAllHref = categorySlug ? `/shop/${categorySlug}` : "/shop";
 
@@ -30,21 +30,20 @@ export default function ProductCarousel({ category }: { category: string }) {
           sort: "newest",
         });
 
-        // filter by category using the new API
         if (categorySlug) {
           params.append("category", categorySlug);
         }
 
-        const res = await fetch(
-          absoluteUrl(`/api/products/filter?${params.toString()}`)
-        );
+        // ✅ FIXED: RELATIVE FETCH ONLY (works on Vercel)
+        const res = await fetch(`/api/products/filter?${params.toString()}`, {
+          cache: "no-store",
+        });
 
         const data = await res.json();
 
-        // Shop filter API returns: { products, totalPages, ... }
         setProducts(Array.isArray(data.products) ? data.products : []);
       } catch (err) {
-        console.error("Carousel load error:", err);
+        console.error("Product carousel load error:", err);
         setProducts([]);
       } finally {
         setLoading(false);
@@ -54,9 +53,7 @@ export default function ProductCarousel({ category }: { category: string }) {
     load();
   }, [categorySlug]);
 
-  /* -------------------------------------------------- */
-  /* LOADING SKELETON                                   */
-  /* -------------------------------------------------- */
+  /* --------------------- LOADING --------------------- */
   if (loading)
     return (
       <section className="carousel-section">
@@ -70,10 +67,11 @@ export default function ProductCarousel({ category }: { category: string }) {
             {[1, 2, 3, 4].map((i) => (
               <div className="skeleton-card" key={i}>
                 <div className="skeleton-image shimmer"></div>
+
                 <div className="skeleton-info">
-                  <div className="skeleton-line long shimmer"></div>
-                  <div className="skeleton-line medium shimmer"></div>
-                  <div className="skeleton-line short shimmer"></div>
+                  <div className="skeleton-line long shimmer" />
+                  <div className="skeleton-line medium shimmer" />
+                  <div className="skeleton-line short shimmer" />
                 </div>
               </div>
             ))}
@@ -82,15 +80,16 @@ export default function ProductCarousel({ category }: { category: string }) {
       </section>
     );
 
-  /* -------------------------------------------------- */
-  /* EMPTY STATE                                        */
-  /* -------------------------------------------------- */
+  /* --------------------- EMPTY --------------------- */
   if (!products.length)
-    return <div className="carousel-empty">No products found.</div>;
+    return (
+      <section className="carousel-section">
+        <h2>{category.toUpperCase()}</h2>
+        <p className="carousel-empty">No products found.</p>
+      </section>
+    );
 
-  /* -------------------------------------------------- */
-  /* LOADED CONTENT                                     */
-  /* -------------------------------------------------- */
+  /* --------------------- LOADED --------------------- */
   return (
     <section className="carousel-section fade-in">
       <div className="carousel-header">
