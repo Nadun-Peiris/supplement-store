@@ -119,8 +119,8 @@ export default function ShopPage({
       setLoadingFilters(true);
       try {
         const [cr, br] = await Promise.all([
-          fetch(absoluteUrl("/api/categories")),
-          fetch(absoluteUrl("/api/brands")),
+          fetch("/api/categories"),
+          fetch("/api/brands"),
         ]);
 
         const categoryData = await cr.json();
@@ -214,7 +214,7 @@ export default function ShopPage({
         }
 
         const res = await fetch(
-          absoluteUrl(`/api/products/filter?${params.toString()}`),
+          `/api/products/filter?${params.toString()}`,
           { signal: controller.signal }
         );
 
