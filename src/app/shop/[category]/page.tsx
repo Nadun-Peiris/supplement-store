@@ -1,9 +1,16 @@
 import ShopPage from "./ShopPage";
 import "./shop.css";
 
+const resolveBaseUrl = () => {
+  if (process.env.NEXT_PUBLIC_BASE_URL) return process.env.NEXT_PUBLIC_BASE_URL;
+  if (process.env.BASE_URL) return process.env.BASE_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return "http://localhost:3000";
+};
+
 export default async function Page(props: { params: Promise<{ category: string }> }) {
   const { category } = await props.params;
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+  const base = resolveBaseUrl();
   const query = new URLSearchParams({
     category,
     page: "1",
