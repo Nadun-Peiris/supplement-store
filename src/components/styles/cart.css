@@ -58,6 +58,63 @@
   gap: 2rem;
 }
 
+/* Skeleton rows shown while cart is loading */
+.cart-item-skeleton {
+  pointer-events: none;
+  opacity: 1;
+  gap: 0;
+}
+
+.cart-item-skeleton .skeleton-circle,
+.cart-item-skeleton .skeleton-thumb,
+.cart-item-skeleton .skeleton-line,
+.cart-item-skeleton .skeleton-pill {
+  background: #f5f5f5;
+  border-radius: 999px;
+  animation: cartSkeletonPulse 1.4s ease-in-out infinite;
+}
+
+.cart-item-skeleton .skeleton-circle {
+  width: 20px;
+  height: 20px;
+}
+
+.cart-item-skeleton .skeleton-thumb {
+  width: 70px;
+  height: 70px;
+  border-radius: 12px;
+}
+
+.cart-item-skeleton .skeleton-line {
+  width: 120px;
+  height: 16px;
+}
+
+.cart-item-skeleton .skeleton-line-wide {
+  width: 180px;
+}
+
+.cart-item-skeleton .skeleton-line-short {
+  width: 80px;
+}
+
+.cart-item-skeleton .skeleton-pill {
+  width: 135px;
+  height: 44px;
+}
+
+@keyframes cartSkeletonPulse {
+  0% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.5;
+  }
+}
+
 /* ------------------------------------------------------ */
 /* CART ITEM ROW — MORE ACCURATE NOW                      */
 /* ------------------------------------------------------ */

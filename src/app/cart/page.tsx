@@ -89,6 +89,7 @@ export default function CartPage() {
   return (
     <div className="cart-page-container">
       <h1 className="cart-title">CART</h1>
+      <p className="cart-breadcrumb">Home Page • Cart</p>
 
       <div className="cart-layout">
         <div className="cart-left">
@@ -101,7 +102,7 @@ export default function CartPage() {
 
           <div className="cart-items">
             {loading ? (
-              <p>Loading...</p>
+              <SkeletonCartItems count={3} />
             ) : cart.items.length === 0 ? (
               <p>Your cart is empty.</p>
             ) : (
@@ -139,5 +140,28 @@ export default function CartPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+function SkeletonCartItems({ count = 3 }: { count?: number }) {
+  return (
+    <>
+      {Array.from({ length: count }).map((_, idx) => (
+        <div className="cart-item-row cart-item-skeleton" key={idx}>
+          <div className="skeleton-circle" />
+
+          <div className="cart-product">
+            <div className="skeleton-thumb" />
+            <div className="skeleton-line skeleton-line-wide" />
+          </div>
+
+          <div className="skeleton-line" />
+
+          <div className="skeleton-pill" />
+
+          <div className="skeleton-line skeleton-line-short" />
+        </div>
+      ))}
+    </>
   );
 }
