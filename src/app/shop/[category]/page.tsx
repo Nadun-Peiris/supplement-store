@@ -7,6 +7,10 @@ import {
   buildPriceFilter,
   combineFilters,
 } from "@/lib/productFilters";
+import { normalizeProduct } from "@/lib/products";
+import type { ProductDTO } from "@/types/product";
+
+type LeanProduct = Parameters<typeof normalizeProduct>[0];
 
 type ShopCategoryPageProps = {
   params: Promise<{ category: string }>; // ✅ FIX: params is now a Promise
@@ -37,33 +41,12 @@ export default async function ShopCategoryPage({
       .sort({ createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
-      .lean(),
+      .lean<LeanProduct[]>(),
   ]);
 
   const totalPages = totalProducts ? Math.ceil(totalProducts / limit) : 0;
 
-  const plainProducts = products.map((product) => {
-    const normalized: Record<string, unknown> = { ...product };
-
-    const rawId = normalized._id;
-    if (rawId && typeof rawId === "object" && "toString" in rawId) {
-      normalized._id = (rawId as { toString(): string }).toString();
-    }
-
-    const createdAt = normalized.createdAt;
-    if (createdAt instanceof Date) {
-      normalized.createdAt = createdAt.toISOString();
-    }
-
-    if ("updatedAt" in normalized) {
-      const updatedAt = normalized.updatedAt;
-      if (updatedAt instanceof Date) {
-        normalized.updatedAt = updatedAt.toISOString();
-      }
-    }
-
-    return normalized;
-  });
+  const plainProducts: ProductDTO[] = products.map(normalizeProduct);
 
   const data = {
     products: plainProducts,
