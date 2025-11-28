@@ -130,7 +130,7 @@ export default function Header() {
         <nav>
           <ul>
             <li><Link href="/">HOME</Link></li>
-
+            <li><Link href="/shop">SHOP</Link></li>
             {/* ⭐ DYNAMIC FEATURED CATEGORIES FROM ADMIN PANEL ⭐ */}
             {featuredLoading
               ? skeletons.map((_, idx) => (
