@@ -89,7 +89,6 @@ export default function CartPage() {
   return (
     <div className="cart-page-container">
       <h1 className="cart-title">CART</h1>
-      <p className="cart-breadcrumb">Home Page • Cart</p>
 
       <div className="cart-layout">
         <div className="cart-left">
