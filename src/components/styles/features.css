@@ -72,6 +72,22 @@
 
 @media (max-width: 768px) {
   .features-wrapper {
-    padding: 2.5rem 1.5rem;
+    padding: 2.5rem 1.25rem;
+  }
+
+  .features-card {
+    padding: 2.25rem 1.75rem;
+  }
+
+  .feature-item {
+    padding: 0;
+  }
+
+  .feature-item h3 {
+    font-size: 1rem;
+  }
+
+  .feature-item p {
+    font-size: 0.9rem;
   }
 }

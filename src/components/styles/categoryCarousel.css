@@ -147,27 +147,6 @@
   }
 }
 
-@media (min-width: 1280px) {
-  .category-carousel {
-    display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    gap: 2rem;
-    overflow: visible;
-    scroll-snap-type: none;
-  }
-
-  .category-item {
-    min-width: 0;
-    scroll-snap-align: unset;
-  }
-
-  .category-skeleton-row {
-    display: grid;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
-    gap: 2rem;
-  }
-}
-
 /* Mobile */
 @media (max-width: 768px) {
   .category-title {

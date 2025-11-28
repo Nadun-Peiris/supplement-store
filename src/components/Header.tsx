@@ -7,19 +7,33 @@ import { FaShoppingCart, FaBars, FaTimes } from "react-icons/fa";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useCart } from "@/context/CartContext";
+import { absoluteUrl } from "@/lib/absoluteUrl";
+
+interface FeaturedCategory {
+  _id: string;
+  index: number;
+  category: {
+    _id: string;
+    name: string;
+    slug: string;
+    image: string;
+  };
+}
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [headerState, setHeaderState] = useState<"header-topstate" | "header-scrolled">(
-    "header-topstate"
-  );
+  const [featured, setFeatured] = useState<FeaturedCategory[]>([]);
+  const [featuredLoading, setFeaturedLoading] = useState(true);
+  const [headerState, setHeaderState] = useState<
+    "header-topstate" | "header-scrolled"
+  >("header-topstate");
+
   const [user, setUser] = useState<import("firebase/auth").User | null>(null);
   const { count } = useCart();
 
-  // 1. SCROLL LISTENER (Detects when to switch styles)
+  /* --------------------------- SCROLL HEADER EFFECT --------------------------- */
   useEffect(() => {
     const handleScroll = () => {
-      // If scrolled more than 10px, switch to glass effect
       if (window.scrollY > 10) {
         setHeaderState("header-scrolled");
       } else {
@@ -31,7 +45,7 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Track Firebase Auth
+  /* --------------------------- TRACK AUTH STATE --------------------------- */
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u));
     return () => unsub();
@@ -42,28 +56,45 @@ export default function Header() {
     setMenuOpen(false);
   };
 
-  // 2. DEFINE STYLES BASED ON STATE
-  // "header-topstate" = Solid Black
-  // "header-scrolled" = Glass Effect
+  /* --------------------------- LOAD FEATURED CATEGORIES --------------------------- */
+  useEffect(() => {
+    async function loadFeatured() {
+      setFeaturedLoading(true);
+      try {
+        const res = await fetch(absoluteUrl("/api/featured-categories"));
+        const data = await res.json();
+
+        const sorted = (data.items || []).sort(
+          (a: FeaturedCategory, b: FeaturedCategory) => a.index - b.index
+        );
+
+        setFeatured(sorted);
+      } catch (err) {
+        console.error("HEADER FEATURED LOAD ERROR:", err);
+      } finally {
+        setFeaturedLoading(false);
+      }
+    }
+
+    loadFeatured();
+  }, []);
+
+  /* --------------------------- DYNAMIC HEADER STYLE --------------------------- */
   const dynamicClasses =
     headerState === "header-scrolled"
-      ? "bg-black/80 border-white/10 backdrop-blur-md" // <-- SCROLLED STYLE
-      : "bg-black border-transparent";                 // <-- TOP STYLE (Solid)
+      ? "bg-black/80 border-white/10 backdrop-blur-md"
+      : "bg-black border-transparent";
 
-  /* NOTE ON BLUR:
-     To change the blur intensity, find 'backdrop-blur-md' above.
-     Options:
-       - backdrop-blur-sm  (Low blur)
-       - backdrop-blur-md  (Medium blur - Current)
-       - backdrop-blur-lg  (High blur)
-       - backdrop-blur-xl  (Very High blur)
-  */
+  const navFeatured = featured.filter(
+    (item) => item.category && item.category.slug
+  );
+  const skeletons = Array.from({ length: 8 });
 
   return (
     <header
       className={`site-header sticky top-0 z-50 border-b transition-all duration-300 ease-in-out ${dynamicClasses}`}
     >
-      {/* TOP BAR */}
+      {/* --------------------------- TOP BAR --------------------------- */}
       <div className="header-top">
         <button
           className="hamburger-btn md:hidden"
@@ -73,7 +104,7 @@ export default function Header() {
         </button>
 
         <Link href="/" className="header-logo">
-          <img src="/logo.png" alt="Supplement Logo" />
+          <img src="/logo.png" alt="Supplement Store" />
         </Link>
 
         <div className="nav-right hidden md:flex">
@@ -94,35 +125,85 @@ export default function Header() {
         </div>
       </div>
 
-      {/* DESKTOP NAV */}
+      {/* --------------------------- DESKTOP NAV --------------------------- */}
       <div className="header-bottom desktop-nav">
         <nav>
           <ul>
             <li><Link href="/">HOME</Link></li>
-            <li><Link href="/protein">PROTEIN</Link></li>
-            <li><Link href="/preworkout">PRE - WORKOUT</Link></li>
-            <li><Link href="/mass-gainers">MASS GAINERS</Link></li>
-            <li><Link href="/creatine">CREATINE</Link></li>
-            <li><Link href="/fat-burners">FAT BURNERS</Link></li>
-            <li><Link href="/recovery">RECOVERY</Link></li>
-            <li><Link href="/vitamin">VITAMIN</Link></li>
+
+            {/* ⭐ DYNAMIC FEATURED CATEGORIES FROM ADMIN PANEL ⭐ */}
+            {featuredLoading
+              ? skeletons.map((_, idx) => (
+                  <li key={`featured-skeleton-${idx}`}>
+                    <span className="header-skeleton-pill" />
+                  </li>
+                ))
+              : navFeatured.map((item) => {
+                  const label =
+                    (item.category?.name || item.category?.slug || "Category").trim() ||
+                    "Category";
+                  return (
+                    <li key={item._id}>
+                      <Link href={`/shop/${item.category.slug}`}>
+                        {label.toUpperCase()}
+                      </Link>
+                    </li>
+                  );
+                })}
+
             <li><Link href="/about">ABOUT US</Link></li>
             <li><Link href="/contact">CONTACT US</Link></li>
           </ul>
         </nav>
       </div>
 
-      {/* MOBILE MENU */}
+      {/* --------------------------- MOBILE MENU --------------------------- */}
       {menuOpen && (
         <div className="mobile-menu md:hidden">
           <nav>
             <ul>
-              <li><Link href="/" onClick={() => setMenuOpen(false)}>HOME</Link></li>
-              <li><Link href="/protein" onClick={() => setMenuOpen(false)}>PROTEIN</Link></li>
-              {/* ... existing links ... */}
-              <li><Link href="/contact" onClick={() => setMenuOpen(false)}>CONTACT US</Link></li>
+              <li>
+                <Link href="/" onClick={() => setMenuOpen(false)}>
+                  HOME
+                </Link>
+              </li>
+
+              {/* ⭐ DYNAMIC MOBILE MENU ⭐ */}
+              {featuredLoading
+                ? skeletons.map((_, idx) => (
+                    <li key={`mobile-featured-skeleton-${idx}`}>
+                      <span className="header-skeleton-pill mobile" />
+                    </li>
+                  ))
+                : navFeatured.map((item) => {
+                    const label =
+                      (item.category?.name || item.category?.slug || "Category").trim() ||
+                      "Category";
+                    return (
+                      <li key={item._id}>
+                        <Link
+                          href={`/shop/${item.category.slug}`}
+                          onClick={() => setMenuOpen(false)}
+                        >
+                          {label.toUpperCase()}
+                        </Link>
+                      </li>
+                    );
+                  })}
+
+              <li>
+                <Link href="/about" onClick={() => setMenuOpen(false)}>
+                  ABOUT US
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" onClick={() => setMenuOpen(false)}>
+                  CONTACT US
+                </Link>
+              </li>
 
               <br />
+
               <li className="mobile-icons">
                 <Link
                   href="/cart"
@@ -132,6 +213,7 @@ export default function Header() {
                   <FaShoppingCart />
                   {count > 0 && <span className="cart-badge">{count}</span>}
                 </Link>
+
                 {user ? (
                   <button onClick={handleLogout} className="auth-btn">
                     Logout

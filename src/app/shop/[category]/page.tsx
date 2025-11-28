@@ -1,5 +1,12 @@
 import ShopPage from "./ShopPage";
-import { absoluteUrl } from "@/lib/absoluteUrl";
+import { connectDB } from "@/lib/mongoose";
+import Product from "@/models/Product";
+import {
+  buildBrandFilter,
+  buildCategoryFilter,
+  buildPriceFilter,
+  combineFilters,
+} from "@/lib/productFilters";
 
 type ShopCategoryPageProps = {
   params: Promise<{ category: string }>; // ✅ FIX: params is now a Promise
@@ -13,25 +20,57 @@ export default async function ShopCategoryPage({
   const { category } = await params;
   const categorySlug = category;
 
-  const query = new URLSearchParams({
-    page: "1",
-    limit: "9",
-  });
+  await connectDB();
 
-  if (categorySlug) {
-    query.append("category", categorySlug);
-  }
+  const page = 1;
+  const limit = 9;
 
-  const res = await fetch(
-    absoluteUrl(`/api/products/filter?${query.toString()}`),
-    { cache: "no-store" }
+  const filter = combineFilters(
+    buildCategoryFilter(categorySlug ? [categorySlug] : []),
+    buildBrandFilter([]),
+    buildPriceFilter(undefined, undefined)
   );
 
-  if (!res.ok) {
-    console.error("Failed to load products", await res.text());
-  }
+  const [totalProducts, products] = await Promise.all([
+    Product.countDocuments(filter),
+    Product.find(filter)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+  ]);
 
-  const data = await res.json();
+  const totalPages = totalProducts ? Math.ceil(totalProducts / limit) : 0;
+
+  const plainProducts = products.map((product) => {
+    const normalized: Record<string, unknown> = { ...product };
+
+    const rawId = normalized._id;
+    if (rawId && typeof rawId === "object" && "toString" in rawId) {
+      normalized._id = (rawId as { toString(): string }).toString();
+    }
+
+    const createdAt = normalized.createdAt;
+    if (createdAt instanceof Date) {
+      normalized.createdAt = createdAt.toISOString();
+    }
+
+    if ("updatedAt" in normalized) {
+      const updatedAt = normalized.updatedAt;
+      if (updatedAt instanceof Date) {
+        normalized.updatedAt = updatedAt.toISOString();
+      }
+    }
+
+    return normalized;
+  });
+
+  const data = {
+    products: plainProducts,
+    totalProducts,
+    totalPages,
+    currentPage: totalProducts ? Math.min(page, totalPages || 1) : 1,
+  };
 
   return (
     <ShopPage

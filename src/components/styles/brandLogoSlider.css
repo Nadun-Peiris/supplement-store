@@ -80,3 +80,23 @@
     padding: 1.5rem 1rem;
   }
 }
+
+@media (max-width: 600px) {
+  .brand-section {
+    padding: 2.5rem 1.25rem;
+  }
+
+  .brand-grid {
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 1rem;
+  }
+
+  .brand-card {
+    height: 110px;
+  }
+
+  .brand-image {
+    width: 100px;
+    height: 100px;
+  }
+}

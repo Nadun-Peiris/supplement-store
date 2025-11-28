@@ -55,6 +55,7 @@
   scroll-behavior: smooth;
   scrollbar-width: none;
   padding-right: 1.5rem; /* extra scroll room so last card is visible */
+  scroll-snap-type: x proximity;
 }
 
 .carousel-track::-webkit-scrollbar {
@@ -65,17 +66,53 @@
   .carousel-section {
     padding: 3rem 2rem;
   }
+
+  .carousel-header h2 {
+    font-size: 3rem;
+  }
+
+  .carousel-track {
+    grid-auto-columns: calc(33.333% - 1rem);
+  }
 }
 
 @media (max-width: 768px) {
   .carousel-section {
     padding: 2.5rem 1.5rem;
   }
+
+  .carousel-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .carousel-header h2 {
+    font-size: 2.4rem;
+  }
+
+  .view-all {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .carousel-track {
+    grid-auto-columns: 70%;
+    padding-right: 0.5rem;
+  }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 500px) {
+  .carousel-section {
+    padding: 2rem 1rem;
+  }
+
+  .carousel-header h2 {
+    font-size: 2rem;
+  }
+
   .carousel-track {
-    grid-auto-columns: calc(50% - 1rem);
+    grid-auto-columns: 85%;
   }
 }
 
@@ -94,7 +131,13 @@
 
 @media (max-width: 768px) {
   .skeleton-track {
-    grid-auto-columns: calc(50% - 1rem);
+    grid-auto-columns: 70%;
+  }
+}
+
+@media (max-width: 500px) {
+  .skeleton-track {
+    grid-auto-columns: 85%;
   }
 }
 

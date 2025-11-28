@@ -11,6 +11,8 @@
   padding: 0 2rem;
   overflow-x: auto;
   scrollbar-width: none;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 2rem;
 }
 .promo-carousel::-webkit-scrollbar {
   display: none;
@@ -27,10 +29,13 @@
   text-decoration: none;
   color: white;
   background: #000;
+  scroll-snap-align: center;
 }
 
 /* BG image */
 .promo-bg {
+  position: absolute;
+  inset: 0;
   object-fit: cover;
   z-index: 1;
 }
@@ -96,13 +101,54 @@
 }
 
 /* Mobile: make carousel scrollable */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .promo-card {
-    width: 85%;
-    height: 340px; /* slightly smaller on mobile */
+    width: 420px;
   }
 
   .promo-content h2 {
-    font-size: 2rem;
+    font-size: 2.2rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .promo-section {
+    padding: 2.5rem 0;
+  }
+
+  .promo-carousel {
+    padding: 0 1rem;
+    gap: 1.25rem;
+  }
+
+  .promo-card {
+    width: calc(100% - 2rem);
+    height: 320px;
+    border-radius: 20px;
+  }
+
+  .promo-content {
+    top: 1.5rem;
+    left: 1.5rem;
+    right: 1.5rem;
+  }
+
+  .promo-content h2 {
+    font-size: 1.8rem;
+    max-width: 10ch;
+  }
+
+  .promo-product-wrapper {
+    right: -20px;
+    bottom: 5.5rem;
+    transform: scale(0.85);
+    transform-origin: bottom right;
+  }
+
+  .promo-btn {
+    left: 1.5rem;
+    bottom: 1rem;
+    padding: 0.65rem 1.4rem;
+    font-size: 0.85rem;
   }
 }

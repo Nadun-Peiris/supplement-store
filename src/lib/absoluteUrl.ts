@@ -19,14 +19,14 @@ export function absoluteUrl(path: string) {
     throw new Error("absoluteUrl() expects a path starting with '/'");
   }
 
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return `${window.location.origin}${path}`;
+  }
+
   const envBase = resolveBaseUrl();
 
   if (envBase) {
     return `${envBase}${path}`;
-  }
-
-  if (typeof window !== "undefined" && window.location?.origin) {
-    return `${window.location.origin}${path}`;
   }
 
   throw new Error(

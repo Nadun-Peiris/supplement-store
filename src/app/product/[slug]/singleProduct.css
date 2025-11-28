@@ -11,6 +11,57 @@
   align-items: flex-start;
 }
 
+@media (max-width: 1200px) {
+  .sp-container {
+    grid-template-columns: 1fr 0.05fr 1fr;
+    gap: 2.5rem;
+  }
+
+  .sp-image-box {
+    height: 560px;
+    padding: 2.5rem;
+  }
+
+  .sp-title {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .sp-container {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 0 1.5rem;
+  }
+
+  .sp-divider {
+    display: none;
+  }
+
+  .sp-image-box {
+    height: auto;
+  }
+
+  .sp-desc {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 600px) {
+  .sp-container {
+    margin: 2.5rem auto;
+    padding: 0 1rem;
+  }
+
+  .sp-image-box {
+    padding: 1.75rem;
+  }
+
+  .sp-title {
+    font-size: 2rem;
+  }
+}
+
 
 /* LEFT IMAGE BOX — like Nutreko layout */
 .sp-image-box {
@@ -97,6 +148,12 @@
   align-items: center;
   gap: 1rem;
   margin-top: 1.4rem;
+}
+
+@media (max-width: 600px) {
+  .sp-actions-row {
+    flex-direction: column;
+  }
 }
 
 /* ADD TO CART — matches your login hover */
@@ -190,6 +247,12 @@
   object-fit: contain;
 }
 
+@media (max-width: 768px) {
+  .safe-checkout-image {
+    width: 100%;
+  }
+}
+
 
 
 /* BOTTOM META */
@@ -205,6 +268,13 @@
   align-items: center;
   gap: 1rem;
   margin: 1.2rem 0;
+}
+
+@media (max-width: 600px) {
+  .sp-qty-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
 }
 
 .sp-qty-box {
