@@ -1,0 +1,86 @@
+/* -------- Page Container -------- */
+.success-container {
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: #f7fcff;
+  padding: 1.5rem;
+}
+
+/* -------- Card -------- */
+.success-card {
+  background: #ffffff;
+  width: 100%;
+  max-width: 420px;
+  padding: 2.5rem 2rem;
+  border-radius: 16px;
+  text-align: center;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+/* -------- Lottie -------- */
+.lottie-wrapper {
+  width: 180px;
+  margin: 0 auto 1rem auto;
+}
+
+/* -------- Titles -------- */
+.success-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #000000;
+  margin-top: -10px;
+}
+
+.success-sub {
+  margin-top: 0.5rem;
+  font-size: 1rem;
+  color: #000;
+  font-weight: 500;
+}
+
+.success-small {
+  margin-top: 3px;
+  font-size: 0.9rem;
+  color: #555;
+}
+
+/* -------- Button -------- */
+.success-btn {
+  margin-top: 1.5rem;
+  width: 100%;
+  padding: 0.95rem;
+  border-radius: 9999px;
+  border: 1px solid #525252;
+  background-color: #262626;
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.success-btn:hover {
+  border-color: #03C7FE;
+  background-color: #111;
+  transform: translateY(-1px);
+}
+
+/* -------- Fade Animation -------- */
+.fade-in {
+  animation: fadeIn 0.45s ease-in-out both;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

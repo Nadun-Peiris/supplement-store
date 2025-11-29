@@ -1,24 +1,30 @@
 import * as admin from "firebase-admin";
 
-let adminApp: admin.app.App | null = null;
+let app: admin.app.App | null = null;
 
-// Initialize Firebase Admin safely (Turbopack + Next.js compatible)
-export function initAdmin() {
-  if (!admin.apps.length) {
-    adminApp = admin.initializeApp({
-      credential: admin.credential.cert({
-        projectId: process.env.FIREBASE_PROJECT_ID,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
-      }),
-    });
-  } else {
-    adminApp = admin.app();
+export function adminAuth() {
+  // If already initialized → reuse
+  if (admin.apps.length > 0) {
+    return admin.auth();
   }
-}
 
-// Expose auth() instance so we can verify tokens in route handlers
-export const adminAuth = () => {
-  if (!adminApp) initAdmin();
+  const key = process.env.FIREBASE_ADMIN_KEY;
+  if (!key) {
+    throw new Error("FIREBASE_ADMIN_KEY is missing");
+  }
+
+  let parsedKey;
+
+  try {
+    parsedKey = JSON.parse(key);
+  } catch (err) {
+    console.error("❌ Invalid FIREBASE_ADMIN_KEY JSON:", err);
+    throw new Error("Invalid FIREBASE_ADMIN_KEY JSON");
+  }
+
+  app = admin.initializeApp({
+    credential: admin.credential.cert(parsedKey),
+  });
+
   return admin.auth();
-};
+}

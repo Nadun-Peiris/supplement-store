@@ -1,0 +1,259 @@
+/* ------------------------------------------------------ */
+/* GLOBAL WRAPPER */
+/* ------------------------------------------------------ */
+.register-container {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1rem;
+  background: #f2fbff; /* very light blue background */
+  min-height: 100vh;
+}
+
+/* CARD DESIGN */
+.register-card {
+  background: white;
+  width: 100%;
+  max-width: 480px;
+  padding: 2.2rem;
+  border-radius: 18px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.07);
+  animation: fadeIn 0.35s ease-out;
+  border: 1px solid #e6faff;
+}
+
+/* HEADINGS */
+.register-title {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: #111;
+  margin-bottom: 0.3rem;
+  text-align: center;
+}
+
+.register-sub {
+  text-align: center;
+  color: #6b7280;
+  margin-bottom: 1.7rem;
+  font-size: 0.95rem;
+}
+
+/* FORM LAYOUT */
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+/* LABELS + INPUTS */
+.input-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.input-group label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 0.35rem;
+}
+
+.input-group input,
+.input-group select {
+  width: 100%;
+  padding: 0.8rem 1rem;
+  border-radius: 10px;
+  border: 1px solid #cfeef7;
+  font-size: 1rem;
+  background: #fbfdff;
+  outline: none;
+  transition: 0.2s ease;
+  color: #111;
+}
+
+.phone-input {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.phone-input select {
+  max-width: 190px;
+  padding-right: 1.5rem;
+}
+
+.phone-input input {
+  flex: 1;
+}
+
+.input-group input:focus,
+.input-group select:focus {
+  border-color: #31D7FF;
+  box-shadow: 0 0 0 2px rgba(49, 215, 255, 0.25);
+}
+
+.select-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.select-wrapper select {
+  width: 100%;
+  display: block;
+  appearance: none;
+  padding-right: 2.8rem;
+  background: #fbfdff;
+}
+
+.select-wrapper .select-icon {
+  position: absolute;
+  right: 1rem;
+  color: #94a3b8;
+  pointer-events: none;
+  font-size: 0.9rem;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.select-wrapper select:hover,
+.select-wrapper select:focus {
+  border-color: #31D7FF;
+  box-shadow: 0 0 0 2px rgba(49, 215, 255, 0.2);
+}
+
+.select-wrapper select:focus + .select-icon {
+  color: #31D7FF;
+  transform: translateY(-2px) rotate(180deg);
+}
+
+/* BUTTON */
+.register-btn {
+  margin-top: 1rem;
+  width: 100%;
+  padding: 0.95rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 9999px;
+  border: 1px solid #525252;
+  background-color: #262626;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  letter-spacing: 0.5px;
+}
+
+.register-btn:hover {
+  border-color: #03C7FE;
+  background-color: #111;
+}
+
+/* PROGRESS INDICATOR (OPTIONAL) */
+.register-progress {
+  width: 100%;
+  height: 6px;
+  background: #e8faff;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 1.4rem;
+}
+
+.register-progress-fill {
+  height: 100%;
+  background: #31D7FF;
+  width: var(--progress, 33%);
+  transition: width 0.3s ease;
+}
+
+/* FADE ANIMATION */
+.fade-in {
+  animation: fadeIn 0.4s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+
+/* Review Page */
+.review-box {
+  margin-top: 1.5rem;
+  background: #ffffff;
+  padding: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  animation: fade-in 0.3s ease;
+}
+
+.review-heading {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #31D7FF;
+  margin-bottom: 0.6rem;
+}
+
+.review-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  font-size: 0.95rem;
+  color: #000;
+}
+
+.review-row span {
+  font-weight: 600;
+  color: #333;
+}
+
+.review-divider {
+  margin: 1rem 0;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+}
+
+.register-actions,
+.review-btn-row {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.reg-back-btn {
+  background-color: #f4f4f5;
+  color: #111;
+  padding: 0.85rem 1.6rem;
+  border-radius: 9999px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  border: 1px solid #d4d4d8;
+  transition: all 0.2s ease;
+}
+
+.reg-back-btn:hover {
+  border-color: #03c7fe;
+  color: #03c7fe;
+}
+
+.register-actions .register-btn,
+.review-btn-row .register-btn {
+  width: auto;
+  margin-top: 0;
+  min-width: 180px;
+  padding: 0.85rem 1.8rem;
+}
+
+@media (max-width: 640px) {
+  .register-actions,
+  .review-btn-row {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .register-actions .register-btn,
+  .review-btn-row .register-btn,
+  .reg-back-btn {
+    width: 100%;
+  }
+}
