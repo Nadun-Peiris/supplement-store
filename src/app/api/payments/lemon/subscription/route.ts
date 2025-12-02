@@ -8,8 +8,6 @@ import {
   extractCheckoutUrl,
 } from "@/lib/lemonsqueezy";
 
-const SUBSCRIPTION_VARIANT_ID = process.env.LEMON_SUBSCRIPTION_VARIANT_ID;
-
 function resolveBaseUrl(req: NextRequest): string {
   const envBase =
     process.env.NEXT_PUBLIC_BASE_URL ||
@@ -86,11 +84,13 @@ export async function POST(req: NextRequest) {
 
     const baseUrl = resolveBaseUrl(req);
 
+    const normalizedOrderId = String(order._id);
+
     const checkout = await createSubscriptionCheckout({
       email: user.email,
       userId: user._id.toString(),
-      orderId: order._id.toString(),
-      redirectUrl: `${baseUrl}/checkout/success?orderId=${order._id}`,
+      orderId: normalizedOrderId,
+      redirectUrl: `${baseUrl}/checkout/success?orderId=${normalizedOrderId}`,
       amountInMajorUnits: order.total,
     });
 

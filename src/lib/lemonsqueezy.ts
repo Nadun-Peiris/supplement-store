@@ -85,7 +85,7 @@ export interface OneTimeCheckoutParams {
 }
 
 export interface SubscriptionCheckoutParams {
-  variantId: string;
+  variantId?: string;
   email: string;
   orderId: string;
   userId: string;
@@ -231,19 +231,20 @@ export async function createOneTimeCheckout({
 }
 
 export async function createSubscriptionCheckout({
+  variantId,
   email,
   userId,
   orderId,
   redirectUrl,
   amountInMajorUnits,
 }: SubscriptionCheckoutParams): Promise<LemonCheckoutResponse> {
-  const variantId = SUBSCRIPTION_VARIANT_ID;
-  if (!variantId) {
+  const resolvedVariantId = variantId ?? SUBSCRIPTION_VARIANT_ID;
+  if (!resolvedVariantId) {
     throw new Error("LEMON_SUBSCRIPTION_VARIANT_ID is not configured");
   }
 
   const payload = buildCheckoutPayload({
-    variantId,
+    variantId: resolvedVariantId,
     email,
     redirectUrl,
     customData: { orderId, userId, type: "subscription" },
