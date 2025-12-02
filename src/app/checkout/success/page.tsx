@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Lottie from "lottie-react";
 import "../../register/success/success.css";
@@ -19,6 +19,22 @@ interface Order {
 }
 
 export default function CheckoutSuccess() {
+  return (
+    <Suspense
+      fallback={
+        <div className="register-container">
+          <div className="register-card fade-in">
+            <p className="register-sub">Loading your order...</p>
+          </div>
+        </div>
+      }
+    >
+      <CheckoutSuccessContent />
+    </Suspense>
+  );
+}
+
+function CheckoutSuccessContent() {
   const params = useSearchParams();
   const orderId = params.get("orderId") || params.get("order");
 
