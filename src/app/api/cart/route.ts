@@ -7,12 +7,13 @@ import { adminAuth } from "@/lib/firebaseAdmin";
 async function getCartOwner(req: Request) {
   const authHeader = req.headers.get("authorization");
   const token = authHeader?.split(" ")[1];
+  let userId: string | null = null;
 
   // Logged-in user
   if (token) {
     try {
       const decoded = await adminAuth().verifyIdToken(token);
-      return { userId: decoded.uid, guestId: null };
+      userId = decoded.uid;
     } catch {
       console.error("Invalid Firebase token");
     }
@@ -20,7 +21,7 @@ async function getCartOwner(req: Request) {
 
   // Guest user
   const guestId = req.headers.get("guest-id") || null;
-  return { userId: null, guestId };
+  return { userId, guestId };
 }
 
 /* -----------------------------------------
@@ -42,13 +43,14 @@ export async function POST(req: Request) {
 
     const quantity = Math.max(1, Number(rawQty) || 1);
 
-    let cart = await Cart.findOne(userId ? { userId } : { guestId });
+    const cartFilter = userId ? { userId } : { guestId };
+    let cart = await Cart.findOne(cartFilter);
 
     // Create new cart if none exists
     if (!cart) {
       cart = await Cart.create({
-        userId,
-        guestId,
+        userId: userId || undefined,
+        guestId: guestId || undefined,
         items: [{ productId, name, price, quantity, image }],
       });
 
@@ -82,7 +84,15 @@ export async function GET(req: Request) {
 
     const { userId, guestId } = await getCartOwner(req);
 
-    const cart = await Cart.findOne(userId ? { userId } : { guestId });
+    let cart = null;
+
+    if (userId) {
+      cart = await Cart.findOne({ userId });
+    }
+
+    if (!cart && guestId) {
+      cart = await Cart.findOne({ guestId });
+    }
 
     return NextResponse.json({ cart: cart || { items: [] } });
   } catch (err) {
@@ -100,7 +110,15 @@ export async function DELETE(req: Request) {
 
     const { userId, guestId } = await getCartOwner(req);
 
-    await Cart.findOneAndDelete(userId ? { userId } : { guestId });
+    let deleted = null;
+
+    if (userId) {
+      deleted = await Cart.findOneAndDelete({ userId });
+    }
+
+    if (!deleted && guestId) {
+      await Cart.findOneAndDelete({ guestId });
+    }
 
     return NextResponse.json({ success: true, message: "Cart cleared" });
   } catch (err) {

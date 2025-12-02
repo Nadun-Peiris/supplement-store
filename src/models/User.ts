@@ -29,6 +29,15 @@ const UserSchema = new Schema(
     postalCode: { type: String, required: true },
     country: { type: String, required: true },
 
+    subscription: {
+      id: { type: String, default: null },
+      active: { type: Boolean, default: false },
+      nextBillingDate: { type: Date, default: null },
+      lemonCustomerId: { type: String, default: null },
+      status: { type: String, default: null },
+      cancelledAt: { type: Date, default: null },
+    },
+
     createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }

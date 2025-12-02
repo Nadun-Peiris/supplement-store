@@ -128,9 +128,18 @@ export default function BillingDetailsPage() {
             />
           </div>
 
-          <button className="register-btn" type="submit">
-            Continue →
-          </button>
+          <div className="register-actions">
+            <button
+              type="button"
+              className="reg-back-btn"
+              onClick={() => router.push("/register/health-info")}
+            >
+              ← Back
+            </button>
+            <button className="register-btn" type="submit">
+              Continue →
+            </button>
+          </div>
         </form>
       </div>
     </div>
