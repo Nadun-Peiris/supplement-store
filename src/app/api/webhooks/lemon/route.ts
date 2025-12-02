@@ -7,11 +7,6 @@ import Subscription from "@/models/Subscription";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};
 
 interface LemonWebhookPayload {
   meta?: {
