@@ -70,6 +70,72 @@
   color: #111;
 }
 
+.password-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-wrapper input {
+  padding-right: 2.8rem;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 0.6rem;
+  background: transparent;
+  border: none;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: grid;
+  place-items: center;
+  color: #6b7280;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: color 0.25s ease, background 0.25s ease;
+  overflow: hidden;
+}
+
+.toggle-password:focus-visible {
+  outline: 2px solid #31D7FF;
+}
+
+.toggle-password:hover {
+  background: rgba(49, 215, 255, 0.12);
+  color: #111;
+}
+
+.toggle-password[data-visible="true"] {
+  color: #31D7FF;
+}
+
+.toggle-password-icon {
+  position: absolute;
+  font-size: 1.15rem;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.toggle-password-icon-closed {
+  opacity: 0;
+  transform: scale(0.75) translateY(3px);
+}
+
+.toggle-password-icon-open {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.toggle-password[data-visible="true"] .toggle-password-icon-open {
+  opacity: 0;
+  transform: scale(0.75) translateY(-2px);
+}
+
+.toggle-password[data-visible="true"] .toggle-password-icon-closed {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
 .phone-input {
   display: flex;
   gap: 0.75rem;

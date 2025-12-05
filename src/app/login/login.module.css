@@ -31,6 +31,75 @@
   font-size: 0.95rem;
 }
 
+.passwordInputWrapper {
+  position: relative;
+  width: 100%;
+  margin-bottom: 0.75rem;
+}
+
+.passwordInputWrapper .input {
+  margin-bottom: 0;
+  padding-right: 2.5rem;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 0.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #6b7280;
+  width: 2.1rem;
+  height: 2.1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 9999px;
+  transition: color 0.25s ease, background 0.25s ease;
+  overflow: hidden;
+}
+
+.passwordToggle:focus-visible {
+  outline: 2px solid #2563eb;
+}
+
+.passwordToggle:hover {
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+}
+
+.passwordToggle[data-visible="true"] {
+  color: #2563eb;
+}
+
+.passwordToggleIcon {
+  position: absolute;
+  font-size: 1.1rem;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.passwordToggleIconClosed {
+  opacity: 0;
+  transform: scale(0.75) translateY(3px);
+}
+
+.passwordToggleIconOpen {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.passwordToggle[data-visible="true"] .passwordToggleIconOpen {
+  opacity: 0;
+  transform: scale(0.75) translateY(-2px);
+}
+
+.passwordToggle[data-visible="true"] .passwordToggleIconClosed {
+  opacity: 1;
+  transform: scale(1);
+}
+
 .button {
   background-color: #2563eb; /* blue-600 */
   color: white;

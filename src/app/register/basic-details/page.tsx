@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaChevronDown } from "react-icons/fa";
+import { FaChevronDown, FaEye, FaEyeSlash } from "react-icons/fa";
 
 export default function Step1() {
   const router = useRouter();
@@ -18,6 +18,8 @@ export default function Step1() {
     age: "",
     gender: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem("registration_complete")) {
@@ -124,27 +126,65 @@ export default function Step1() {
           {/* PASSWORD */}
           <div className="input-group">
             <label>Password</label>
-            <input
-              type="password"
-              name="password"
-              value={form.password}
-              onChange={handleChange}
-              placeholder="Minimum 6 characters"
-              required
-            />
+            <div className="password-wrapper">
+              <input
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={form.password}
+                onChange={handleChange}
+                placeholder="Minimum 6 characters"
+                required
+              />
+              <button
+                type="button"
+                className="toggle-password"
+                data-visible={showPassword}
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                <FaEye
+                  className="toggle-password-icon toggle-password-icon-open"
+                  aria-hidden="true"
+                />
+                <FaEyeSlash
+                  className="toggle-password-icon toggle-password-icon-closed"
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
           </div>
 
           {/* CONFIRM PASSWORD */}
           <div className="input-group">
             <label>Re-enter Password</label>
-            <input
-              type="password"
-              name="confirmPassword"
-              value={form.confirmPassword}
-              onChange={handleChange}
-              placeholder="Re-enter password"
-              required
-            />
+            <div className="password-wrapper">
+              <input
+                type={showConfirmPassword ? "text" : "password"}
+                name="confirmPassword"
+                value={form.confirmPassword}
+                onChange={handleChange}
+                placeholder="Re-enter password"
+                required
+              />
+              <button
+                type="button"
+                className="toggle-password"
+                data-visible={showConfirmPassword}
+                onClick={() => setShowConfirmPassword((prev) => !prev)}
+                aria-label={
+                  showConfirmPassword ? "Hide confirm password" : "Show confirm password"
+                }
+              >
+                <FaEye
+                  className="toggle-password-icon toggle-password-icon-open"
+                  aria-hidden="true"
+                />
+                <FaEyeSlash
+                  className="toggle-password-icon toggle-password-icon-closed"
+                  aria-hidden="true"
+                />
+              </button>
+            </div>
           </div>
 
           {/* PHONE NUMBER */}

@@ -5,11 +5,13 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import styles from "./login.module.css";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const { user } = useAuth();
@@ -41,12 +43,30 @@ export default function LoginPage() {
           className={styles.input}
           onChange={(e) => setEmail(e.target.value)}
         />
-        <input
-          type="password"
-          placeholder="Password"
-          className={styles.input}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div className={styles.passwordInputWrapper}>
+          <input
+            type={showPassword ? "text" : "password"}
+            placeholder="Password"
+            className={styles.input}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            type="button"
+            className={styles.passwordToggle}
+            data-visible={showPassword}
+            onClick={() => setShowPassword((prev) => !prev)}
+            aria-label={showPassword ? "Hide password" : "Show password"}
+          >
+            <FaEye
+              className={`${styles.passwordToggleIcon} ${styles.passwordToggleIconOpen}`}
+              aria-hidden="true"
+            />
+            <FaEyeSlash
+              className={`${styles.passwordToggleIcon} ${styles.passwordToggleIconClosed}`}
+              aria-hidden="true"
+            />
+          </button>
+        </div>
         <button onClick={handleLogin} disabled={loading} className={styles.button}>
           {loading ? "Logging in..." : "Log In"}
         </button>
