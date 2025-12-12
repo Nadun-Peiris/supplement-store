@@ -1,0 +1,48 @@
+/* =========================================
+   DASHBOARD GLOBAL STYLES 
+   Medium Compact (Donezo Style)
+========================================= */
+
+.dashboard-container {
+  width: 100%;
+  padding: 24px;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dashboard-loading {
+  padding: 40px;
+  text-align: center;
+  font-size: 18px;
+  color: #555;
+}
+
+/* Reusable Card Style */
+.dashboard-card {
+  background: #f8f8f8;
+  border: 1px solid #e6e6e6;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.dashboard-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 12px;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

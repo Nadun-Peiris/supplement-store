@@ -1,0 +1,28 @@
+.dashboard-shell {
+  --dashboard-header-offset: 120px;
+
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: calc(100vh - var(--dashboard-header-offset));
+  background: #fdfdfd;
+}
+
+.dashboard-main {
+  padding: 24px;
+  min-width: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  max-height: calc(100vh - var(--dashboard-header-offset));
+}
+
+@media (max-width: 900px) {
+  .dashboard-shell {
+    display: block;
+  }
+
+  .dashboard-main {
+    padding: 18px;
+    overflow: visible;
+    max-height: none;
+  }
+}

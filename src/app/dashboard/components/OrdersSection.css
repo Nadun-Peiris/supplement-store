@@ -1,0 +1,108 @@
+/* =========================================
+   LATEST ORDERS SECTION
+   Donezo-inspired, clean and compact
+========================================= */
+
+.orders-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.orders-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111;
+  margin-bottom: 6px;
+}
+
+.orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.order-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid #e6e6e6;
+  padding: 14px 18px;
+  border-radius: 12px;
+  transition: 0.2s ease;
+}
+
+.order-item:hover {
+  border-color: #03c7fe;
+  background: #f4fcff;
+}
+
+.order-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.order-id {
+  font-size: 14px;
+  font-weight: 600;
+  color: #03c7fe;
+}
+
+.order-type {
+  font-size: 12px;
+  color: #666;
+}
+
+.order-middle .order-total {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111;
+}
+
+/* STATUS BADGES */
+.order-status {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* Colored according to status */
+.order-status.paid {
+  background: #d7f7e4;
+  color: #1c9a55;
+}
+
+.order-status.pending {
+  background: #fff3cd;
+  color: #b88600;
+}
+
+.order-status.failed {
+  background: #ffe1e1;
+  color: #d00000;
+}
+
+.order-status.cancelled {
+  background: #e0e0e0;
+  color: #555;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .order-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .order-middle {
+    align-self: flex-start;
+  }
+
+  .order-right {
+    align-self: flex-start;
+  }
+}

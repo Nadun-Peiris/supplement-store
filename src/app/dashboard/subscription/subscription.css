@@ -1,0 +1,63 @@
+.sub-container {
+  padding: 20px;
+}
+
+.sub-title {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.sub-card {
+  background: #fff;
+  border: 1px solid #eaeaea;
+  padding: 20px;
+  border-radius: 16px;
+}
+
+.sub-status {
+  display: flex;
+  justify-content: space-between;
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.sub-active {
+  color: #05c46b;
+}
+
+.sub-inactive {
+  color: #ffa801;
+}
+
+.sub-cancelled {
+  color: #ff3f34;
+}
+
+.sub-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.sub-cancel-btn {
+  margin-top: 20px;
+  padding: 14px 18px;
+  border-radius: 12px;
+  border: none;
+  background: #ff3f34;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+
+.sub-cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sub-loading {
+  text-align: center;
+  margin-top: 20px;
+}

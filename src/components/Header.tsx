@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import "@/components/styles/header.css";
-import { FaShoppingCart, FaBars, FaTimes } from "react-icons/fa";
+import { FaShoppingCart, FaBars, FaTimes, FaUserAlt } from "react-icons/fa";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useCart } from "@/context/CartContext";
@@ -114,9 +114,14 @@ export default function Header() {
           </Link>
 
           {user ? (
-            <button onClick={handleLogout} className="auth-btn">
-              Logout
-            </button>
+            <>
+              <Link href="/dashboard/profile" className="icon-btn" aria-label="Profile">
+                <FaUserAlt />
+              </Link>
+              <button onClick={handleLogout} className="auth-btn">
+                Logout
+              </button>
+            </>
           ) : (
             <Link href="/login" className="auth-btn">
               Login
@@ -215,9 +220,19 @@ export default function Header() {
                 </Link>
 
                 {user ? (
-                  <button onClick={handleLogout} className="auth-btn">
-                    Logout
-                  </button>
+                  <>
+                    <Link
+                      href="/dashboard/profile"
+                      onClick={() => setMenuOpen(false)}
+                      className="icon-btn"
+                      aria-label="Profile"
+                    >
+                      <FaUserAlt />
+                    </Link>
+                    <button onClick={handleLogout} className="auth-btn">
+                      Logout
+                    </button>
+                  </>
                 ) : (
                   <Link href="/login" className="auth-btn">
                     Login

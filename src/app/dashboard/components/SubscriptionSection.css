@@ -1,0 +1,87 @@
+/* =========================================
+   SUBSCRIPTION STATUS SECTION
+========================================= */
+
+.sub-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.sub-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111;
+}
+
+.sub-none {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Subscription Content */
+.sub-content {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sub-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.sub-row strong {
+  color: #111;
+}
+
+/* Status Badge */
+.sub-badge {
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.sub-badge.active {
+  background: rgba(3, 199, 254, 0.15);
+  color: #03c7fe;
+}
+
+.sub-badge.inactive {
+  background: #e0e0e0;
+  color: #555;
+}
+
+/* Cancel Button */
+.cancel-btn {
+  margin-top: 10px;
+  padding: 10px 14px;
+  background: #ff4d4d;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.cancel-btn:hover {
+  background: #e60000;
+}
+
+.cancel-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .sub-row {
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+}

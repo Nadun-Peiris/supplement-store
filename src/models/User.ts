@@ -1,6 +1,51 @@
-import mongoose, { Schema, models } from "mongoose";
+// src/models/User.ts
 
-const UserSchema = new Schema(
+import mongoose, { Schema, Document, models } from "mongoose";
+
+/* ---------------------------------------------------------
+   TypeScript Interface (Fixes subscription Type Errors)
+--------------------------------------------------------- */
+export interface IUser extends Document {
+  firebaseId: string;
+
+  fullName: string;
+  email: string;
+  phone: string;
+  age: number;
+  gender: string;
+
+  height?: number;
+  weight?: number;
+  bmi?: number;
+  goal?: string;
+  activity?: string;
+  conditions?: string;
+  diet?: string;
+  sleepHours?: number;
+  waterIntake?: number;
+
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  postalCode: string;
+  country: string;
+
+  subscription: {
+    id: string | null;
+    active: boolean;
+    nextBillingDate: Date | null;
+    lemonCustomerId: string | null;
+    status: string | null;
+    cancelledAt: Date | null;
+  };
+
+  createdAt: Date;
+}
+
+/* ---------------------------------------------------------
+   Mongoose Schema
+--------------------------------------------------------- */
+const UserSchema = new Schema<IUser>(
   {
     firebaseId: { type: String, required: true, unique: true },
 
@@ -43,4 +88,9 @@ const UserSchema = new Schema(
   { timestamps: true }
 );
 
-export default models.User || mongoose.model("User", UserSchema);
+/* ---------------------------------------------------------
+   Export Model
+   (Fixes TypeScript + avoids overwriting model)
+--------------------------------------------------------- */
+export default models.User ||
+  mongoose.model<IUser>("User", UserSchema);

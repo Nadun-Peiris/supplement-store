@@ -12,6 +12,45 @@ const STORE_ID = getEnv("LEMON_SQUEEZY_STORE_ID");
 const WEBHOOK_SECRET = getEnv("LEMON_WEBHOOK_SECRET");
 const SUBSCRIPTION_VARIANT_ID = process.env.LEMON_SUBSCRIPTION_VARIANT_ID;
 
+/**
+ * Generic authenticated fetch helper for Lemon Squeezy REST endpoints.
+ * Maintains consistent headers and error handling for non-checkout calls.
+ */
+export async function lemonFetch<TResponse = unknown>(
+  endpoint: string,
+  init?: RequestInit
+): Promise<TResponse> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...init,
+    headers: {
+      Accept: "application/vnd.api+json",
+      "Content-Type": "application/vnd.api+json",
+      Authorization: `Bearer ${API_KEY}`,
+      ...(init?.headers || {}),
+    },
+  });
+
+  const data = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    if (data?.errors) {
+      console.error(
+        "Lemon Squeezy API error response:",
+        JSON.stringify(data.errors, null, 2)
+      );
+    }
+
+    const pointer = data?.errors?.[0]?.source?.pointer;
+    const detail =
+      (data && data.errors && data.errors[0]?.detail) ||
+      data?.error ||
+      `Lemon request failed with status ${response.status}`;
+    throw new Error(pointer ? `${detail} (${pointer})` : detail);
+  }
+
+  return data as TResponse;
+}
+
 type JsonApiResourceIdentifier = {
   type: "stores" | "variants";
   id: string;

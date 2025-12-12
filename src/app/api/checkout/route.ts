@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
       const token = authHeader.split(" ")[1];
       const decoded = await getAuth().verifyIdToken(token);
 
-      const user = await User.findOne({ firebaseUid: decoded.uid });
+      const user = await User.findOne({ firebaseId: decoded.uid });
 
       if (user) userId = user._id.toString();
     } else {

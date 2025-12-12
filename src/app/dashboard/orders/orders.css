@@ -1,0 +1,121 @@
+.orders-container {
+  padding: 10px;
+}
+
+.orders-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.loading-text,
+.empty-text {
+  color: #666;
+  margin-top: 20px;
+}
+
+.orders-list {
+  display: grid;
+  gap: 16px;
+}
+
+.order-card {
+  background: #fff;
+  border: 1px solid #eee;
+  padding: 18px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.order-card:hover {
+  border-color: #03c7fe;
+  box-shadow: 0 3px 10px rgba(3, 199, 254, 0.1);
+}
+
+.order-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.order-icon {
+  color: #03c7fe;
+}
+
+.order-info h4 {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.order-info p {
+  font-size: 13px;
+  color: #666;
+}
+
+.order-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.status-icon.success {
+  color: #2ecc71;
+}
+
+.status-icon.pending {
+  color: #f1c40f;
+}
+
+.status-icon.failed {
+  color: #e74c3c;
+}
+
+.status-badge {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: capitalize;
+}
+
+.status-badge.paid {
+  background: #e8f9ef;
+  color: #2ecc71;
+}
+
+.status-badge.pending {
+  background: #fff6d6;
+  color: #d4a800;
+}
+
+.status-badge.failed {
+  background: #ffe6e6;
+  color: #e74c3c;
+}
+
+.order-items {
+  margin-top: 12px;
+  color: #444;
+  font-size: 14px;
+}
+
+.more-items {
+  font-size: 12px;
+  color: #888;
+}
+
+.order-footer {
+  margin-top: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.order-type {
+  background: #03c7fe15;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #03c7fe;
+  text-transform: capitalize;
+}
