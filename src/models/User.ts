@@ -1,6 +1,6 @@
 // src/models/User.ts
 
-import mongoose, { Schema, Document, models } from "mongoose";
+import mongoose, { Schema, Document, models, type Model } from "mongoose";
 
 /* ---------------------------------------------------------
    TypeScript Interface (Fixes subscription Type Errors)
@@ -92,5 +92,7 @@ const UserSchema = new Schema<IUser>(
    Export Model
    (Fixes TypeScript + avoids overwriting model)
 --------------------------------------------------------- */
-export default models.User ||
-  mongoose.model<IUser>("User", UserSchema);
+const User: Model<IUser> =
+  (models.User as Model<IUser>) || mongoose.model<IUser>("User", UserSchema);
+
+export default User;
