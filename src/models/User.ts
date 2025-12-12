@@ -1,11 +1,12 @@
 // src/models/User.ts
 
-import mongoose, { Schema, Document, models, type Model } from "mongoose";
+import mongoose, { Schema, Document, models, type Model, type Types } from "mongoose";
 
 /* ---------------------------------------------------------
    TypeScript Interface (Fixes subscription Type Errors)
 --------------------------------------------------------- */
 export interface IUser extends Document {
+  _id: Types.ObjectId;
   firebaseId: string;
 
   fullName: string;
