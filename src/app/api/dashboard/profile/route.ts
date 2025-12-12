@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAuth } from "firebase-admin/auth";
 import "@/lib/firebaseAdmin";
 import { connectDB } from "@/lib/mongoose";
-import User from "@/models/User";
+import User, { type IUser } from "@/models/User";
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
     const token = authHeader.split(" ")[1];
     const decoded = await getAuth().verifyIdToken(token);
 
-    const user = await User.findOne({ firebaseId: decoded.uid }).lean();
+    const user = await User.findOne({ firebaseId: decoded.uid }).lean<IUser>();
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
