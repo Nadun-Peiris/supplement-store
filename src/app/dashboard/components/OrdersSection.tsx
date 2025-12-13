@@ -8,6 +8,17 @@ export default function OrdersSection() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const formatLabel = (value?: string) => {
+    if (!value) return "--";
+    return value
+      .toString()
+      .replace(/[-_]/g, " ")
+      .split(" ")
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   useEffect(() => {
     async function loadOrders() {
       try {
@@ -62,7 +73,7 @@ export default function OrdersSection() {
 
             <div className="order-right">
               <span className={`order-status ${order.status}`}>
-                {order.status}
+                {formatLabel(order.status)}
               </span>
             </div>
           </div>

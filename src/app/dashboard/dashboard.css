@@ -21,10 +21,11 @@
 
 /* Reusable Card Style */
 .dashboard-card {
-  background: #f8f8f8;
-  border: 1px solid #e6e6e6;
+  background: #ffffff;
+  border: 1px solid #d9f6ff;
   border-radius: 14px;
   padding: 20px;
+  box-shadow: 0 10px 30px rgba(9, 30, 66, 0.04);
 }
 
 .dashboard-title {

@@ -28,7 +28,7 @@ export default function Sidebar() {
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
-        <h2 className="sidebar-logo">MyHealth</h2>
+        <h2 className="sidebar-logo">Dashboard</h2>
       </div>
 
       <nav className="sidebar-menu">

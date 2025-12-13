@@ -33,6 +33,11 @@
   box-shadow: 0 3px 10px rgba(3, 199, 254, 0.1);
 }
 
+.skeleton-card {
+  cursor: default;
+  pointer-events: none;
+}
+
 .order-card-header {
   display: flex;
   align-items: center;
@@ -118,4 +123,63 @@
   font-size: 12px;
   color: #03c7fe;
   text-transform: capitalize;
+}
+
+.skeleton-line,
+.skeleton-circle,
+.skeleton-pill {
+  background: linear-gradient(90deg, #f4f4f4 0%, #e7f6ff 50%, #f4f4f4 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-line {
+  display: block;
+  height: 12px;
+  border-radius: 8px;
+}
+
+.skeleton-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-pill {
+  height: 14px;
+  width: 90px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.skeleton-short {
+  width: 80px;
+}
+
+.skeleton-medium {
+  width: 140px;
+}
+
+.skeleton-long {
+  width: 100%;
+  max-width: 260px;
+}
+
+.skeleton-card .order-card-header,
+.skeleton-card .order-footer {
+  gap: 12px;
+}
+
+.skeleton-card .order-items .skeleton-line {
+  margin-top: 10px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 120% 0;
+  }
+  100% {
+    background-position: -20% 0;
+  }
 }

@@ -1,9 +1,9 @@
 /* SIDEBAR CONTAINER */
 .sidebar {
   width: 240px;
-  background: #fff;
-  border-right: 1px solid #eee;
-  padding: 24px 18px;
+  background: #ffffff;
+  border-right: 1px solid #e6e6e6;
+  padding: 24px 18px 20px;
   box-sizing: border-box;
   position: sticky;
   top: var(--dashboard-header-offset, 120px);
@@ -19,9 +19,10 @@
 
 /* LOGO */
 .sidebar-logo {
-  font-size: 20px;
-  font-weight: 700;
-  color: #03c7fe;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  color: #0f172a;
 }
 
 /* MENU */
@@ -39,18 +40,18 @@
   padding: 12px 14px;
   border-radius: 10px;
   font-size: 14px;
-  color: #444;
+  color: #35485c;
   text-decoration: none;
   transition: 0.2s;
 }
 
 .sidebar-item:hover {
   background: #f3faff;
-  color: #03c7fe;
+  color: #00c7fc;
 }
 
 .sidebar-item.active {
-  background: #03c7fe;
+  background: #00c7fc;
   color: #fff !important;
 }
 
@@ -63,15 +64,15 @@
   padding: 12px 14px;
   border-radius: 10px;
   background: #fff;
-  border: 1px solid #ddd;
+  border: 1px solid #d9f6ff;
   cursor: pointer;
   transition: 0.2s;
 }
 
 .sidebar-logout:hover {
-  background: #ffefef;
-  border-color: #ff3b3b;
-  color: #ff3b3b;
+  background: #f3faff;
+  border-color: #00c7fc;
+  color: #00c7fc;
 }
 
 /* MOBILE HIDE */

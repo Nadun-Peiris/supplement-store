@@ -21,16 +21,66 @@ interface Order {
   items: OrderItem[];
 }
 
+const LoadingSkeleton = () => {
+  const placeholders = Array.from({ length: 3 });
+
+  return (
+    <div className="orders-list">
+      {placeholders.map((_, idx) => (
+        <div key={idx} className="order-card skeleton-card">
+          <div className="order-card-header">
+            <div className="skeleton-circle" />
+            <div className="order-info">
+              <div className="skeleton-line skeleton-medium" />
+              <div className="skeleton-line skeleton-short" />
+            </div>
+            <div className="skeleton-pill" />
+          </div>
+
+          <div className="order-items">
+            <div className="skeleton-line skeleton-long" />
+            <div className="skeleton-line skeleton-medium" />
+          </div>
+
+          <div className="order-footer">
+            <div className="skeleton-pill" />
+            <div className="skeleton-line skeleton-short" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadOrders() {
-      try {
-        const user = auth.currentUser;
-        if (!user) return;
+  const formatLabel = (value?: string) => {
+    if (!value) return "--";
+    return value
+      .toString()
+      .replace(/[-_]/g, " ")
+      .split(" ")
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      if (!isMounted) return;
+
+      if (!user) {
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
         const token = await user.getIdToken();
 
         const res = await fetch("/api/orders/user", {
@@ -38,15 +88,18 @@ export default function OrdersPage() {
         });
 
         const data = await res.json();
-        setOrders(data.orders || []);
+        if (isMounted) setOrders(data.orders || []);
       } catch (err) {
         console.error("Failed to load orders:", err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
-    }
+    });
 
-    loadOrders();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const statusIcon = (status: string) => {
@@ -67,7 +120,7 @@ export default function OrdersPage() {
       <h2 className="orders-title">Your Orders</h2>
 
       {loading ? (
-        <p className="loading-text">Loading orders...</p>
+        <LoadingSkeleton />
       ) : orders.length === 0 ? (
         <p className="empty-text">You haven’t placed any orders yet.</p>
       ) : (
@@ -90,7 +143,7 @@ export default function OrdersPage() {
                 <div className="order-status">
                   {statusIcon(order.status)}
                   <span className={`status-badge ${order.status}`}>
-                    {order.status}
+                    {formatLabel(order.status)}
                   </span>
                 </div>
               </div>
@@ -110,7 +163,7 @@ export default function OrdersPage() {
               </div>
 
               <div className="order-footer">
-                <span className="order-type">{order.orderType}</span>
+                <span className="order-type">{formatLabel(order.orderType)}</span>
                 <strong>LKR {order.total.toLocaleString()}</strong>
               </div>
             </div>

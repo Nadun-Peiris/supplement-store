@@ -29,6 +29,11 @@ export async function GET(req: NextRequest) {
       gender: user.gender || "",
       height: user.height ?? "",
       weight: user.weight ?? "",
+      bmi:
+        user.bmi ??
+        (user.height && user.weight
+          ? Number((user.weight / Math.pow(user.height / 100, 2)).toFixed(1))
+          : ""),
       goal: user.goal ?? "",
       activity: user.activity ?? "",
       addressLine1: user.addressLine1 || "",
