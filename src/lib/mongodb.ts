@@ -12,13 +12,12 @@ declare global {
   var _mongoClientPromise: Promise<MongoClient> | undefined;
 }
 
-let clientPromise = global._mongoClientPromise;
-
-if (!clientPromise) {
+if (!global._mongoClientPromise) {
   const client = new MongoClient(uri, options);
   // ✅ Re-use the same client between invocations (works in dev + Vercel lambdas)
-  clientPromise = client.connect();
-  global._mongoClientPromise = clientPromise;
+  global._mongoClientPromise = client.connect();
 }
+
+const clientPromise: Promise<MongoClient> = global._mongoClientPromise;
 
 export default clientPromise;
