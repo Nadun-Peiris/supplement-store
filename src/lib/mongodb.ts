@@ -7,20 +7,18 @@ if (!uri) {
   throw new Error("❌ Please add your Mongo URI to .env.local");
 }
 
-let client;
-let clientPromise: Promise<MongoClient>;
+declare global {
+  // eslint-disable-next-line no-var
+  var _mongoClientPromise: Promise<MongoClient> | undefined;
+}
 
-if (process.env.NODE_ENV === "development") {
-  // ✅ In dev mode, use a global variable so the client doesn’t reinitialize on hot reload
-  if (!(global as any)._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    (global as any)._mongoClientPromise = client.connect();
-  }
-  clientPromise = (global as any)._mongoClientPromise;
-} else {
-  // ✅ In production, always create a new client
-  client = new MongoClient(uri, options);
+let clientPromise = global._mongoClientPromise;
+
+if (!clientPromise) {
+  const client = new MongoClient(uri, options);
+  // ✅ Re-use the same client between invocations (works in dev + Vercel lambdas)
   clientPromise = client.connect();
+  global._mongoClientPromise = clientPromise;
 }
 
 export default clientPromise;

@@ -32,6 +32,12 @@ const ProductSchema = new Schema(
   { collection: "products" }
 );
 
+// Speed up common lookups and sorts used across the storefront
+ProductSchema.index({ slug: 1 }, { unique: true });
+ProductSchema.index({ categorySlug: 1, brandSlug: 1 });
+ProductSchema.index({ price: 1 });
+ProductSchema.index({ createdAt: -1 });
+
 ProductSchema.pre("save", function (next) {
   if (this.slug) {
     this.slug = toSlug(this.slug);
