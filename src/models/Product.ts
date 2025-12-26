@@ -33,7 +33,6 @@ const ProductSchema = new Schema(
 );
 
 // Speed up common lookups and sorts used across the storefront
-ProductSchema.index({ slug: 1 }, { unique: true });
 ProductSchema.index({ categorySlug: 1, brandSlug: 1 });
 ProductSchema.index({ price: 1 });
 ProductSchema.index({ createdAt: -1 });

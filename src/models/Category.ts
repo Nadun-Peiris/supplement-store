@@ -13,8 +13,6 @@ const CategorySchema = new Schema<ICategory>({
   image: { type: String, required: true },
 });
 
-CategorySchema.index({ slug: 1 }, { unique: true });
-
 // Auto-generate slug
 CategorySchema.pre("save", function (next) {
   if (!this.slug || this.isModified("name")) {
