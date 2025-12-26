@@ -1,0 +1,44 @@
+.ai-product-card {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  margin-top: 10px;
+  width: 100%;
+}
+
+.ai-product-card h4 {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.ai-reason {
+  font-size: 13px;
+  opacity: 0.8;
+  margin-top: 4px;
+}
+
+.ai-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.view-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: #f3f4f6;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 13px;
+}
+
+.add-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: #03c7fe;
+  color: #fff;
+  border-radius: 8px;
+  text-align: center;
+  font-size: 13px;
+}

@@ -10,6 +10,7 @@
     "migrate:products": "ts-node scripts/migrateProducts.ts"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "firebase": "^12.6.0",
     "firebase-admin": "^13.6.0",
     "lottie-react": "^2.4.1",
