@@ -6,6 +6,7 @@ import Footer from "@/components/Footer";
 import { Toaster } from "react-hot-toast";
 import { CartProvider } from "@/context/CartContext";
 import ChatWrapper from "@/components/Chatbot/ChatWrapper";
+import { AuthProvider } from "@/context/AuthContext";
 
 const oswald = Oswald({
   subsets: ["latin"],
@@ -29,15 +30,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${oswald.variable} ${roboto.variable}`} suppressHydrationWarning>
       <body>
-        <ChatWrapper>
-          <Toaster position="top-center" />
+        <AuthProvider>
+          <ChatWrapper>
+            <Toaster position="top-center" />
 
-          <CartProvider>
-            <Header />
-            <main style={{ minHeight: "70vh" }}>{children}</main>
-            <Footer />
-          </CartProvider>
-        </ChatWrapper>
+            <CartProvider>
+              <Header />
+              <main style={{ minHeight: "70vh" }}>{children}</main>
+              <Footer />
+            </CartProvider>
+          </ChatWrapper>
+        </AuthProvider>
       </body>
     </html>
   );

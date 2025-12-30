@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut, User, Package, CreditCard, Home } from "lucide-react";
+import { User, Package, CreditCard, Home } from "lucide-react";
 import "./sidebar.css";
-import { auth } from "@/lib/firebase";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -19,11 +18,6 @@ export default function Sidebar() {
       icon: <CreditCard size={18} />,
     },
   ];
-
-  const logout = async () => {
-    await auth.signOut();
-    window.location.href = "/login";
-  };
 
   return (
     <aside className="sidebar">
@@ -47,11 +41,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-
-      <button className="sidebar-logout" onClick={logout}>
-        <LogOut size={18} />
-        Logout
-      </button>
     </aside>
   );
 }

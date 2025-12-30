@@ -52,8 +52,13 @@ export default function Header() {
   }, []);
 
   const handleLogout = async () => {
+    const confirmed = window.confirm("Are you sure you want to log out?");
+    if (!confirmed) return;
+
     await signOut(auth);
     setMenuOpen(false);
+    alert("You have been logged out.");
+    window.location.href = "/login";
   };
 
   /* --------------------------- LOAD FEATURED CATEGORIES --------------------------- */
