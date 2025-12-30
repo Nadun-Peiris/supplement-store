@@ -44,6 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const logout = async () => {
     await signOut(auth);
+    sessionStorage.removeItem("chat-messages");
     window.location.href = "/login";
   };
 

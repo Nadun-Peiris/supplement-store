@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
     // -----------------------
     const products = await Product.find(
       {},
-      "name price description category image"
+      "name price description category image slug"
     ).lean();
 
     // -----------------------
@@ -128,7 +128,32 @@ RULES:
     if (!parsed.reply) parsed.reply = "Here’s my recommendation!";
     if (!Array.isArray(parsed.products)) parsed.products = [];
 
-    return NextResponse.json(parsed);
+    // Merge AI product refs with real product data so the chat can show images/price
+    const productIndex = new Map(
+      products.map((p: any) => [p._id.toString(), p])
+    );
+
+    const enrichedProducts = parsed.products
+      .map((p: any) => {
+        const match = productIndex.get(p.id);
+        if (!match) return null;
+
+        return {
+          id: match._id.toString(),
+          name: match.name,
+          price: match.price,
+          image: match.image,
+          slug: match.slug,
+          reason: p.reason || "",
+          score: typeof p.score === "number" ? p.score : undefined,
+        };
+      })
+      .filter(Boolean);
+
+    return NextResponse.json({
+      reply: parsed.reply,
+      products: enrichedProducts,
+    });
   } catch (err) {
     console.error("AI Chat Error:", err);
     return NextResponse.json(

@@ -31,15 +31,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${oswald.variable} ${roboto.variable}`} suppressHydrationWarning>
       <body>
         <AuthProvider>
-          <ChatWrapper>
-            <Toaster position="top-center" />
+          <CartProvider>
+            <ChatWrapper>
+              <Toaster position="top-center" />
 
-            <CartProvider>
               <Header />
               <main style={{ minHeight: "70vh" }}>{children}</main>
               <Footer />
-            </CartProvider>
-          </ChatWrapper>
+            </ChatWrapper>
+          </CartProvider>
         </AuthProvider>
       </body>
     </html>

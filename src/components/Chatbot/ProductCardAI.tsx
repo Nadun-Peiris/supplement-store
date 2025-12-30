@@ -1,34 +1,52 @@
 "use client";
 
 import Link from "next/link";
-import "./ProductCardAI.css";
+import "./chat.css";
 
-export default function ProductCardAI({ product }: any) {
+type ProductCardProps = {
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    image?: string;
+    slug?: string;
+  };
+  onAdd?: (product: any) => void;
+};
+
+export default function ProductCardAI({ product, onAdd }: ProductCardProps) {
+  const productHref = product.slug
+    ? `/product/${product.slug}`
+    : `/product/${product.id}`;
+
   return (
     <div className="ai-product-card">
+      {/* PRODUCT IMAGE */}
+      {product.image && (
+        <div className="ai-product-img-box">
+          <img src={product.image} alt={product.name} className="ai-product-img" />
+        </div>
+      )}
+
       <div className="ai-product-info">
-        <h4>{product.name}</h4>
-        <p className="ai-reason">{product.reason}</p>
-      </div>
+        {/* NAME + PRICE */}
+        <h4 className="ai-product-title">{product.name}</h4>
+        <p className="ai-product-price">LKR {product.price?.toLocaleString()}</p>
 
-      <div className="ai-card-actions">
-        <Link href={`/product/${product.id}`} className="view-btn">
-          View Product
-        </Link>
+        {/* BUTTONS */}
+        <div className="ai-actions">
+          <Link href={productHref} className="ai-view-btn">
+            View
+          </Link>
 
-        <button
-          className="add-btn"
-          onClick={() => {
-            // custom add-to-cart event
-            window.dispatchEvent(
-              new CustomEvent("add-to-cart-ai", {
-                detail: { productId: product.id },
-              })
-            );
-          }}
-        >
-          Add to Cart
-        </button>
+          <button
+            className="ai-add-btn"
+            type="button"
+            onClick={() => onAdd?.(product)}
+          >
+            + Add
+          </button>
+        </div>
       </div>
     </div>
   );
