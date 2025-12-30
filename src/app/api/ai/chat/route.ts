@@ -19,25 +19,24 @@ export async function POST(req: NextRequest) {
     }
 
     // -----------------------
-    // 🔐 LOAD USER PROFILE (optional)
+    // 🔐 LOAD USER PROFILE
     // -----------------------
-    let userProfile = null;
+    let userProfile: any = null;
     const authHeader = req.headers.get("authorization");
 
     if (authHeader?.startsWith("Bearer ")) {
       try {
         const token = authHeader.split(" ")[1];
         const decoded = await adminAuth().verifyIdToken(token);
-
         const user = await User.findOne({ firebaseId: decoded.uid }).lean();
-        if (user) userProfile = user;
+        userProfile = user || null;
       } catch {
-        console.log("AI: User is not logged in.");
+        console.log("AI: User not logged in.");
       }
     }
 
     // -----------------------
-    // 📦 LOAD PRODUCTS FROM MONGO
+    // 📦 LOAD PRODUCTS
     // -----------------------
     const products = await Product.find(
       {},
@@ -45,7 +44,7 @@ export async function POST(req: NextRequest) {
     ).lean();
 
     // -----------------------
-    // 🤖 GEMINI SETUP
+    // 🤖 GEMINI MODEL SETUP
     // -----------------------
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
@@ -57,85 +56,107 @@ export async function POST(req: NextRequest) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-flash", // best stable model
+      model: "gemini-2.5-flash",
     });
 
     // -----------------------
-    // 🧠 STRUCTURED JSON PROMPT
+    // 🧠 SUPPLEMENT EXPERT PROMPT
     // -----------------------
     const prompt = `
-You are a professional supplement coach.
-You ALWAYS reply in raw JSON with no code fences.
+You are a certified Sri Lankan Supplement Expert. 
+You deeply understand:
+- Sports nutrition
+- Elder-friendly supplement safety
+- Muscle gain, strength, fat loss, recovery
+- Heart-safe, joint-safe, stimulant-free recommendations
+- Protein types, creatine, omega-3, collagen, vitamins
+
+### Supplement Knowledge Guide:
+Protein → recovery, muscle repair, weight control  
+Creatine → strength, power, muscle preservation (elder-safe)  
+Pre-workout → usually high caffeine; avoid for elders or heart issues  
+Mass gainer → high calories; avoid diabetics  
+Omega-3 → heart, joints, inflammation (excellent for elders)  
+Collagen → joints, skin elasticity (elder-friendly)  
+Multivitamin → general health, immunity  
+Fat burner → stimulant-heavy; avoid for elders and heart patients  
+
+### Elder Rules (strict):
+- Avoid stimulants: pre-workouts, fat burners  
+- Prefer omega-3, collagen, creatine, vitamins  
+- Gentle products only  
 
 ### USER MESSAGE:
 "${message}"
 
-### USER PROFILE (optional):
+### USER PROFILE:
 ${userProfile ? JSON.stringify(userProfile, null, 2) : "User not logged in"}
 
-### AVAILABLE PRODUCTS:
+### STORE PRODUCTS:
 ${JSON.stringify(products, null, 2)}
 
 ---
 
-### REQUIRED JSON RESPONSE FORMAT:
+### YOU MUST RETURN RAW VALID JSON ONLY.
+NO text before or after. NO code fences.
+
+### JSON FORMAT:
 {
-  "reply": "A short friendly explanation",
+  "reply": "friendly explanation",
   "products": [
     {
-      "id": "product._id from the list above",
+      "id": "product._id from store list",
       "name": "product name",
-      "reason": "why you recommend it",
+      "reason": "why you chose it",
       "score": 0-10
     }
   ]
 }
 
-RULES:
-- MUST return valid JSON only.
-- DO NOT add text before or after JSON or wrap in code fences.
-- Products MUST come from the list above only.
-- If no good product match → return an empty array.
-- Keep reply short and neutral; start with a simple "Hi".
+Rules:
+- Match products ONLY from provided list.
+- Think like a supplement coach.
+- Consider user age, goals, conditions.
+- If user age ≥ 50 → enforce elder safety rules.
+- Keep reply short, simple, friendly.
 `;
 
     // -----------------------
-    // 🤖 GENERATE AI RESPONSE
+    // 🤖 GET AI RESPONSE
     // -----------------------
     const result = await model.generateContent(prompt);
-    const rawText = result.response.text();
-    const text = rawText
-      .trim()
-      .replace(/^```(?:json)?\s*/i, "")
-      .replace(/```\s*$/, "")
+    const raw = result.response.text().trim();
+
+    // Remove accidental code fences if any
+    const cleaned = raw
+      .replace(/^```json/i, "")
+      .replace(/^```/, "")
+      .replace(/```$/, "")
       .trim();
 
-    let parsed;
+    let parsed: any;
 
-    // Validate & parse JSON
     try {
-      parsed = JSON.parse(text);
-    } catch (error) {
-      console.error("❌ AI returned invalid JSON:", text);
-
+      parsed = JSON.parse(cleaned);
+    } catch (err) {
+      console.error("❌ AI returned invalid JSON:", cleaned);
       parsed = {
-        reply: text || "I couldn't respond properly, try again.",
+        reply: "I couldn't fully understand, but here's my suggestion.",
         products: [],
       };
     }
 
-    // Safety cleanup
-    if (!parsed.reply) parsed.reply = "Here’s my recommendation!";
+    if (!parsed.reply) parsed.reply = "Here’s a recommendation!";
     if (!Array.isArray(parsed.products)) parsed.products = [];
 
-    // Merge AI product refs with real product data so the chat can show images/price
-    const productIndex = new Map(
-      products.map((p: any) => [p._id.toString(), p])
-    );
+    // -----------------------
+    // 🧩 ENRICH PRODUCT DATA FOR UI
+    // -----------------------
+    const index = new Map(products.map((p: any) => [p._id.toString(), p]));
 
-    const enrichedProducts = parsed.products
+    const enriched = parsed.products
       .map((p: any) => {
-        const match = productIndex.get(p.id);
+        const match = index.get(p.id);
         if (!match) return null;
 
         return {
@@ -150,17 +171,19 @@ RULES:
       })
       .filter(Boolean);
 
+    // -----------------------
+    // SEND TO FRONTEND
+    // -----------------------
     return NextResponse.json({
       reply: parsed.reply,
-      products: enrichedProducts,
+      products: enriched,
     });
   } catch (err) {
     console.error("AI Chat Error:", err);
     return NextResponse.json(
       {
-        reply:
-          "I couldn't reach the AI right now. Please try again shortly.",
-        error: "AI failed to respond",
+        reply: "The AI is busy at the moment. Please try again shortly.",
+        error: "AI failed",
       },
       { status: 500 }
     );
