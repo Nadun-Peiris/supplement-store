@@ -116,6 +116,23 @@
   background-color: #1d4ed8; /* blue-700 */
 }
 
+.footerText {
+  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  color: #4b5563; /* gray-600 */
+}
+
+.link {
+  color: #2563eb;
+  margin-left: 0.35rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
 .error {
   color: #dc2626; /* red-600 */
   font-size: 0.875rem;

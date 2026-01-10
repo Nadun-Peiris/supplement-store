@@ -5,6 +5,7 @@ import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import styles from "./login.module.css";
 
@@ -70,6 +71,12 @@ export default function LoginPage() {
         <button onClick={handleLogin} disabled={loading} className={styles.button}>
           {loading ? "Logging in..." : "Log In"}
         </button>
+        <p className={styles.footerText}>
+          Don&apos;t have an account?
+          <Link href="/signup" className={styles.link}>
+            Register
+          </Link>
+        </p>
         {error && <p className={styles.error}>{error}</p>}
       </div>
     </main>
