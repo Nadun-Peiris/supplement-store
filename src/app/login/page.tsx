@@ -73,7 +73,7 @@ export default function LoginPage() {
         </button>
         <p className={styles.footerText}>
           Don&apos;t have an account?
-          <Link href="/signup" className={styles.link}>
+          <Link href="/register" className={styles.link}>
             Register
           </Link>
         </p>
