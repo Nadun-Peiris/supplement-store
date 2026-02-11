@@ -21,23 +21,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let unsubscribe = () => {};
-
-    const initAuth = async () => {
-      try {
-        // Always start from a signed-out state on fresh visits
-        await signOut(auth);
-      } catch (err) {
-        console.error("Failed to clear existing auth session", err);
-      } finally {
-        unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-          setUser(firebaseUser);
-          setLoading(false);
-        });
-      }
-    };
-
-    initAuth();
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+      setLoading(false);
+    });
 
     return () => unsubscribe();
   }, []);

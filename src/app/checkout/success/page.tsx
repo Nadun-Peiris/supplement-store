@@ -22,9 +22,9 @@ export default function CheckoutSuccess() {
   return (
     <Suspense
       fallback={
-        <div className="register-container">
-          <div className="register-card fade-in">
-            <p className="register-sub">Loading your order...</p>
+        <div className="success-container">
+          <div className="success-card fade-in">
+            <p className="success-sub">Loading your order...</p>
           </div>
         </div>
       }
@@ -44,7 +44,7 @@ function CheckoutSuccessContent() {
 
   // Load animation
   useEffect(() => {
-    fetch("/lottie/Success.json")
+    fetch("/lottie/success.json")
       .then((res) => res.json())
       .then((data) => setAnimationData(data))
       .catch((err) =>
@@ -118,24 +118,24 @@ function CheckoutSuccessContent() {
   };
 
   return (
-    <div className="register-container">
-      <div className="register-card fade-in">
+    <div className="success-container">
+      <div className="success-card fade-in">
         <div className="lottie-wrapper">
           {animationData && (
             <Lottie animationData={animationData} loop={false} />
           )}
         </div>
 
-        <h2 className="register-title">Order Received 🎉</h2>
+        <h2 className="success-title">Order Received 🎉</h2>
 
-        <p className="register-sub">{getMessage()}</p>
+        <p className="success-sub">{getMessage()}</p>
 
-        <p className="register-sub">
+        <p className="success-sub">
           Order ID: <strong>{orderId}</strong>
         </p>
 
         {!loading && order && (
-          <p className="register-sub">
+          <p className="success-sub">
             Status:{" "}
             <strong style={{ textTransform: "capitalize" }}>
               {order.status}
@@ -144,7 +144,7 @@ function CheckoutSuccessContent() {
         )}
 
         {!loading && order && (
-          <p className="register-sub">
+          <p className="success-sub">
             Paid via:{" "}
             <strong style={{ textTransform: "capitalize" }}>
               {order.paymentProvider.replace("_", " ")}
@@ -156,19 +156,19 @@ function CheckoutSuccessContent() {
           <div className="order-summary-box">
             <h4>Order Summary</h4>
             {order.items.map((item, index) => (
-              <p key={index} className="register-sub">
+              <p key={index} className="success-sub">
                 {item.name} × {item.quantity} — LKR{" "}
                 {item.price * item.quantity}
               </p>
             ))}
 
-            <p className="register-sub total-line">
+            <p className="success-sub total-line">
               Total: <strong>LKR {order.total}</strong>
             </p>
           </div>
         )}
 
-        <a href="/dashboard" className="register-btn">
+        <a href="/dashboard" className="success-btn">
           Go to dashboard →
         </a>
       </div>

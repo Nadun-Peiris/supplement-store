@@ -1,6 +1,6 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, inMemoryPersistence, setPersistence } from "firebase/auth";
+import { getAuth, browserLocalPersistence, setPersistence } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
@@ -18,8 +18,8 @@ const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
 
-// Force non-persistent sessions so users are signed out on each fresh visit
-setPersistence(auth, inMemoryPersistence).catch((err) => {
+// Keep users signed in across navigations and reloads
+setPersistence(auth, browserLocalPersistence).catch((err) => {
   console.error("Failed to set Firebase auth persistence", err);
 });
 export const db = getFirestore(app);

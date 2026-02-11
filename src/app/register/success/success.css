@@ -18,12 +18,15 @@
   text-align: center;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
   animation: fadeIn 0.4s ease-in-out;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 /* -------- Lottie -------- */
 .lottie-wrapper {
   width: 180px;
-  margin: 0 auto 1rem auto;
+  margin: 0 auto;
 }
 
 /* -------- Titles -------- */
@@ -31,14 +34,16 @@
   font-size: 1.7rem;
   font-weight: 700;
   color: #000000;
-  margin-top: -10px;
+  line-height: 1.2;
 }
 
 .success-sub {
-  margin-top: 0.5rem;
+  margin-top: 0;
   font-size: 1rem;
   color: #000;
   font-weight: 500;
+  line-height: 1.4;
+  word-break: break-word;
 }
 
 .success-small {
@@ -47,9 +52,32 @@
   color: #555;
 }
 
+/* -------- Order Summary -------- */
+.order-summary-box {
+  margin-top: 1rem;
+  text-align: left;
+  background: #f5f7fb;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.order-summary-box h4 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #111;
+}
+
+.total-line {
+  margin-top: 0.75rem;
+  border-top: 1px dashed #d1d5db;
+  padding-top: 0.6rem;
+}
+
 /* -------- Button -------- */
 .success-btn {
-  margin-top: 1.5rem;
+  margin-top: 0.75rem;
   width: 100%;
   padding: 0.95rem;
   border-radius: 9999px;

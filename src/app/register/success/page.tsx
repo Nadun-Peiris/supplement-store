@@ -18,7 +18,7 @@ export default function SuccessPage() {
   }, [router]);
 
   useEffect(() => {
-    fetch("/lottie/Success.json")
+    fetch("/lottie/success.json")
       .then((res) => res.json())
       .then((data) => setAnimationData(data))
       .catch((err) => console.error("Failed to load success animation", err));
