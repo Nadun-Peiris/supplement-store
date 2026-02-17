@@ -1,4 +1,8 @@
-import mongoose, { Schema, models, type InferSchemaType } from "mongoose";
+import mongoose, {
+  Schema,
+  models,
+  type InferSchemaType,
+} from "mongoose";
 import slugify from "slugify";
 
 const slugOptions = { lower: true, strict: true, trim: true };
@@ -7,6 +11,7 @@ const toSlug = (value: string) => slugify(value, slugOptions);
 const ProductSchema = new Schema(
   {
     name: { type: String, required: true },
+
     slug: {
       type: String,
       unique: true,
@@ -15,24 +20,30 @@ const ProductSchema = new Schema(
       trim: true,
     },
 
-    // Keep existing category field (so nothing breaks)
+    // Keep existing structure so client doesn't break
     category: { type: String, required: true },
-
-    // New WooCommerce-style fields
     categorySlug: { type: String },
+
     brandName: { type: String, default: "" },
     brandSlug: { type: String },
 
     price: { type: Number, required: true },
     image: { type: String, required: true },
     hoverImage: { type: String },
+
     description: { type: String },
-    createdAt: { type: Date, default: Date.now },
+
+    isActive: { type: Boolean, default: true },
+
+    stock: { type: Number, default: 0 },
   },
-  { collection: "products" }
+  {
+    collection: "products",
+    timestamps: true, // 🔥 automatically adds createdAt & updatedAt
+  }
 );
 
-// Speed up common lookups and sorts used across the storefront
+// 🔥 Indexes for performance
 ProductSchema.index({ categorySlug: 1, brandSlug: 1 });
 ProductSchema.index({ price: 1 });
 ProductSchema.index({ createdAt: -1 });

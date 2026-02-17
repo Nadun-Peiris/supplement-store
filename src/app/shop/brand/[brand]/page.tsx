@@ -1,27 +1,25 @@
-import ShopPage from "./[category]/ShopPage";
+import ShopPage from "../../[category]/ShopPage";
 import { connectDB } from "@/lib/mongoose";
 import Product from "@/models/Product";
+import { buildBrandFilter, combineFilters } from "@/lib/productFilters";
 import { normalizeProduct } from "@/lib/products";
-import { buildBrandFilter, combineFilters, parseListParam } from "@/lib/productFilters";
 import type { ProductDTO } from "@/types/product";
-
-export const dynamic = "force-dynamic";
 
 type LeanProduct = Parameters<typeof normalizeProduct>[0];
 
-type ShopIndexPageProps = {
-  searchParams: Promise<{ brand?: string | string[] }>;
+type ShopBrandPageProps = {
+  params: Promise<{ brand: string }>;
 };
 
-export default async function ShopIndexPage({ searchParams }: ShopIndexPageProps) {
-  const { brand } = await searchParams;
-  const brandFilters = parseListParam(brand ?? null);
-  const filter = combineFilters(buildBrandFilter(brandFilters));
+export default async function ShopBrandPage({ params }: ShopBrandPageProps) {
+  const { brand } = await params;
+  const brandSlug = decodeURIComponent(brand);
 
   await connectDB();
 
   const page = 1;
   const limit = 9;
+  const filter = combineFilters(buildBrandFilter([brandSlug]));
 
   const [totalProducts, products] = await Promise.all([
     Product.countDocuments(filter),
@@ -38,7 +36,7 @@ export default async function ShopIndexPage({ searchParams }: ShopIndexPageProps
   return (
     <ShopPage
       categorySlug=""
-      initialBrandFilters={brandFilters}
+      initialBrandFilters={[brandSlug]}
       initialProducts={plainProducts}
       initialPage={totalProducts ? Math.min(page, totalPages || 1) : 1}
       initialTotalPages={totalPages}

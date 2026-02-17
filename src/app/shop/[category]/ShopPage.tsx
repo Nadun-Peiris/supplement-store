@@ -3,7 +3,6 @@
 import "./shop.css";
 import ProductCard from "@/components/ProductCard";
 import type { ProductDTO } from "@/types/product";
-import { absoluteUrl } from "@/lib/absoluteUrl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type FilterOption = { id: string; name: string; slug: string };
@@ -18,6 +17,7 @@ type BrandResponse = { _id?: string; slug?: string | null; name?: string | null 
 
 type ShopPageProps = {
   categorySlug: string;
+  initialBrandFilters?: string[];
   initialProducts: ProductDTO[];
   initialPage: number;
   initialTotalPages: number;
@@ -69,6 +69,7 @@ const clampPriceValue = (value: number) =>
 
 export default function ShopPage({
   categorySlug,
+  initialBrandFilters = [],
   initialProducts,
   initialPage,
   initialTotalPages,
@@ -89,7 +90,8 @@ export default function ShopPage({
 
   const [selectedCategories, setSelectedCategories] =
     useState<string[]>(initialCategoryFilter);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>([]);
+  const [selectedBrands, setSelectedBrands] =
+    useState<string[]>(initialBrandFilters.map(slugifyText));
 
   const [priceInput, setPriceInput] = useState(() => ({
     min: 0,

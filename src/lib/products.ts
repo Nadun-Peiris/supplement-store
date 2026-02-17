@@ -23,6 +23,7 @@ export const normalizeProduct = (product: LeanProduct): ProductDTO => ({
   image: product.image,
   hoverImage: product.hoverImage ?? undefined,
   description: product.description ?? undefined,
+  stock: typeof product.stock === "number" ? Math.max(product.stock, 0) : 0,
 });
 
 export const getProductBySlug = async (slug: string): Promise<ProductDTO | null> => {

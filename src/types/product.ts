@@ -10,4 +10,5 @@ export interface ProductDTO {
   image: string;
   hoverImage?: string;
   description?: string;
+  stock: number;
 }

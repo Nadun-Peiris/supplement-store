@@ -58,6 +58,7 @@ export default async function ShopCategoryPage({
   return (
     <ShopPage
       categorySlug={categorySlug}
+      initialBrandFilters={[]}
       initialProducts={Array.isArray(data.products) ? data.products : []}
       initialPage={data.currentPage ?? 1}
       initialTotalPages={data.totalPages ?? 1}

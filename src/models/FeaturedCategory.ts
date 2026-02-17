@@ -6,10 +6,11 @@ const FeaturedCategorySchema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "Category",
       required: true,
+      unique: true, // 🔥 prevents duplicates
     },
     index: {
       type: Number,
-      default: 0,
+      required: true,
     },
   },
   { timestamps: true }

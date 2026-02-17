@@ -114,6 +114,7 @@
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-wrap: wrap;
 }
 
 .sp-meta b {
@@ -121,9 +122,43 @@
   font-weight: 700;
 }
 
+.sp-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.sp-meta-link {
+  color: #03c7fe;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.sp-meta-link:hover {
+  color: #03a9d9;
+  text-decoration: none;
+}
+
+.sp-meta-sep {
+  color: #b3b3b3;
+}
+
 .sp-stock {
-  color: #2ecc71;
   font-weight: 600;
+  display: inline-block;
+  margin-top: 0.2rem;
+}
+
+.sp-stock-in {
+  color: #2ecc71;
+}
+
+.sp-stock-low {
+  color: #e0a800;
+}
+
+.sp-stock-out {
+  color: #d63031;
 }
 
 .sp-price {
@@ -176,6 +211,19 @@
   color: #fff;
 }
 
+.sp-add-btn:disabled {
+  background: #c7c7c7;
+  border-color: #c7c7c7;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.sp-add-btn:disabled:hover {
+  background: #c7c7c7;
+  border-color: #c7c7c7;
+  color: #666;
+}
+
 /* BUY NOW */
 .sp-buy-now {
   background: #fff;
@@ -194,6 +242,19 @@
   background: #111;
   border-color: #03C7FE;
   color: #fff;
+}
+
+.sp-buy-now:disabled {
+  background: #d9d9d9;
+  border-color: #d9d9d9;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.sp-buy-now:disabled:hover {
+  background: #d9d9d9;
+  border-color: #d9d9d9;
+  color: #666;
 }
 
 
@@ -297,6 +358,11 @@
 
 .sp-qty-btn:hover {
   color: #03c7fe;
+}
+
+.sp-qty-btn:disabled {
+  color: #999;
+  cursor: not-allowed;
 }
 
 .sp-qty-number {
