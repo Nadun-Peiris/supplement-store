@@ -2,16 +2,98 @@ import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
 import type { IOrder } from "@/models/Order";
 import Subscription from "@/models/Subscription";
+import PayHereWebhookEvent from "@/models/PayHereWebhookEvent";
 import Cart from "@/models/Cart";
 import User from "@/models/User";
 import Product from "@/models/Product";
 import { NextResponse } from "next/server";
 import CryptoJS from "crypto-js";
 
-export async function POST(req: Request) {
+type RecurrenceUnit = "day" | "week" | "month" | "year";
+type RecurrenceInterval = { value: number; unit: RecurrenceUnit };
 
+const parseRecurrenceInterval = (
+  rawRecurrence: string | null | undefined
+): RecurrenceInterval | null => {
+  const input = rawRecurrence?.trim().toLowerCase();
+  if (!input) return null;
+
+  const intervalMatch = input.match(/(\d+)\s*(day|week|month|year)s?/i);
+  if (intervalMatch) {
+    return {
+      value: Number(intervalMatch[1]),
+      unit: intervalMatch[2].toLowerCase() as RecurrenceUnit,
+    };
+  }
+
+  if (input === "daily") return { value: 1, unit: "day" };
+  if (input === "weekly") return { value: 1, unit: "week" };
+  if (input === "monthly") return { value: 1, unit: "month" };
+  if (input === "yearly") return { value: 1, unit: "year" };
+
+  return null;
+};
+
+const addInterval = (baseDate: Date, interval: RecurrenceInterval) => {
+  const nextDate = new Date(baseDate.getTime());
+
+  switch (interval.unit) {
+    case "day":
+      nextDate.setDate(nextDate.getDate() + interval.value);
+      break;
+    case "week":
+      nextDate.setDate(nextDate.getDate() + interval.value * 7);
+      break;
+    case "month":
+      nextDate.setMonth(nextDate.getMonth() + interval.value);
+      break;
+    case "year":
+      nextDate.setFullYear(nextDate.getFullYear() + interval.value);
+      break;
+  }
+
+  return nextDate;
+};
+
+const normalizeNextBillingDate = ({
+  reportedDate,
+  recurrence,
+  fallbackFrom,
+  requireFuture,
+}: {
+  reportedDate: Date | null;
+  recurrence: string | null | undefined;
+  fallbackFrom?: Date;
+  requireFuture: boolean;
+}) => {
+  const now = new Date();
+  const isValidReportedDate =
+    reportedDate instanceof Date && !Number.isNaN(reportedDate.getTime());
+
+  if (isValidReportedDate) {
+    if (!requireFuture || reportedDate.getTime() > now.getTime() + 60 * 60 * 1000) {
+      return reportedDate;
+    }
+  }
+
+  const interval =
+    parseRecurrenceInterval(recurrence) ?? { value: 1, unit: "month" as const };
+  const base = fallbackFrom ?? now;
+  const computed = addInterval(base, interval);
+
+  if (!requireFuture) return computed;
+  if (computed.getTime() > now.getTime()) return computed;
+
+  return addInterval(now, interval);
+};
+
+export async function POST(req: Request) {
   const body = await req.text();
   const params = new URLSearchParams(body);
+  const rawPayload: Record<string, string> = {};
+  params.forEach((value, key) => {
+    rawPayload[key] = value;
+  });
 
   const merchant_id = params.get("merchant_id")!;
   const order_id = params.get("order_id")!;
@@ -23,15 +105,14 @@ export async function POST(req: Request) {
   const payment_id = params.get("payment_id");
   const subscription_id = params.get("subscription_id");
   const message_type = params.get("message_type");
-
   const nextBillingDate = params.get("item_rec_date_next");
   const installmentPaid = params.get("item_rec_install_paid");
+  const recurrenceFromPayload =
+    params.get("item_recurrence") ??
+    params.get("item_rec_recurrence") ??
+    params.get("recurrence");
 
   const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET!;
-
-  // -------------------------
-  // VERIFY PAYHERE SIGNATURE
-  // -------------------------
 
   const localMd5 = CryptoJS.MD5(
     merchant_id +
@@ -44,313 +125,363 @@ export async function POST(req: Request) {
     .toString()
     .toUpperCase();
 
-  if (localMd5 !== md5sig) {
+  await connectDB();
+
+  const signatureValid = localMd5 === md5sig;
+  const processingNotes: string[] = [];
+
+  const createdWebhookEvent = await PayHereWebhookEvent.create({
+    merchantId: merchant_id ?? null,
+    orderId: order_id ?? null,
+    paymentId: payment_id ?? null,
+    subscriptionId: subscription_id ?? null,
+    messageType: message_type ?? null,
+    statusCode: status_code ?? null,
+    amount: payhere_amount ?? null,
+    currency: payhere_currency ?? null,
+    signatureValid,
+    processingStatus: signatureValid ? "received" : "rejected",
+    rawPayload,
+  });
+
+  const webhookEventId = String(createdWebhookEvent._id);
+  const finalizeWebhookEvent = async (
+    status: "processed" | "rejected" | "error"
+  ) => {
+    await PayHereWebhookEvent.updateOne(
+      { _id: webhookEventId },
+      {
+        $set: {
+          processingStatus: status,
+          processingNotes,
+        },
+      }
+    );
+  };
+
+  if (!signatureValid) {
     console.error("Invalid PayHere signature");
+    processingNotes.push("Rejected callback due to invalid signature.");
+    await finalizeWebhookEvent("rejected");
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  await connectDB();
-
-  const parsedNextBillingDate = nextBillingDate
-    ? new Date(nextBillingDate)
-    : null;
-
-  const parsedInstallmentsPaidRaw = installmentPaid
-    ? Number(installmentPaid)
-    : undefined;
-
-  const parsedInstallmentsPaid =
-    parsedInstallmentsPaidRaw !== undefined &&
-    Number.isFinite(parsedInstallmentsPaidRaw)
-      ? parsedInstallmentsPaidRaw
+  try {
+    const parsedNextBillingDate = nextBillingDate ? new Date(nextBillingDate) : null;
+    const parsedInstallmentsPaidRaw = installmentPaid
+      ? Number(installmentPaid)
       : undefined;
 
-  type OrderForNotify = Pick<IOrder, "user" | "items"> & {
-    _id?: string;
-    subtotal?: number;
-    shippingCost?: number;
-    total?: number;
-    billingDetails?: IOrder["billingDetails"];
-    cartOwnerUserId?: string | null;
-    cartOwnerGuestId?: string | null;
-  };
+    const parsedInstallmentsPaid =
+      parsedInstallmentsPaidRaw !== undefined &&
+      Number.isFinite(parsedInstallmentsPaidRaw)
+        ? parsedInstallmentsPaidRaw
+        : undefined;
 
-  const orderDoc = (await Order.findById(order_id).select(
-    "user items cartOwnerUserId cartOwnerGuestId"
-  )) as OrderForNotify | null;
+    type OrderForNotify = Pick<IOrder, "user" | "items"> & {
+      _id?: string;
+      subtotal?: number;
+      shippingCost?: number;
+      total?: number;
+      billingDetails?: IOrder["billingDetails"];
+      cartOwnerUserId?: string | null;
+      cartOwnerGuestId?: string | null;
+    };
 
-  const clearCartForOrder = async (order: OrderForNotify | null) => {
-    if (!order) return;
+    const orderDoc = (await Order.findById(order_id).select(
+      "user items cartOwnerUserId cartOwnerGuestId"
+    )) as OrderForNotify | null;
 
-    let userCartId: string | null = order.cartOwnerUserId ?? null;
-    const guestCartId: string | null = order.cartOwnerGuestId ?? null;
+    const clearCartForOrder = async (order: OrderForNotify | null) => {
+      if (!order) return;
 
-    // Backward compatibility for older orders created before cart owner fields existed
-    if (!userCartId && order.user) {
-      const user = await User.findById(order.user).select("firebaseId");
-      userCartId = user?.firebaseId ?? null;
+      let userCartId: string | null = order.cartOwnerUserId ?? null;
+      const guestCartId: string | null = order.cartOwnerGuestId ?? null;
+
+      if (!userCartId && order.user) {
+        const user = await User.findById(order.user).select("firebaseId");
+        userCartId = user?.firebaseId ?? null;
+      }
+
+      if (userCartId) {
+        await Cart.findOneAndDelete({ userId: userCartId });
+        return;
+      }
+
+      if (guestCartId) {
+        await Cart.findOneAndDelete({ guestId: guestCartId });
+      }
+    };
+
+    const decrementStockForItems = async (
+      items:
+        | {
+            product: IOrder["items"][number]["product"];
+            quantity: number;
+          }[]
+        | undefined
+    ) => {
+      if (!items?.length) return;
+
+      const stockAdjustments = new Map<string, number>();
+
+      for (const item of items) {
+        const productId = String(item.product);
+        const qty = Math.max(0, Number(item.quantity) || 0);
+        if (!productId || qty <= 0) continue;
+        stockAdjustments.set(
+          productId,
+          (stockAdjustments.get(productId) ?? 0) + qty
+        );
+      }
+
+      if (stockAdjustments.size === 0) return;
+
+      const operations = Array.from(stockAdjustments.entries()).map(
+        ([productId, qty]) => ({
+          updateOne: {
+            filter: { _id: productId, stock: { $gte: qty } },
+            update: { $inc: { stock: -qty } },
+          },
+        })
+      );
+
+      const result = await Product.bulkWrite(operations, { ordered: false });
+      const matched = result.matchedCount ?? 0;
+
+      if (matched < operations.length) {
+        console.warn("Stock update partially applied", {
+          expected: operations.length,
+          matched,
+          orderId: order_id,
+        });
+      }
+    };
+
+    if (message_type === "AUTHORIZATION_SUCCESS") {
+      processingNotes.push("Handled AUTHORIZATION_SUCCESS.");
+
+      const updatedOrder = (await Order.findOneAndUpdate(
+        { _id: order_id, paymentStatus: { $ne: "paid" } },
+        {
+          paymentStatus: "paid",
+          paymentReference: payment_id,
+        },
+        { new: true }
+      ).select(
+        "user items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId"
+      )) as
+        | OrderForNotify
+        | null;
+
+      if (updatedOrder) {
+        await decrementStockForItems(updatedOrder.items);
+        await clearCartForOrder(updatedOrder);
+      } else {
+        await clearCartForOrder(orderDoc);
+      }
+
+      if (subscription_id) {
+        const existing = await Subscription.findOne({
+          subscriptionId: subscription_id,
+        });
+        const recurrenceValue =
+          recurrenceFromPayload ?? existing?.recurrence ?? "1 Month";
+        const resolvedNextBillingDate = normalizeNextBillingDate({
+          reportedDate: parsedNextBillingDate,
+          recurrence: recurrenceValue,
+          fallbackFrom: new Date(),
+          requireFuture: true,
+        });
+
+        const payload = {
+          user: orderDoc?.user ?? null,
+          orderId: order_id,
+          subscriptionId: subscription_id,
+          items: orderDoc?.items ?? [],
+          status: "active",
+          nextBillingDate: resolvedNextBillingDate,
+          recurrence: recurrenceValue,
+          totalInstallmentsPaid:
+            parsedInstallmentsPaid && parsedInstallmentsPaid > 0
+              ? parsedInstallmentsPaid
+              : 1,
+        };
+
+        if (existing) {
+          await Subscription.updateOne(
+            { subscriptionId: subscription_id },
+            { $set: payload }
+          );
+        } else {
+          await Subscription.create(payload);
+        }
+
+        processingNotes.push(
+          `Subscription upserted for AUTHORIZATION_SUCCESS (${subscription_id}).`
+        );
+      }
     }
 
-    if (userCartId) {
-      await Cart.findOneAndDelete({ userId: userCartId });
-      return;
+    if (!message_type && status_code === "2") {
+      const updatedOrder = (await Order.findOneAndUpdate(
+        { _id: order_id, paymentStatus: { $ne: "paid" } },
+        {
+          paymentStatus: "paid",
+          paymentReference: payment_id,
+        },
+        { new: true }
+      ).select(
+        "user items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId"
+      )) as
+        | OrderForNotify
+        | null;
+
+      if (updatedOrder) {
+        await decrementStockForItems(updatedOrder.items);
+        await clearCartForOrder(updatedOrder);
+      } else {
+        await clearCartForOrder(orderDoc);
+      }
     }
 
-    if (guestCartId) {
-      await Cart.findOneAndDelete({ guestId: guestCartId });
-    }
-  };
+    if (message_type === "RECURRING_INSTALLMENT_SUCCESS") {
+      processingNotes.push("Handled RECURRING_INSTALLMENT_SUCCESS.");
 
-  const decrementStockForItems = async (
-    items:
-      | {
-          product: IOrder["items"][number]["product"];
-          quantity: number;
-        }[]
-      | undefined
-  ) => {
-    if (!items?.length) return;
+      type SubscriptionWithOrder = {
+        recurrence?: string | null;
+        orderId?: {
+          user?: IOrder["user"];
+          items?: IOrder["items"];
+          subtotal?: number;
+          shippingCost?: number;
+          total?: number;
+          billingDetails?: IOrder["billingDetails"];
+        } | null;
+      };
 
-    const stockAdjustments = new Map<string, number>();
+      const subscription = (await Subscription.findOne({
+        subscriptionId: subscription_id,
+      }).populate("orderId")) as SubscriptionWithOrder | null;
 
-    for (const item of items) {
-      const productId = String(item.product);
-      const qty = Math.max(0, Number(item.quantity) || 0);
-      if (!productId || qty <= 0) continue;
-      stockAdjustments.set(
-        productId,
-        (stockAdjustments.get(productId) ?? 0) + qty
+      const recurrenceValue =
+        recurrenceFromPayload ?? subscription?.recurrence ?? "1 Month";
+      const resolvedNextBillingDate = normalizeNextBillingDate({
+        reportedDate: parsedNextBillingDate,
+        recurrence: recurrenceValue,
+        fallbackFrom: new Date(),
+        requireFuture: true,
+      });
+
+      if (subscription?.orderId) {
+        const baseOrder = subscription.orderId;
+
+        if (!baseOrder.billingDetails) {
+          console.warn("Recurring order skipped: missing base order billingDetails");
+        } else {
+          const existingRecurringOrder = await Order.findOne({
+            orderType: "subscription",
+            subscriptionId: subscription_id,
+            paymentReference: payment_id,
+          }).select("_id");
+
+          if (existingRecurringOrder) {
+            await Subscription.updateOne(
+              { subscriptionId: subscription_id },
+              {
+                status: "active",
+                nextBillingDate: resolvedNextBillingDate,
+                recurrence: recurrenceValue,
+                ...(typeof parsedInstallmentsPaid === "number"
+                  ? { totalInstallmentsPaid: parsedInstallmentsPaid }
+                  : {}),
+              }
+            );
+            processingNotes.push(
+              `Skipped duplicate recurring order for payment ${payment_id ?? "n/a"}.`
+            );
+          } else {
+            const recurringOrder = await Order.create({
+              user: baseOrder?.user ?? null,
+              orderType: "subscription",
+              subscriptionId: subscription_id,
+              items: baseOrder.items ?? [],
+              subtotal: baseOrder.subtotal ?? 0,
+              shippingCost: baseOrder.shippingCost ?? 0,
+              total: baseOrder.total ?? 0,
+              billingDetails: baseOrder.billingDetails,
+              paymentProvider: "payhere",
+              paymentStatus: "paid",
+              paymentReference: payment_id,
+              fulfillmentStatus: "unfulfilled",
+            });
+
+            await decrementStockForItems(recurringOrder.items);
+            processingNotes.push(
+              `Created recurring order ${String(recurringOrder._id)} for subscription ${subscription_id}.`
+            );
+          }
+        }
+      } else {
+        processingNotes.push(
+          `No base subscription/order found for ${subscription_id ?? "n/a"}.`
+        );
+      }
+
+      await Subscription.updateOne(
+        { subscriptionId: subscription_id },
+        {
+          status: "active",
+          nextBillingDate: resolvedNextBillingDate,
+          recurrence: recurrenceValue,
+          ...(typeof parsedInstallmentsPaid === "number"
+            ? { totalInstallmentsPaid: parsedInstallmentsPaid }
+            : {}),
+        }
       );
     }
 
-    if (stockAdjustments.size === 0) return;
-
-    const operations = Array.from(stockAdjustments.entries()).map(
-      ([productId, qty]) => ({
-        updateOne: {
-          filter: { _id: productId, stock: { $gte: qty } },
-          update: { $inc: { stock: -qty } },
-        },
-      })
-    );
-
-    const result = await Product.bulkWrite(operations, { ordered: false });
-    const matched = result.matchedCount ?? 0;
-
-    if (matched < operations.length) {
-      console.warn("Stock update partially applied", {
-        expected: operations.length,
-        matched,
-        orderId: order_id,
-      });
-    }
-  };
-
-  // -------------------------
-  // FIRST PAYMENT SUCCESS
-  // -------------------------
-
-  if (message_type === "AUTHORIZATION_SUCCESS") {
-
-    const updatedOrder = (await Order.findOneAndUpdate(
-      { _id: order_id, paymentStatus: { $ne: "paid" } },
-      {
-        paymentStatus: "paid",
-        paymentReference: payment_id,
-      },
-      { new: true }
-    ).select(
-      "user items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId"
-    )) as
-      | OrderForNotify
-      | null;
-
-    if (updatedOrder) {
-      await decrementStockForItems(updatedOrder.items);
-      await clearCartForOrder(updatedOrder);
-    } else {
-      await clearCartForOrder(orderDoc);
+    if (message_type === "RECURRING_INSTALLMENT_FAILED") {
+      processingNotes.push("Handled RECURRING_INSTALLMENT_FAILED.");
+      await Subscription.updateOne(
+        { subscriptionId: subscription_id },
+        { status: "failed" }
+      );
     }
 
-    if (subscription_id) {
-      const existing = await Subscription.findOne({
-        subscriptionId: subscription_id,
-      });
-
-      const payload = {
-        user: orderDoc?.user ?? null,
-        orderId: order_id,
-        subscriptionId: subscription_id,
-        items: orderDoc?.items ?? [],
-        status: "active",
-        nextBillingDate: parsedNextBillingDate,
-        totalInstallmentsPaid:
-          parsedInstallmentsPaid && parsedInstallmentsPaid > 0
-            ? parsedInstallmentsPaid
-            : 1,
-      };
-
-      if (existing) {
-        await Subscription.updateOne(
-          { subscriptionId: subscription_id },
-          { $set: payload }
-        );
-      } else {
-        await Subscription.create(payload);
-      }
-
+    if (message_type === "RECURRING_STOPPED") {
+      processingNotes.push("Handled RECURRING_STOPPED.");
+      await Subscription.updateOne(
+        { subscriptionId: subscription_id },
+        { status: "cancelled" }
+      );
     }
 
-  }
-
-  // Non-subscription one-time payment success fallback
-  if (!message_type && status_code === "2") {
-    const updatedOrder = (await Order.findOneAndUpdate(
-      { _id: order_id, paymentStatus: { $ne: "paid" } },
-      {
-        paymentStatus: "paid",
-        paymentReference: payment_id,
-      },
-      { new: true }
-    ).select(
-      "user items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId"
-    )) as
-      | OrderForNotify
-      | null;
-
-    if (updatedOrder) {
-      await decrementStockForItems(updatedOrder.items);
-      await clearCartForOrder(updatedOrder);
-    } else {
-      await clearCartForOrder(orderDoc);
-    }
-  }
-
-  // -------------------------
-  // MONTHLY PAYMENT SUCCESS
-  // -------------------------
-
-  if (message_type === "RECURRING_INSTALLMENT_SUCCESS") {
-
-    type SubscriptionWithOrder = {
-      orderId?: {
-        user?: IOrder["user"];
-        items?: IOrder["items"];
-        subtotal?: number;
-        shippingCost?: number;
-        total?: number;
-        billingDetails?: IOrder["billingDetails"];
-      } | null;
-    };
-
-    const subscription = (await Subscription.findOne({
-      subscriptionId: subscription_id
-    }).populate("orderId")) as SubscriptionWithOrder | null;
-
-    if (subscription?.orderId) {
-
-      const baseOrder = subscription.orderId;
-      if (!baseOrder.billingDetails) {
-        console.warn("Recurring order skipped: missing base order billingDetails");
-      } else {
-        const existingRecurringOrder = await Order.findOne({
-          orderType: "subscription",
-          subscriptionId: subscription_id,
-          paymentReference: payment_id,
-        }).select("_id");
-
-        if (existingRecurringOrder) {
-          await Subscription.updateOne(
-            { subscriptionId: subscription_id },
-            {
-              status: "active",
-              nextBillingDate: parsedNextBillingDate,
-              totalInstallmentsPaid: parsedInstallmentsPaid,
-            }
-          );
-
-          return NextResponse.json({ success: true });
-        }
-
-      // CREATE NEW ORDER FROM SUBSCRIPTION
-
-        const recurringOrder = await Order.create({
-
-        user: baseOrder?.user ?? null,
-
-        orderType: "subscription",
-        subscriptionId: subscription_id,
-
-        items: baseOrder.items ?? [],
-
-        subtotal: baseOrder.subtotal ?? 0,
-        shippingCost: baseOrder.shippingCost ?? 0,
-        total: baseOrder.total ?? 0,
-
-        billingDetails: baseOrder.billingDetails,
-
-        paymentProvider: "payhere",
-        paymentStatus: "paid",
-        paymentReference: payment_id,
-
-        fulfillmentStatus: "unfulfilled"
-
-        });
-
-        await decrementStockForItems(recurringOrder.items);
-      }
-
+    if (message_type === "RECURRING_COMPLETE") {
+      processingNotes.push("Handled RECURRING_COMPLETE.");
+      await Subscription.updateOne(
+        { subscriptionId: subscription_id },
+        { status: "completed" }
+      );
     }
 
-    await Subscription.updateOne(
-      { subscriptionId: subscription_id },
-      {
-        status: "active",
-        nextBillingDate: parsedNextBillingDate,
-        totalInstallmentsPaid: parsedInstallmentsPaid,
-      }
+    if (processingNotes.length === 0) {
+      processingNotes.push("No matching webhook branch; acknowledged callback.");
+    }
+    await finalizeWebhookEvent("processed");
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("PayHere notify processing failed:", error);
+    processingNotes.push(
+      `Unhandled processing error: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
     );
-
-  }
-
-  // -------------------------
-  // PAYMENT FAILED
-  // -------------------------
-
-  if (message_type === "RECURRING_INSTALLMENT_FAILED") {
-
-    await Subscription.updateOne(
-      { subscriptionId: subscription_id },
-      { status: "failed" }
+    await finalizeWebhookEvent("error");
+    return NextResponse.json(
+      { error: "Webhook processing failed" },
+      { status: 500 }
     );
-
   }
-
-  // -------------------------
-  // SUBSCRIPTION CANCELLED
-  // -------------------------
-
-  if (message_type === "RECURRING_STOPPED") {
-
-    await Subscription.updateOne(
-      { subscriptionId: subscription_id },
-      { status: "cancelled" }
-    );
-
-  }
-
-  // -------------------------
-  // SUBSCRIPTION COMPLETED
-  // -------------------------
-
-  if (message_type === "RECURRING_COMPLETE") {
-
-    await Subscription.updateOne(
-      { subscriptionId: subscription_id },
-      { status: "completed" }
-    );
-
-  }
-
-  return NextResponse.json({ success: true });
 }
