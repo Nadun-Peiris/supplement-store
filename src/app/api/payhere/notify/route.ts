@@ -12,86 +12,21 @@ import CryptoJS from "crypto-js";
 const PAYHERE_SUCCESS_STATUS = "2";
 const STORE_CURRENCY = "LKR";
 
-type RecurrenceUnit = "day" | "week" | "month" | "year";
-type RecurrenceInterval = { value: number; unit: RecurrenceUnit };
-
-const parseRecurrenceInterval = (
-  rawRecurrence: string | null | undefined
-): RecurrenceInterval | null => {
-  const input = rawRecurrence?.trim().toLowerCase();
-  if (!input) return null;
-
-  const intervalMatch = input.match(/(\d+)\s*(day|week|month|year)s?/i);
-  if (intervalMatch) {
-    return {
-      value: Number(intervalMatch[1]),
-      unit: intervalMatch[2].toLowerCase() as RecurrenceUnit,
-    };
-  }
-
-  if (input === "daily") return { value: 1, unit: "day" };
-  if (input === "weekly") return { value: 1, unit: "week" };
-  if (input === "monthly") return { value: 1, unit: "month" };
-  if (input === "yearly") return { value: 1, unit: "year" };
-
-  return null;
-};
-
-const addInterval = (baseDate: Date, interval: RecurrenceInterval) => {
-  const nextDate = new Date(baseDate.getTime());
-
-  switch (interval.unit) {
-    case "day":
-      nextDate.setDate(nextDate.getDate() + interval.value);
-      break;
-    case "week":
-      nextDate.setDate(nextDate.getDate() + interval.value * 7);
-      break;
-    case "month":
-      nextDate.setMonth(nextDate.getMonth() + interval.value);
-      break;
-    case "year":
-      nextDate.setFullYear(nextDate.getFullYear() + interval.value);
-      break;
-  }
-
-  return nextDate;
-};
-
-const normalizeNextBillingDate = ({
-  reportedDate,
-  recurrence,
-  fallbackFrom,
-  requireFuture,
-}: {
-  reportedDate: Date | null;
-  recurrence: string | null | undefined;
-  fallbackFrom?: Date;
-  requireFuture: boolean;
-}) => {
-  const now = new Date();
-  const isValidReportedDate =
-    reportedDate instanceof Date && !Number.isNaN(reportedDate.getTime());
-
-  if (isValidReportedDate) {
-    if (!requireFuture || reportedDate.getTime() > now.getTime() + 60 * 60 * 1000) {
-      return reportedDate;
-    }
-  }
-
-  const interval =
-    parseRecurrenceInterval(recurrence) ?? { value: 1, unit: "month" as const };
-  const base = fallbackFrom ?? now;
-  const computed = addInterval(base, interval);
-
-  if (!requireFuture) return computed;
-  if (computed.getTime() > now.getTime()) return computed;
-
-  return addInterval(now, interval);
-};
-
 const amountsMatch = (a: number, b: number) =>
   Math.round(a * 100) === Math.round(b * 100);
+
+const parsePayHerePaidAt = (value: string | null) => {
+  if (!value) return null;
+  const normalized = value.trim().replace(" ", "T");
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const addDays = (baseDate: Date, days: number) => {
+  const nextDate = new Date(baseDate.getTime());
+  nextDate.setDate(nextDate.getDate() + days);
+  return nextDate;
+};
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -111,8 +46,8 @@ export async function POST(req: Request) {
   const payment_id = params.get("payment_id");
   const subscription_id = params.get("subscription_id");
   const message_type = params.get("message_type");
-  const nextBillingDate = params.get("item_rec_date_next");
   const installmentPaid = params.get("item_rec_install_paid");
+  const payherePaidOn = params.get("payhere_paid_on");
   const recurrenceFromPayload =
     params.get("item_recurrence") ??
     params.get("item_rec_recurrence") ??
@@ -173,7 +108,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    const parsedNextBillingDate = nextBillingDate ? new Date(nextBillingDate) : null;
+    const latestPaymentDate = parsePayHerePaidAt(payherePaidOn) ?? new Date();
     const parsedInstallmentsPaidRaw = installmentPaid
       ? Number(installmentPaid)
       : undefined;
@@ -314,12 +249,7 @@ export async function POST(req: Request) {
         });
         const recurrenceValue =
           recurrenceFromPayload ?? existing?.recurrence ?? "1 Month";
-        const resolvedNextBillingDate = normalizeNextBillingDate({
-          reportedDate: parsedNextBillingDate,
-          recurrence: recurrenceValue,
-          fallbackFrom: new Date(),
-          requireFuture: true,
-        });
+        const resolvedNextBillingDate = addDays(latestPaymentDate, 30);
 
         const payload = {
           user: orderDoc?.user ?? null,
@@ -388,6 +318,7 @@ export async function POST(req: Request) {
 
       type SubscriptionWithOrder = {
         recurrence?: string | null;
+        status?: string | null;
         orderId?: {
           user?: IOrder["user"];
           items?: IOrder["items"];
@@ -404,14 +335,17 @@ export async function POST(req: Request) {
 
       const recurrenceValue =
         recurrenceFromPayload ?? subscription?.recurrence ?? "1 Month";
-      const resolvedNextBillingDate = normalizeNextBillingDate({
-        reportedDate: parsedNextBillingDate,
-        recurrence: recurrenceValue,
-        fallbackFrom: new Date(),
-        requireFuture: true,
-      });
+      const normalizedSubscriptionStatus = subscription?.status?.toLowerCase() ?? null;
+      const isDismissedSubscription =
+        normalizedSubscriptionStatus !== null &&
+        normalizedSubscriptionStatus !== "active";
+      const resolvedNextBillingDate = addDays(latestPaymentDate, 30);
 
-      if (subscription?.orderId) {
+      if (isDismissedSubscription) {
+        processingNotes.push(
+          `Ignored RECURRING_INSTALLMENT_SUCCESS for dismissed subscription ${subscription_id ?? "n/a"} with status=${normalizedSubscriptionStatus}.`
+        );
+      } else if (subscription?.orderId) {
         const baseOrder = subscription.orderId;
         const paidAmount = Number(payhere_amount);
         const expectedAmount = Number(baseOrder.total);
@@ -484,17 +418,19 @@ export async function POST(req: Request) {
         );
       }
 
-      await Subscription.updateOne(
-        { subscriptionId: subscription_id },
-        {
-          status: "active",
-          nextBillingDate: resolvedNextBillingDate,
-          recurrence: recurrenceValue,
-          ...(typeof parsedInstallmentsPaid === "number"
-            ? { totalInstallmentsPaid: parsedInstallmentsPaid }
-            : {}),
-        }
-      );
+      if (!isDismissedSubscription) {
+        await Subscription.updateOne(
+          { subscriptionId: subscription_id },
+          {
+            status: "active",
+            nextBillingDate: resolvedNextBillingDate,
+            recurrence: recurrenceValue,
+            ...(typeof parsedInstallmentsPaid === "number"
+              ? { totalInstallmentsPaid: parsedInstallmentsPaid }
+              : {}),
+          }
+        );
+      }
     }
     if (
       message_type === "RECURRING_INSTALLMENT_SUCCESS" &&
