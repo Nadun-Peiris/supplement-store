@@ -64,10 +64,16 @@ export async function POST(req: Request) {
       ? parsedInstallmentsPaidRaw
       : undefined;
 
-  type OrderDoc = Awaited<ReturnType<typeof Order.findById>>;
-  const orderDoc: OrderDoc = await Order.findById(order_id);
+  type OrderForNotify = Pick<IOrder, "user" | "items"> & {
+    cartOwnerUserId?: string | null;
+    cartOwnerGuestId?: string | null;
+  };
 
-  const clearCartForOrder = async (order: OrderDoc) => {
+  const orderDoc = (await Order.findById(order_id).select(
+    "user items cartOwnerUserId cartOwnerGuestId"
+  )) as OrderForNotify | null;
+
+  const clearCartForOrder = async (order: OrderForNotify | null) => {
     if (!order) return;
 
     let userCartId: string | null = order.cartOwnerUserId ?? null;
@@ -95,14 +101,16 @@ export async function POST(req: Request) {
 
   if (message_type === "AUTHORIZATION_SUCCESS") {
 
-    const updatedOrder = await Order.findByIdAndUpdate(
+    const updatedOrder = (await Order.findByIdAndUpdate(
       order_id,
       {
-      paymentStatus: "paid",
-      paymentReference: payment_id,
+        paymentStatus: "paid",
+        paymentReference: payment_id,
       },
       { new: true }
-    );
+    ).select("user items cartOwnerUserId cartOwnerGuestId")) as
+      | OrderForNotify
+      | null;
 
     await clearCartForOrder(updatedOrder ?? orderDoc);
 
@@ -139,14 +147,16 @@ export async function POST(req: Request) {
 
   // Non-subscription one-time payment success fallback
   if (!message_type && status_code === "2") {
-    const updatedOrder = await Order.findByIdAndUpdate(
+    const updatedOrder = (await Order.findByIdAndUpdate(
       order_id,
       {
         paymentStatus: "paid",
         paymentReference: payment_id,
       },
       { new: true }
-    );
+    ).select("user items cartOwnerUserId cartOwnerGuestId")) as
+      | OrderForNotify
+      | null;
 
     await clearCartForOrder(updatedOrder ?? orderDoc);
   }
