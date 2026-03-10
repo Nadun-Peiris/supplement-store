@@ -1,7 +1,13 @@
-import mongoose, { Schema, model, models } from "mongoose";
+import { Schema, model, models } from "mongoose";
 
 const SubscriptionSchema = new Schema(
   {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
+
     orderId: {
       type: Schema.Types.ObjectId,
       ref: "Order",
@@ -16,7 +22,7 @@ const SubscriptionSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["active", "cancelled", "completed"],
+      enum: ["active", "cancelled", "completed", "failed"],
       default: "active",
     },
 

@@ -191,7 +191,7 @@ export default function CheckoutPage() {
       order_id: order._id,
       items: "Supplement Store Order",
       currency: "LKR",
-      amount: String(order.total),
+      amount: Number(order.total).toFixed(2),
       first_name: order.billingDetails.firstName,
       last_name: order.billingDetails.lastName,
       email: order.billingDetails.email,
@@ -214,7 +214,7 @@ export default function CheckoutPage() {
     form.submit();
   };
 
-  const handlePayHerePayment = async () => {
+  const createPayHereOrder = async (): Promise<PayHereOrder> => {
     const orderRes = await fetch("/api/orders/create", {
       method: "POST",
       headers: {
@@ -235,14 +235,24 @@ export default function CheckoutPage() {
       throw new Error(orderData?.error || "Failed to create order");
     }
 
+    return {
+      _id: String(orderData.orderId),
+      total: Number(orderData.total ?? total),
+      billingDetails: orderData.billingDetails ?? billing,
+    };
+  };
+
+  const handlePayHerePayment = async () => {
+    const order = await createPayHereOrder();
+
     const hashRes = await fetch("/api/payhere/hash", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        orderId: String(orderData.orderId),
-        amount: String(orderData.total ?? total),
+        orderId: order._id,
+        amount: Number(order.total).toFixed(2),
         currency: "LKR",
       }),
     });
@@ -253,13 +263,7 @@ export default function CheckoutPage() {
       throw new Error(hashData?.error || "Failed to generate PayHere hash");
     }
 
-    const payHereOrder: PayHereOrder = {
-      _id: String(orderData.orderId),
-      total: Number(orderData.total ?? total),
-      billingDetails: orderData.billingDetails ?? billing,
-    };
-
-    payWithPayHere(payHereOrder, hashData.hash);
+    payWithPayHere(order, hashData.hash);
   };
 
   async function redirectToPayHereSubscription(
@@ -277,7 +281,7 @@ export default function CheckoutPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         orderId,
-        amount: totalAmount,
+        amount: totalAmount.toFixed(2),
         currency: "LKR",
       }),
     });
@@ -349,47 +353,25 @@ export default function CheckoutPage() {
       return;
     }
 
-    const orderPayload = {
-      items: cartItems.map((i) => ({
-        productId: i.productId,
-        quantity: i.quantity,
-      })),
-      billingDetails: billing,
-      shippingMethod,
-      purchaseType,
-    };
-
-    const headers = {
-      "Content-Type": "application/json",
-      ...(await getCartHeaders()),
-    };
-
-    // Create order first
-    const res = await fetch("/api/checkout", {
-      method: "POST",
-      headers,
-      body: JSON.stringify(orderPayload),
-    });
-
-    const data = await res.json();
-    setLoading(false);
-
-    if (!res.ok) return alert(data.error);
-
-    const orderId = data.orderId;
-
     // ---------------------------
     // SUBSCRIPTION PayHere
     // ---------------------------
     if (purchaseType === "subscription") {
       try {
-        await redirectToPayHereSubscription(orderId, total);
+        const order = await createPayHereOrder();
+        await redirectToPayHereSubscription(order._id, order.total);
       } catch (error) {
         console.error("Subscription payment failed:", error);
         alert("Subscription payment failed.");
+      } finally {
+        setLoading(false);
       }
       return;
     }
+
+    const order = await createPayHereOrder();
+    const orderId = order._id;
+    setLoading(false);
 
     // ---------------------------
     // BANK TRANSFER ONLY

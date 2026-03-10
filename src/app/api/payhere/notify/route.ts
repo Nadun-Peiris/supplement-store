@@ -47,11 +47,26 @@ export async function POST(req: Request) {
 
   await connectDB();
 
+  const parsedNextBillingDate = nextBillingDate
+    ? new Date(nextBillingDate)
+    : null;
+
+  const parsedInstallmentsPaidRaw = installmentPaid
+    ? Number(installmentPaid)
+    : undefined;
+  const parsedInstallmentsPaid =
+    parsedInstallmentsPaidRaw !== undefined &&
+    Number.isFinite(parsedInstallmentsPaidRaw)
+      ? parsedInstallmentsPaidRaw
+      : undefined;
+
+  const orderDoc = await Order.findById(order_id).select("user");
+
   // -------------------------
   // FIRST PAYMENT SUCCESS
   // -------------------------
 
-  if (message_type === "AUTHORIZATION_SUCCESS") {
+  if (message_type === "AUTHORIZATION_SUCCESS" || status_code === "2") {
 
     await Order.findByIdAndUpdate(order_id, {
       paymentStatus: "paid",
@@ -60,13 +75,23 @@ export async function POST(req: Request) {
 
     if (subscription_id) {
 
-      await Subscription.create({
-        orderId: order_id,
-        subscriptionId: subscription_id,
-        status: "active",
-        nextBillingDate,
-        totalInstallmentsPaid: 1
-      });
+      await Subscription.updateOne(
+        { subscriptionId: subscription_id },
+        {
+          $set: {
+            user: orderDoc?.user ?? null,
+            orderId: order_id,
+            subscriptionId: subscription_id,
+            status: "active",
+            nextBillingDate: parsedNextBillingDate,
+            totalInstallmentsPaid:
+              parsedInstallmentsPaid && parsedInstallmentsPaid > 0
+                ? parsedInstallmentsPaid
+                : 1,
+          },
+        },
+        { upsert: true }
+      );
 
     }
 
@@ -81,8 +106,9 @@ export async function POST(req: Request) {
     await Subscription.updateOne(
       { subscriptionId: subscription_id },
       {
-        nextBillingDate,
-        totalInstallmentsPaid: installmentPaid,
+        status: "active",
+        nextBillingDate: parsedNextBillingDate,
+        totalInstallmentsPaid: parsedInstallmentsPaid,
       }
     );
 
