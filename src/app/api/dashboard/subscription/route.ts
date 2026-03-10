@@ -3,7 +3,6 @@ import { adminAuth } from "@/lib/firebaseAdmin";
 import { connectDB } from "@/lib/mongoose";
 import User, { type IUser } from "@/models/User";
 import Subscription from "@/models/Subscription";
-import Order from "@/models/Order";
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,52 +26,32 @@ export async function GET(req: NextRequest) {
 
     // Fallback: if the embedded subscription is missing, try the Subscription collection
     if (!subscription?.id) {
-      const latest = await Subscription.findOne({ user: user._id })
+      type SubscriptionFallback = {
+        subscriptionId?: string | null;
+        status?: string | null;
+        nextBillingDate?: Date | null;
+      };
+
+      const latest = (await Subscription.findOne({ user: user._id })
         .sort({ updatedAt: -1 })
-        .lean();
+        .lean()) as SubscriptionFallback | null;
 
       if (latest) {
         subscription = {
-          id: latest.lemonSubscriptionId,
+          id: latest.subscriptionId ?? null,
           status: latest.status ?? null,
           active:
             typeof latest.status === "string" &&
-            ["active", "on_trial", "past_due"].includes(
+            ["active"].includes(
               latest.status.toLowerCase()
             ),
-          nextBillingDate: latest.renewsAt ?? null,
-          lemonCustomerId: latest.lemonCustomerId ?? null,
-          cancelledAt: latest.cancelledAt ?? null,
+          nextBillingDate: latest.nextBillingDate ?? null,
+          lemonCustomerId: null,
+          cancelledAt:
+            latest.status === "cancelled" ? new Date() : null,
         };
 
         // Keep user doc in sync for future reads
-        await User.updateOne(
-          { _id: user._id },
-          { $set: { subscription } }
-        );
-      }
-    }
-
-    // Final fallback: infer from the latest paid subscription order
-    if (!subscription?.id) {
-      const latestOrder = await Order.findOne({
-        user: user._id,
-        orderType: "subscription",
-        status: "paid",
-      })
-        .sort({ updatedAt: -1 })
-        .lean();
-
-      if (latestOrder) {
-        subscription = {
-          id: latestOrder.subscriptionId ?? latestOrder.paymentReference ?? null,
-          status: latestOrder.nextBillingDate ? "active" : "inactive",
-          active: Boolean(latestOrder.nextBillingDate),
-          nextBillingDate: latestOrder.nextBillingDate ?? null,
-          lemonCustomerId: user.subscription?.lemonCustomerId ?? null,
-          cancelledAt: null,
-        };
-
         await User.updateOne(
           { _id: user._id },
           { $set: { subscription } }
