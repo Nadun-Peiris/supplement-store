@@ -25,6 +25,22 @@ interface BillingDetails {
   apartment?: string;
 }
 
+interface PayHereOrder {
+  _id: string;
+  total: number;
+  billingDetails: BillingDetails;
+}
+
+interface UserProfileResponse {
+  user?: {
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    billingAddress?: Partial<BillingDetails>;
+  };
+}
+
 export default function CheckoutPage() {
   const { refreshCart } = useCart();
   const getInitial = (name: string) =>
@@ -50,15 +66,15 @@ export default function CheckoutPage() {
     "one_time" | "subscription"
   >("one_time");
 
-  const [paymentMethod, setPaymentMethod] = useState<"bank" | "lemon">(
-    "bank"
-  );
+  const [paymentMethod, setPaymentMethod] = useState<
+    "bank" | "lemon" | "payhere"
+  >("bank");
 
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [loading, setLoading] = useState(false);
   const [cartItems, setCartItems] = useState<CheckoutCartItem[]>([]);
   const [cartLoading, setCartLoading] = useState(true);
-
+  
   // ---------------------------
   // Load cart + user details
   // ---------------------------
@@ -117,9 +133,9 @@ export default function CheckoutPage() {
         const text = await res.text();
         if (!text) return; // No content returned for this request
 
-        let data: any;
+        let data: UserProfileResponse;
         try {
-          data = JSON.parse(text);
+          data = JSON.parse(text) as UserProfileResponse;
         } catch (err) {
           console.error("Invalid JSON from /api/user/profile", err);
           return;
@@ -154,6 +170,98 @@ export default function CheckoutPage() {
     setBilling((prev) => ({ ...prev, [field]: value }));
   };
 
+  const payWithPayHere = (order: PayHereOrder, hash: string) => {
+    const merchantId = process.env.NEXT_PUBLIC_PAYHERE_MERCHANT_ID;
+
+    if (!merchantId) {
+      alert("Missing NEXT_PUBLIC_PAYHERE_MERCHANT_ID");
+      return;
+    }
+
+    const form = document.createElement("form");
+
+    form.method = "POST";
+    form.action = "https://sandbox.payhere.lk/pay/checkout";
+
+    const fields: Record<string, string> = {
+      merchant_id: merchantId,
+      return_url: `${window.location.origin}/checkout/success?orderId=${order._id}`,
+      cancel_url: `${window.location.origin}/checkout`,
+      notify_url: `${window.location.origin}/api/payhere/notify`,
+      order_id: order._id,
+      items: "Supplement Store Order",
+      currency: "LKR",
+      amount: String(order.total),
+      first_name: order.billingDetails.firstName,
+      last_name: order.billingDetails.lastName,
+      email: order.billingDetails.email,
+      phone: order.billingDetails.phone,
+      address: order.billingDetails.street,
+      city: order.billingDetails.city,
+      country: order.billingDetails.country || "Sri Lanka",
+      hash,
+    };
+
+    Object.entries(fields).forEach(([key, value]) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  };
+
+  const handlePayHerePayment = async () => {
+    const orderRes = await fetch("/api/orders/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        items: cartItems,
+        subtotal,
+        shippingCost,
+        total,
+        billingDetails: billing,
+      }),
+    });
+
+    const orderData = await orderRes.json();
+
+    if (!orderRes.ok || !orderData?.orderId) {
+      throw new Error(orderData?.error || "Failed to create order");
+    }
+
+    const hashRes = await fetch("/api/payhere/hash", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        orderId: String(orderData.orderId),
+        amount: String(orderData.total ?? total),
+        currency: "LKR",
+      }),
+    });
+
+    const hashData = await hashRes.json();
+
+    if (!hashRes.ok || !hashData?.hash) {
+      throw new Error(hashData?.error || "Failed to generate PayHere hash");
+    }
+
+    const payHereOrder: PayHereOrder = {
+      _id: String(orderData.orderId),
+      total: Number(orderData.total ?? total),
+      billingDetails: orderData.billingDetails ?? billing,
+    };
+
+    payWithPayHere(payHereOrder, hashData.hash);
+  };
+
   // ---------------------------
   // SUBMIT ORDER
   // ---------------------------
@@ -162,6 +270,21 @@ export default function CheckoutPage() {
     if (cartItems.length === 0) return alert("Cart empty!");
 
     setLoading(true);
+
+    // ---------------------------
+    // ONE-TIME PayHere Payment
+    // ---------------------------
+    if (purchaseType === "one_time" && paymentMethod === "payhere") {
+      try {
+        await handlePayHerePayment();
+      } catch (error) {
+        console.error("PayHere payment failed:", error);
+        alert("Card payment failed.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     const orderPayload = {
       items: cartItems.map((i) => ({
@@ -493,6 +616,15 @@ export default function CheckoutPage() {
                     onChange={() => setPaymentMethod("lemon")}
                   />
                   Pay by Card (Lemon Squeezy)
+                </label>
+
+                <label className="pay-option">
+                  <input
+                    type="radio"
+                    checked={paymentMethod === "payhere"}
+                    onChange={() => setPaymentMethod("payhere")}
+                  />
+                  Pay by Card (PayHere)
                 </label>
               </>
             )}

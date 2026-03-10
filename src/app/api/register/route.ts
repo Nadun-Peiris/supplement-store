@@ -95,6 +95,7 @@ export async function POST(req: Request) {
     // Save to MongoDB
     const newUser = await User.create({
       firebaseId: firebaseUser.uid,
+      role: "customer",
       fullName,
       email,
       phone: phone.trim(),

@@ -44,6 +44,7 @@ export default function ReviewPage() {
       ...step1,
       ...step2,
       ...billing,
+      role: "customer",
       createdAt: new Date().toISOString(),
     };
 

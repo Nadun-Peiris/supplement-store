@@ -1,11 +1,8 @@
-// src/models/Order.ts
 import mongoose, { Schema, Document, models, model } from "mongoose";
 
 export interface IOrder extends Document {
   user?: mongoose.Types.ObjectId | null;
   guestUser?: mongoose.Types.ObjectId | null;
-
-  orderType: "one_time" | "subscription";
 
   items: {
     product: mongoose.Types.ObjectId;
@@ -19,17 +16,23 @@ export interface IOrder extends Document {
   shippingCost: number;
   total: number;
 
-  shippingMethod: "local_pickup" | "express_3_days";
+  paymentProvider: "payhere" | "lemon";
 
-  paymentProvider:
-    | "bank_transfer"
-    | "payhere"
-    | "lemon_one_time"
-    | "lemon_subscription";
+  paymentStatus: "pending" | "paid" | "failed" | "refunded";
 
   paymentReference?: string | null;
-  subscriptionId?: string | null;
-  nextBillingDate?: Date | null;
+
+  fulfillmentStatus:
+    | "unfulfilled"
+    | "fulfilled"
+    | "shipped"
+    | "completed";
+
+  courier?: string | null;
+  trackingNumber?: string | null;
+
+  shippedAt?: Date | null;
+  deliveredAt?: Date | null;
 
   billingDetails: {
     firstName: string;
@@ -42,8 +45,6 @@ export interface IOrder extends Document {
     postcode: string;
     apartment?: string;
   };
-
-  status: "pending" | "paid" | "failed" | "cancelled";
 
   createdAt: Date;
   updatedAt: Date;
@@ -63,15 +64,13 @@ const OrderSchema = new Schema<IOrder>(
       default: null,
     },
 
-    orderType: {
-      type: String,
-      enum: ["one_time", "subscription"],
-      default: "one_time",
-    },
-
     items: [
       {
-        product: { type: Schema.Types.ObjectId, ref: "Product", required: true },
+        product: {
+          type: Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
         name: String,
         price: Number,
         quantity: Number,
@@ -83,25 +82,46 @@ const OrderSchema = new Schema<IOrder>(
     shippingCost: { type: Number, required: true },
     total: { type: Number, required: true },
 
-    shippingMethod: {
-      type: String,
-      enum: ["local_pickup", "express_3_days"],
-      default: "local_pickup",
-    },
-
     paymentProvider: {
       type: String,
-      enum: [
-        "bank_transfer",
-        "payhere",
-        "lemon_one_time",
-        "lemon_subscription",
-      ],
-      default: "bank_transfer",
+      enum: ["payhere", "lemon"],
+      required: true,
+    },
+
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed", "refunded"],
+      default: "pending",
     },
 
     paymentReference: {
       type: String,
+      default: null,
+    },
+
+    fulfillmentStatus: {
+      type: String,
+      enum: ["unfulfilled", "fulfilled", "shipped", "completed"],
+      default: "unfulfilled",
+    },
+
+    courier: {
+      type: String,
+      default: null,
+    },
+
+    trackingNumber: {
+      type: String,
+      default: null,
+    },
+
+    shippedAt: {
+      type: Date,
+      default: null,
+    },
+
+    deliveredAt: {
+      type: Date,
       default: null,
     },
 
@@ -115,22 +135,6 @@ const OrderSchema = new Schema<IOrder>(
       country: { type: String, required: true },
       postcode: { type: String, required: true },
       apartment: { type: String },
-    },
-
-    status: {
-      type: String,
-      enum: ["pending", "paid", "failed", "cancelled"],
-      default: "pending",
-    },
-
-    subscriptionId: {
-      type: String,
-      default: null,
-    },
-
-    nextBillingDate: {
-      type: Date,
-      default: null,
     },
   },
   { timestamps: true }

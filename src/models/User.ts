@@ -1,9 +1,15 @@
 // src/models/User.ts
 
-import mongoose, { Schema, Document, models, type Model, type Types } from "mongoose";
+import mongoose, {
+  Schema,
+  Document,
+  models,
+  type Model,
+  type Types,
+} from "mongoose";
 
 /* ---------------------------------------------------------
-   TypeScript Interface (Fixes subscription Type Errors)
+   TypeScript Interface
 --------------------------------------------------------- */
 export interface IUser extends Document {
   _id: Types.ObjectId;
@@ -40,7 +46,12 @@ export interface IUser extends Document {
     cancelledAt: Date | null;
   };
 
+  // 🔐 NEW FIELDS
+  role: "customer" | "admin" | "superadmin";
+  isBlocked: boolean;
+
   createdAt: Date;
+  updatedAt: Date;
 }
 
 /* ---------------------------------------------------------
@@ -84,16 +95,38 @@ const UserSchema = new Schema<IUser>(
       cancelledAt: { type: Date, default: null },
     },
 
+    // 🔐 ROLE SYSTEM
+    role: {
+      type: String,
+      enum: ["customer", "admin", "superadmin"],
+      default: "customer",
+    },
+
+    // 🔐 BLOCK SYSTEM
+    isBlocked: {
+      type: Boolean,
+      default: false,
+    },
+
     createdAt: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+  }
 );
 
 /* ---------------------------------------------------------
+   Indexes (Performance Optimization)
+--------------------------------------------------------- */
+UserSchema.index({ email: 1 });
+UserSchema.index({ firebaseId: 1 });
+UserSchema.index({ role: 1 });
+
+/* ---------------------------------------------------------
    Export Model
-   (Fixes TypeScript + avoids overwriting model)
 --------------------------------------------------------- */
 const User: Model<IUser> =
-  (models.User as Model<IUser>) || mongoose.model<IUser>("User", UserSchema);
+  (models.User as Model<IUser>) ||
+  mongoose.model<IUser>("User", UserSchema);
 
 export default User;
