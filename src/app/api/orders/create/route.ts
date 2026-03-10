@@ -60,7 +60,7 @@ export async function POST(req: Request) {
 
     let userObjectId: string | null = null;
     let cartOwnerUserId: string | null = null;
-    let cartOwnerGuestId: string | null = null;
+    const cartOwnerGuestId: string | null = guestId || null;
 
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.split(" ")[1];
@@ -75,17 +75,11 @@ export async function POST(req: Request) {
           if (user) {
             userObjectId = String(user._id);
             cartOwnerUserId = user.firebaseId;
-          } else if (guestId) {
-            // Fallback to guest cart owner if user record is unavailable
-            cartOwnerGuestId = guestId;
           }
         } catch {
           // Continue as guest if auth token is missing/invalid
-          if (guestId) cartOwnerGuestId = guestId;
         }
       }
-    } else if (guestId) {
-      cartOwnerGuestId = guestId;
     }
 
     const order = await Order.create({
@@ -106,10 +100,15 @@ export async function POST(req: Request) {
       billingDetails,
     });
 
+    // Clear all possible carts for this checkout context:
+    // 1) user cart (logged-in flow)
+    // 2) guest cart (guest flow or pre-login cart still present)
+    // Use deleteMany to avoid leaving stale duplicate cart documents.
     if (cartOwnerUserId) {
-      await Cart.findOneAndDelete({ userId: cartOwnerUserId });
-    } else if (cartOwnerGuestId) {
-      await Cart.findOneAndDelete({ guestId: cartOwnerGuestId });
+      await Cart.deleteMany({ userId: cartOwnerUserId });
+    }
+    if (cartOwnerGuestId) {
+      await Cart.deleteMany({ guestId: cartOwnerGuestId });
     }
 
     return NextResponse.json({

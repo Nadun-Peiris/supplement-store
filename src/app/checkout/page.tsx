@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 import "./checkout.css";
-import { useCart } from "@/context/CartContext";
 import { auth } from "@/lib/firebase";
 
 interface CheckoutCartItem {
@@ -42,9 +41,11 @@ interface UserProfileResponse {
 }
 
 export default function CheckoutPage() {
-  const { refreshCart } = useCart();
   const getInitial = (name: string) =>
     name?.trim()?.charAt(0)?.toUpperCase() || "?";
+  const payHereCheckoutUrl =
+    process.env.NEXT_PUBLIC_PAYHERE_CHECKOUT_URL ||
+    "https://sandbox.payhere.lk/pay/checkout";
 
   const [billing, setBilling] = useState<BillingDetails>({
     firstName: "",
@@ -65,10 +66,6 @@ export default function CheckoutPage() {
   const [purchaseType, setPurchaseType] = useState<
     "one_time" | "subscription"
   >("one_time");
-
-  const [paymentMethod, setPaymentMethod] = useState<
-    "bank" | "payhere"
-  >("bank");
 
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -181,7 +178,7 @@ export default function CheckoutPage() {
     const form = document.createElement("form");
 
     form.method = "POST";
-    form.action = "https://sandbox.payhere.lk/pay/checkout";
+    form.action = payHereCheckoutUrl;
 
     const fields: Record<string, string> = {
       merchant_id: merchantId,
@@ -297,7 +294,7 @@ export default function CheckoutPage() {
 
     const form = document.createElement("form");
     form.method = "POST";
-    form.action = "https://sandbox.payhere.lk/pay/checkout";
+    form.action = payHereCheckoutUrl;
 
     const fields: Record<string, string> = {
       merchant_id: merchantId,
@@ -344,7 +341,7 @@ export default function CheckoutPage() {
     // ---------------------------
     // ONE-TIME PayHere Payment
     // ---------------------------
-    if (purchaseType === "one_time" && paymentMethod === "payhere") {
+    if (purchaseType === "one_time") {
       try {
         await handlePayHerePayment();
       } catch (error) {
@@ -371,22 +368,6 @@ export default function CheckoutPage() {
       }
       return;
     }
-
-    const order = await createPayHereOrder();
-    const orderId = order._id;
-    setLoading(false);
-
-    // ---------------------------
-    // BANK TRANSFER ONLY
-    // ---------------------------
-    await fetch("/api/cart", {
-      method: "DELETE",
-      headers: await getCartHeaders(),
-    });
-
-    await refreshCart();
-
-    window.location.href = "/checkout/success?orderId=" + orderId;
   };
 
   // ---------------------------
@@ -588,10 +569,7 @@ export default function CheckoutPage() {
               <input
                 type="radio"
                 checked={purchaseType === "one_time"}
-                onChange={() => {
-                  setPurchaseType("one_time");
-                  setPaymentMethod("bank");
-                }}
+                onChange={() => setPurchaseType("one_time")}
               />
               One-Time Purchase
             </label>
@@ -600,10 +578,7 @@ export default function CheckoutPage() {
               <input
                 type="radio"
                 checked={purchaseType === "subscription"}
-                onChange={() => {
-                  setPurchaseType("subscription");
-                  setPaymentMethod("payhere");
-                }}
+                onChange={() => setPurchaseType("subscription")}
               />
               Monthly Subscription
             </label>
@@ -614,25 +589,10 @@ export default function CheckoutPage() {
             <h3>Payment Method</h3>
 
             {purchaseType === "one_time" && (
-              <>
-                <label className="pay-option">
-                  <input
-                    type="radio"
-                    checked={paymentMethod === "bank"}
-                    onChange={() => setPaymentMethod("bank")}
-                  />
-                  Direct Bank Transfer
-                </label>
-
-                <label className="pay-option">
-                  <input
-                    type="radio"
-                    checked={paymentMethod === "payhere"}
-                    onChange={() => setPaymentMethod("payhere")}
-                  />
-                  Pay by Card (PayHere)
-                </label>
-              </>
+              <label className="pay-option">
+                <input type="radio" checked readOnly />
+                Pay by Card (PayHere)
+              </label>
             )}
 
             {purchaseType === "subscription" && (

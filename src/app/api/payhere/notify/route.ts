@@ -9,6 +9,9 @@ import Product from "@/models/Product";
 import { NextResponse } from "next/server";
 import CryptoJS from "crypto-js";
 
+const PAYHERE_SUCCESS_STATUS = "2";
+const STORE_CURRENCY = "LKR";
+
 type RecurrenceUnit = "day" | "week" | "month" | "year";
 type RecurrenceInterval = { value: number; unit: RecurrenceUnit };
 
@@ -86,6 +89,9 @@ const normalizeNextBillingDate = ({
 
   return addInterval(now, interval);
 };
+
+const amountsMatch = (a: number, b: number) =>
+  Math.round(a * 100) === Math.round(b * 100);
 
 export async function POST(req: Request) {
   const body = await req.text();
@@ -189,7 +195,7 @@ export async function POST(req: Request) {
     };
 
     const orderDoc = (await Order.findById(order_id).select(
-      "user items cartOwnerUserId cartOwnerGuestId"
+      "user items total cartOwnerUserId cartOwnerGuestId"
     )) as OrderForNotify | null;
 
     const clearCartForOrder = async (order: OrderForNotify | null) => {
@@ -204,12 +210,11 @@ export async function POST(req: Request) {
       }
 
       if (userCartId) {
-        await Cart.findOneAndDelete({ userId: userCartId });
-        return;
+        await Cart.deleteMany({ userId: userCartId });
       }
 
       if (guestCartId) {
-        await Cart.findOneAndDelete({ guestId: guestCartId });
+        await Cart.deleteMany({ guestId: guestCartId });
       }
     };
 
@@ -258,8 +263,30 @@ export async function POST(req: Request) {
       }
     };
 
-    if (message_type === "AUTHORIZATION_SUCCESS") {
+    if (
+      message_type === "AUTHORIZATION_SUCCESS" &&
+      status_code === PAYHERE_SUCCESS_STATUS
+    ) {
       processingNotes.push("Handled AUTHORIZATION_SUCCESS.");
+
+      const paidAmount = Number(payhere_amount);
+      const expectedAmount = Number(orderDoc?.total);
+      const isAmountValid =
+        Number.isFinite(paidAmount) &&
+        Number.isFinite(expectedAmount) &&
+        amountsMatch(paidAmount, expectedAmount);
+      const isCurrencyValid = payhere_currency === STORE_CURRENCY;
+
+      if (!orderDoc || !isAmountValid || !isCurrencyValid) {
+        processingNotes.push(
+          `Rejected AUTHORIZATION_SUCCESS due to invalid amount/currency. paid=${payhere_amount} expected=${orderDoc?.total ?? "n/a"} currency=${payhere_currency}`
+        );
+        await finalizeWebhookEvent("rejected");
+        return NextResponse.json(
+          { error: "Invalid payment amount or currency" },
+          { status: 400 }
+        );
+      }
 
       const updatedOrder = (await Order.findOneAndUpdate(
         { _id: order_id, paymentStatus: { $ne: "paid" } },
@@ -322,6 +349,14 @@ export async function POST(req: Request) {
         );
       }
     }
+    if (
+      message_type === "AUTHORIZATION_SUCCESS" &&
+      status_code !== PAYHERE_SUCCESS_STATUS
+    ) {
+      processingNotes.push(
+        `Ignored AUTHORIZATION_SUCCESS with non-success status_code=${status_code}.`
+      );
+    }
 
     if (!message_type && status_code === "2") {
       const updatedOrder = (await Order.findOneAndUpdate(
@@ -345,7 +380,10 @@ export async function POST(req: Request) {
       }
     }
 
-    if (message_type === "RECURRING_INSTALLMENT_SUCCESS") {
+    if (
+      message_type === "RECURRING_INSTALLMENT_SUCCESS" &&
+      status_code === PAYHERE_SUCCESS_STATUS
+    ) {
       processingNotes.push("Handled RECURRING_INSTALLMENT_SUCCESS.");
 
       type SubscriptionWithOrder = {
@@ -375,6 +413,24 @@ export async function POST(req: Request) {
 
       if (subscription?.orderId) {
         const baseOrder = subscription.orderId;
+        const paidAmount = Number(payhere_amount);
+        const expectedAmount = Number(baseOrder.total);
+        const isAmountValid =
+          Number.isFinite(paidAmount) &&
+          Number.isFinite(expectedAmount) &&
+          amountsMatch(paidAmount, expectedAmount);
+        const isCurrencyValid = payhere_currency === STORE_CURRENCY;
+
+        if (!isAmountValid || !isCurrencyValid) {
+          processingNotes.push(
+            `Rejected RECURRING_INSTALLMENT_SUCCESS due to invalid amount/currency. paid=${payhere_amount} expected=${baseOrder.total ?? "n/a"} currency=${payhere_currency}`
+          );
+          await finalizeWebhookEvent("rejected");
+          return NextResponse.json(
+            { error: "Invalid recurring payment amount or currency" },
+            { status: 400 }
+          );
+        }
 
         if (!baseOrder.billingDetails) {
           console.warn("Recurring order skipped: missing base order billingDetails");
@@ -438,6 +494,14 @@ export async function POST(req: Request) {
             ? { totalInstallmentsPaid: parsedInstallmentsPaid }
             : {}),
         }
+      );
+    }
+    if (
+      message_type === "RECURRING_INSTALLMENT_SUCCESS" &&
+      status_code !== PAYHERE_SUCCESS_STATUS
+    ) {
+      processingNotes.push(
+        `Ignored RECURRING_INSTALLMENT_SUCCESS with non-success status_code=${status_code}.`
       );
     }
 
