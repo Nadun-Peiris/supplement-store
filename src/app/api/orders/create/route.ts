@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
+import User from "@/models/User";
+import "@/lib/firebaseAdmin";
+import { getAuth } from "firebase-admin/auth";
 
 export async function POST(req: Request) {
   try {
@@ -8,7 +11,14 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
-    const { items, billingDetails, subtotal, shippingCost, total } = body;
+    const {
+      items,
+      billingDetails,
+      subtotal,
+      shippingCost,
+      total,
+      purchaseType,
+    } = body;
 
     if (!items || !items.length) {
       return NextResponse.json(
@@ -44,7 +54,42 @@ export async function POST(req: Request) {
       }
     );
 
+    const authHeader = req.headers.get("authorization");
+    const guestId = req.headers.get("guest-id");
+
+    let userObjectId: string | null = null;
+    let cartOwnerUserId: string | null = null;
+    let cartOwnerGuestId: string | null = null;
+
+    if (authHeader?.startsWith("Bearer ")) {
+      const token = authHeader.split(" ")[1];
+
+      if (token && token !== "undefined") {
+        try {
+          const decoded = await getAuth().verifyIdToken(token);
+          const user = await User.findOne({ firebaseId: decoded.uid }).select(
+            "_id firebaseId"
+          );
+
+          if (user) {
+            userObjectId = String(user._id);
+            cartOwnerUserId = user.firebaseId;
+          }
+        } catch {
+          // Continue as guest if auth token is missing/invalid
+          if (guestId) cartOwnerGuestId = guestId;
+        }
+      }
+    } else if (guestId) {
+      cartOwnerGuestId = guestId;
+    }
+
     const order = await Order.create({
+      orderType: purchaseType === "subscription" ? "subscription" : "normal",
+      user: userObjectId,
+      cartOwnerUserId,
+      cartOwnerGuestId,
+
       items: mappedItems,
       subtotal,
       shippingCost,

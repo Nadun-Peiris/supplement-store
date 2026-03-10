@@ -20,6 +20,20 @@ const SubscriptionSchema = new Schema(
       unique: true,
     },
 
+    items: [
+      {
+        product: {
+          type: Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
+        name: String,
+        price: Number,
+        quantity: Number,
+        lineTotal: Number,
+      },
+    ],
+
     status: {
       type: String,
       enum: ["active", "cancelled", "completed", "failed"],

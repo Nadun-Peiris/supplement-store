@@ -215,16 +215,19 @@ export default function CheckoutPage() {
   };
 
   const createPayHereOrder = async (): Promise<PayHereOrder> => {
+    const cartHeaders = await getCartHeaders();
     const orderRes = await fetch("/api/orders/create", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...cartHeaders,
       },
       body: JSON.stringify({
         items: cartItems,
         subtotal,
         shippingCost,
         total,
+        purchaseType,
         billingDetails: billing,
       }),
     });

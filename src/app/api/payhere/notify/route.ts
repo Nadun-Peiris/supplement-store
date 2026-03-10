@@ -1,6 +1,9 @@
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
+import type { IOrder } from "@/models/Order";
 import Subscription from "@/models/Subscription";
+import Cart from "@/models/Cart";
+import User from "@/models/User";
 import { NextResponse } from "next/server";
 import CryptoJS from "crypto-js";
 
@@ -54,47 +57,98 @@ export async function POST(req: Request) {
   const parsedInstallmentsPaidRaw = installmentPaid
     ? Number(installmentPaid)
     : undefined;
+
   const parsedInstallmentsPaid =
     parsedInstallmentsPaidRaw !== undefined &&
     Number.isFinite(parsedInstallmentsPaidRaw)
       ? parsedInstallmentsPaidRaw
       : undefined;
 
-  const orderDoc = await Order.findById(order_id).select("user");
+  type OrderDoc = Awaited<ReturnType<typeof Order.findById>>;
+  const orderDoc: OrderDoc = await Order.findById(order_id);
+
+  const clearCartForOrder = async (order: OrderDoc) => {
+    if (!order) return;
+
+    let userCartId: string | null = order.cartOwnerUserId ?? null;
+    const guestCartId: string | null = order.cartOwnerGuestId ?? null;
+
+    // Backward compatibility for older orders created before cart owner fields existed
+    if (!userCartId && order.user) {
+      const user = await User.findById(order.user).select("firebaseId");
+      userCartId = user?.firebaseId ?? null;
+    }
+
+    if (userCartId) {
+      await Cart.findOneAndDelete({ userId: userCartId });
+      return;
+    }
+
+    if (guestCartId) {
+      await Cart.findOneAndDelete({ guestId: guestCartId });
+    }
+  };
 
   // -------------------------
   // FIRST PAYMENT SUCCESS
   // -------------------------
 
-  if (message_type === "AUTHORIZATION_SUCCESS" || status_code === "2") {
+  if (message_type === "AUTHORIZATION_SUCCESS") {
 
-    await Order.findByIdAndUpdate(order_id, {
+    const updatedOrder = await Order.findByIdAndUpdate(
+      order_id,
+      {
       paymentStatus: "paid",
       paymentReference: payment_id,
-    });
+      },
+      { new: true }
+    );
+
+    await clearCartForOrder(updatedOrder ?? orderDoc);
 
     if (subscription_id) {
+      const existing = await Subscription.findOne({
+        subscriptionId: subscription_id,
+      });
 
-      await Subscription.updateOne(
-        { subscriptionId: subscription_id },
-        {
-          $set: {
-            user: orderDoc?.user ?? null,
-            orderId: order_id,
-            subscriptionId: subscription_id,
-            status: "active",
-            nextBillingDate: parsedNextBillingDate,
-            totalInstallmentsPaid:
-              parsedInstallmentsPaid && parsedInstallmentsPaid > 0
-                ? parsedInstallmentsPaid
-                : 1,
-          },
-        },
-        { upsert: true }
-      );
+      const payload = {
+        user: orderDoc?.user ?? null,
+        orderId: order_id,
+        subscriptionId: subscription_id,
+        items: orderDoc?.items ?? [],
+        status: "active",
+        nextBillingDate: parsedNextBillingDate,
+        totalInstallmentsPaid:
+          parsedInstallmentsPaid && parsedInstallmentsPaid > 0
+            ? parsedInstallmentsPaid
+            : 1,
+      };
+
+      if (existing) {
+        await Subscription.updateOne(
+          { subscriptionId: subscription_id },
+          { $set: payload }
+        );
+      } else {
+        await Subscription.create(payload);
+      }
 
     }
 
+  }
+
+  // Non-subscription one-time payment success fallback
+  if (!message_type && status_code === "2") {
+    const updatedOrder = await Order.findByIdAndUpdate(
+      order_id,
+      {
+        paymentStatus: "paid",
+        paymentReference: payment_id,
+      },
+      { new: true }
+    );
+
+    await clearCartForOrder(updatedOrder ?? orderDoc);
   }
 
   // -------------------------
@@ -102,6 +156,56 @@ export async function POST(req: Request) {
   // -------------------------
 
   if (message_type === "RECURRING_INSTALLMENT_SUCCESS") {
+
+    type SubscriptionWithOrder = {
+      orderId?: {
+        user?: IOrder["user"];
+        items?: IOrder["items"];
+        subtotal?: number;
+        shippingCost?: number;
+        total?: number;
+        billingDetails?: IOrder["billingDetails"];
+      } | null;
+    };
+
+    const subscription = (await Subscription.findOne({
+      subscriptionId: subscription_id
+    }).populate("orderId")) as SubscriptionWithOrder | null;
+
+    if (subscription?.orderId) {
+
+      const baseOrder = subscription.orderId;
+      if (!baseOrder.billingDetails) {
+        console.warn("Recurring order skipped: missing base order billingDetails");
+      } else {
+
+      // CREATE NEW ORDER FROM SUBSCRIPTION
+
+        await Order.create({
+
+        user: baseOrder?.user ?? null,
+
+        orderType: "subscription",
+        subscriptionId: subscription_id,
+
+        items: baseOrder.items ?? [],
+
+        subtotal: baseOrder.subtotal ?? 0,
+        shippingCost: baseOrder.shippingCost ?? 0,
+        total: baseOrder.total ?? 0,
+
+        billingDetails: baseOrder.billingDetails,
+
+        paymentProvider: "payhere",
+        paymentStatus: "paid",
+        paymentReference: payment_id,
+
+        fulfillmentStatus: "unfulfilled"
+
+        });
+      }
+
+    }
 
     await Subscription.updateOne(
       { subscriptionId: subscription_id },
