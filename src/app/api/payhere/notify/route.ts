@@ -228,6 +228,12 @@ export async function POST(req: Request) {
         {
           paymentStatus: "paid",
           paymentReference: payment_id,
+          ...(subscription_id
+            ? {
+                orderType: "subscription" as const,
+                subscriptionId: subscription_id,
+              }
+            : {}),
         },
         { new: true }
       ).select(
@@ -294,6 +300,12 @@ export async function POST(req: Request) {
         {
           paymentStatus: "paid",
           paymentReference: payment_id,
+          ...(subscription_id
+            ? {
+                orderType: "subscription" as const,
+                subscriptionId: subscription_id,
+              }
+            : {}),
         },
         { new: true }
       ).select(
@@ -376,6 +388,16 @@ export async function POST(req: Request) {
           }).select("_id");
 
           if (existingRecurringOrder) {
+            await Order.updateOne(
+              { _id: existingRecurringOrder._id },
+              {
+                $set: {
+                  orderType: "subscription",
+                  subscriptionId: subscription_id,
+                },
+              }
+            );
+
             await Subscription.updateOne(
               { subscriptionId: subscription_id },
               {
