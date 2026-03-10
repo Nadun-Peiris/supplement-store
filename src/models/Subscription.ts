@@ -1,32 +1,41 @@
-import mongoose, { Schema, Document, models, model } from "mongoose";
+import mongoose, { Schema, model, models } from "mongoose";
 
-export interface ISubscription extends Document {
-  user: mongoose.Types.ObjectId;
-  order: mongoose.Types.ObjectId;
-  lemonSubscriptionId: string;
-  lemonCustomerId: string;
-  status: string;
-  renewsAt?: Date | null;
-  endsAt?: Date | null;
-  cancelledAt?: Date | null;
-}
-
-const SubscriptionSchema = new Schema<ISubscription>(
+const SubscriptionSchema = new Schema(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
-    order: { type: Schema.Types.ObjectId, ref: "Order", required: true },
+    orderId: {
+      type: Schema.Types.ObjectId,
+      ref: "Order",
+      required: true,
+    },
 
-    lemonSubscriptionId: { type: String, required: true, unique: true },
-    lemonCustomerId: { type: String, required: true },
+    subscriptionId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
 
-    status: { type: String, required: true },
+    status: {
+      type: String,
+      enum: ["active", "cancelled", "completed"],
+      default: "active",
+    },
 
-    renewsAt: { type: Date, default: null },
-    endsAt: { type: Date, default: null },
-    cancelledAt: { type: Date, default: null },
+    nextBillingDate: {
+      type: Date,
+    },
+
+    recurrence: {
+      type: String,
+      default: "1 Month",
+    },
+
+    totalInstallmentsPaid: {
+      type: Number,
+      default: 1,
+    },
   },
   { timestamps: true }
 );
 
-export default (models.Subscription as mongoose.Model<ISubscription>) ||
-  model<ISubscription>("Subscription", SubscriptionSchema);
+export default models.Subscription ||
+  model("Subscription", SubscriptionSchema);

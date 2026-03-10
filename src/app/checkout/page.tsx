@@ -67,7 +67,7 @@ export default function CheckoutPage() {
   >("one_time");
 
   const [paymentMethod, setPaymentMethod] = useState<
-    "bank" | "lemon" | "payhere"
+    "bank" | "payhere"
   >("bank");
 
   const [agreeTerms, setAgreeTerms] = useState(false);
@@ -262,6 +262,69 @@ export default function CheckoutPage() {
     payWithPayHere(payHereOrder, hashData.hash);
   };
 
+  async function redirectToPayHereSubscription(
+    orderId: string,
+    totalAmount: number
+  ) {
+    const merchantId = process.env.NEXT_PUBLIC_PAYHERE_MERCHANT_ID;
+
+    if (!merchantId) {
+      throw new Error("Missing NEXT_PUBLIC_PAYHERE_MERCHANT_ID");
+    }
+
+    const res = await fetch("/api/payhere/hash", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orderId,
+        amount: totalAmount,
+        currency: "LKR",
+      }),
+    });
+
+    const { hash } = (await res.json()) as { hash?: string };
+
+    if (!res.ok || !hash) {
+      throw new Error("Failed to generate PayHere hash for subscription");
+    }
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "https://sandbox.payhere.lk/pay/checkout";
+
+    const fields: Record<string, string> = {
+      merchant_id: merchantId,
+      return_url: `${window.location.origin}/checkout/success`,
+      cancel_url: `${window.location.origin}/checkout/cancel`,
+      notify_url: `${window.location.origin}/api/payhere/notify`,
+      order_id: orderId,
+      items: "Supplement Subscription",
+      currency: "LKR",
+      amount: totalAmount.toFixed(2),
+      recurrence: "1 Month",
+      duration: "Forever",
+      first_name: billing.firstName,
+      last_name: billing.lastName,
+      email: billing.email,
+      phone: billing.phone,
+      address: billing.street,
+      city: billing.city,
+      country: "Sri Lanka",
+      hash,
+    };
+
+    Object.entries(fields).forEach(([key, value]) => {
+      const input = document.createElement("input");
+      input.type = "hidden";
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    });
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
   // ---------------------------
   // SUBMIT ORDER
   // ---------------------------
@@ -316,49 +379,16 @@ export default function CheckoutPage() {
     const orderId = data.orderId;
 
     // ---------------------------
-    // ONE-TIME Lemon Payment
-    // ---------------------------
-    if (purchaseType === "one_time" && paymentMethod === "lemon") {
-      const lemonRes = await fetch("/api/payments/lemon/one-time", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId }),
-      });
-
-      const lemonData = await lemonRes.json();
-      if (lemonData.url) {
-        window.location.href = lemonData.url;
-        return;
-      } else {
-        alert("Card payment failed.");
-        return;
-      }
-    }
-
-    // ---------------------------
-    // SUBSCRIPTION Lemon
+    // SUBSCRIPTION PayHere
     // ---------------------------
     if (purchaseType === "subscription") {
-      const lemonRes = await fetch("/api/payments/lemon/subscription", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(await getCartHeaders()),
-        },
-        body: JSON.stringify({
-          orderId,
-          billingDetails: billing,
-        }),
-      });
-
-      const lemonData = await lemonRes.json();
-      if (lemonData.url) {
-        window.location.href = lemonData.url;
-        return;
-      } else {
+      try {
+        await redirectToPayHereSubscription(orderId, total);
+      } catch (error) {
+        console.error("Subscription payment failed:", error);
         alert("Subscription payment failed.");
-        return;
       }
+      return;
     }
 
     // ---------------------------
@@ -587,7 +617,7 @@ export default function CheckoutPage() {
                 checked={purchaseType === "subscription"}
                 onChange={() => {
                   setPurchaseType("subscription");
-                  setPaymentMethod("lemon");
+                  setPaymentMethod("payhere");
                 }}
               />
               Monthly Subscription
@@ -607,15 +637,6 @@ export default function CheckoutPage() {
                     onChange={() => setPaymentMethod("bank")}
                   />
                   Direct Bank Transfer
-                </label>
-
-                <label className="pay-option">
-                  <input
-                    type="radio"
-                    checked={paymentMethod === "lemon"}
-                    onChange={() => setPaymentMethod("lemon")}
-                  />
-                  Pay by Card (Lemon Squeezy)
                 </label>
 
                 <label className="pay-option">

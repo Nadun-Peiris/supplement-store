@@ -7,6 +7,8 @@ export async function POST(req: Request) {
   const merchantId = process.env.PAYHERE_MERCHANT_ID!;
   const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET!;
 
+  const formattedAmount = Number(amount).toFixed(2);
+
   const hashedSecret = CryptoJS.MD5(merchantSecret)
     .toString()
     .toUpperCase();
@@ -14,7 +16,7 @@ export async function POST(req: Request) {
   const hash = CryptoJS.MD5(
     merchantId +
       orderId +
-      amount +
+      formattedAmount +
       currency +
       hashedSecret
   )
