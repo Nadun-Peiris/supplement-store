@@ -301,8 +301,8 @@ export default function CheckoutPage() {
 
     const fields: Record<string, string> = {
       merchant_id: merchantId,
-      return_url: `${window.location.origin}/checkout/success`,
-      cancel_url: `${window.location.origin}/checkout/cancel`,
+      return_url: `${window.location.origin}/checkout/success?orderId=${orderId}`,
+      cancel_url: `${window.location.origin}/checkout`,
       notify_url: `${window.location.origin}/api/payhere/notify`,
       order_id: orderId,
       items: "Supplement Subscription",

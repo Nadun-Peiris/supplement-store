@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
 import User from "@/models/User";
+import Cart from "@/models/Cart";
 import "@/lib/firebaseAdmin";
 import { getAuth } from "firebase-admin/auth";
 
@@ -74,6 +75,9 @@ export async function POST(req: Request) {
           if (user) {
             userObjectId = String(user._id);
             cartOwnerUserId = user.firebaseId;
+          } else if (guestId) {
+            // Fallback to guest cart owner if user record is unavailable
+            cartOwnerGuestId = guestId;
           }
         } catch {
           // Continue as guest if auth token is missing/invalid
@@ -101,6 +105,12 @@ export async function POST(req: Request) {
 
       billingDetails,
     });
+
+    if (cartOwnerUserId) {
+      await Cart.findOneAndDelete({ userId: cartOwnerUserId });
+    } else if (cartOwnerGuestId) {
+      await Cart.findOneAndDelete({ guestId: cartOwnerGuestId });
+    }
 
     return NextResponse.json({
       success: true,

@@ -7,7 +7,7 @@ import "../../register/success/success.css";
 
 interface Order {
   _id: string;
-  status: string;
+  paymentStatus: string;
   orderType: string;
   paymentProvider: string;
   total: number;
@@ -38,7 +38,7 @@ function CheckoutSuccessContent() {
   const params = useSearchParams();
   const orderId = params.get("orderId") || params.get("order");
 
-  const [animationData, setAnimationData] = useState<any>(null);
+  const [animationData, setAnimationData] = useState<object | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -71,28 +71,6 @@ function CheckoutSuccessContent() {
     fetchOrder();
   }, [orderId]);
 
-  // Clear cart ONLY IF Lemon + payment confirmed
-  useEffect(() => {
-    if (!order) return; // ⛔ prevents null access
-
-    const isLemon =
-        order.paymentProvider === "lemon_one_time" ||
-        order.paymentProvider === "lemon_subscription";
-
-    if (isLemon && order.status === "paid") {
-        const guestId = localStorage.getItem("guestId") || "";
-
-        fetch("/api/cart", {
-        method: "DELETE",
-        headers: { "guest-id": guestId },
-        });
-
-        if (typeof window !== "undefined") {
-        localStorage.removeItem("cart");
-        }
-    }
-  }, [order]);
-
   const getMessage = () => {
     if (!order) return "Processing...";
 
@@ -100,18 +78,18 @@ function CheckoutSuccessContent() {
       return "Your order has been placed. Please complete your bank transfer.";
     }
 
-    if (order.paymentProvider === "lemon_one_time") {
-      if (order.status === "paid") {
+    if (order.paymentProvider === "payhere") {
+      if (order.orderType === "subscription") {
+        if (order.paymentStatus === "paid") {
+          return "Your subscription is active! 🎉";
+        }
+        return "Your subscription payment is processing...";
+      }
+
+      if (order.paymentStatus === "paid") {
         return "Your payment was successful! 🎉";
       }
       return "Your card payment is processing...";
-    }
-
-    if (order.paymentProvider === "lemon_subscription") {
-      if (order.status === "paid") {
-        return "Your subscription is active! 🎉";
-      }
-      return "Your subscription payment is processing...";
     }
 
     return "Thank you for your purchase!";
@@ -136,9 +114,9 @@ function CheckoutSuccessContent() {
 
         {!loading && order && (
           <p className="success-sub">
-            Status:{" "}
+            Payment status:{" "}
             <strong style={{ textTransform: "capitalize" }}>
-              {order.status}
+              {order.paymentStatus}
             </strong>
           </p>
         )}

@@ -4,6 +4,7 @@ import type { IOrder } from "@/models/Order";
 import Subscription from "@/models/Subscription";
 import Cart from "@/models/Cart";
 import User from "@/models/User";
+import Product from "@/models/Product";
 import { NextResponse } from "next/server";
 import CryptoJS from "crypto-js";
 
@@ -65,6 +66,11 @@ export async function POST(req: Request) {
       : undefined;
 
   type OrderForNotify = Pick<IOrder, "user" | "items"> & {
+    _id?: string;
+    subtotal?: number;
+    shippingCost?: number;
+    total?: number;
+    billingDetails?: IOrder["billingDetails"];
     cartOwnerUserId?: string | null;
     cartOwnerGuestId?: string | null;
   };
@@ -95,24 +101,76 @@ export async function POST(req: Request) {
     }
   };
 
+  const decrementStockForItems = async (
+    items:
+      | {
+          product: IOrder["items"][number]["product"];
+          quantity: number;
+        }[]
+      | undefined
+  ) => {
+    if (!items?.length) return;
+
+    const stockAdjustments = new Map<string, number>();
+
+    for (const item of items) {
+      const productId = String(item.product);
+      const qty = Math.max(0, Number(item.quantity) || 0);
+      if (!productId || qty <= 0) continue;
+      stockAdjustments.set(
+        productId,
+        (stockAdjustments.get(productId) ?? 0) + qty
+      );
+    }
+
+    if (stockAdjustments.size === 0) return;
+
+    const operations = Array.from(stockAdjustments.entries()).map(
+      ([productId, qty]) => ({
+        updateOne: {
+          filter: { _id: productId, stock: { $gte: qty } },
+          update: { $inc: { stock: -qty } },
+        },
+      })
+    );
+
+    const result = await Product.bulkWrite(operations, { ordered: false });
+    const matched = result.matchedCount ?? 0;
+
+    if (matched < operations.length) {
+      console.warn("Stock update partially applied", {
+        expected: operations.length,
+        matched,
+        orderId: order_id,
+      });
+    }
+  };
+
   // -------------------------
   // FIRST PAYMENT SUCCESS
   // -------------------------
 
   if (message_type === "AUTHORIZATION_SUCCESS") {
 
-    const updatedOrder = (await Order.findByIdAndUpdate(
-      order_id,
+    const updatedOrder = (await Order.findOneAndUpdate(
+      { _id: order_id, paymentStatus: { $ne: "paid" } },
       {
         paymentStatus: "paid",
         paymentReference: payment_id,
       },
       { new: true }
-    ).select("user items cartOwnerUserId cartOwnerGuestId")) as
+    ).select(
+      "user items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId"
+    )) as
       | OrderForNotify
       | null;
 
-    await clearCartForOrder(updatedOrder ?? orderDoc);
+    if (updatedOrder) {
+      await decrementStockForItems(updatedOrder.items);
+      await clearCartForOrder(updatedOrder);
+    } else {
+      await clearCartForOrder(orderDoc);
+    }
 
     if (subscription_id) {
       const existing = await Subscription.findOne({
@@ -147,18 +205,25 @@ export async function POST(req: Request) {
 
   // Non-subscription one-time payment success fallback
   if (!message_type && status_code === "2") {
-    const updatedOrder = (await Order.findByIdAndUpdate(
-      order_id,
+    const updatedOrder = (await Order.findOneAndUpdate(
+      { _id: order_id, paymentStatus: { $ne: "paid" } },
       {
         paymentStatus: "paid",
         paymentReference: payment_id,
       },
       { new: true }
-    ).select("user items cartOwnerUserId cartOwnerGuestId")) as
+    ).select(
+      "user items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId"
+    )) as
       | OrderForNotify
       | null;
 
-    await clearCartForOrder(updatedOrder ?? orderDoc);
+    if (updatedOrder) {
+      await decrementStockForItems(updatedOrder.items);
+      await clearCartForOrder(updatedOrder);
+    } else {
+      await clearCartForOrder(orderDoc);
+    }
   }
 
   // -------------------------
@@ -188,10 +253,28 @@ export async function POST(req: Request) {
       if (!baseOrder.billingDetails) {
         console.warn("Recurring order skipped: missing base order billingDetails");
       } else {
+        const existingRecurringOrder = await Order.findOne({
+          orderType: "subscription",
+          subscriptionId: subscription_id,
+          paymentReference: payment_id,
+        }).select("_id");
+
+        if (existingRecurringOrder) {
+          await Subscription.updateOne(
+            { subscriptionId: subscription_id },
+            {
+              status: "active",
+              nextBillingDate: parsedNextBillingDate,
+              totalInstallmentsPaid: parsedInstallmentsPaid,
+            }
+          );
+
+          return NextResponse.json({ success: true });
+        }
 
       // CREATE NEW ORDER FROM SUBSCRIPTION
 
-        await Order.create({
+        const recurringOrder = await Order.create({
 
         user: baseOrder?.user ?? null,
 
@@ -213,6 +296,8 @@ export async function POST(req: Request) {
         fulfillmentStatus: "unfulfilled"
 
         });
+
+        await decrementStockForItems(recurringOrder.items);
       }
 
     }
