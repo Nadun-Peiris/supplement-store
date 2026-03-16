@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import ProductCard from "./ProductCard";
 import { FaArrowRight } from "react-icons/fa";
-import "./styles/productCarousel.css";
 import type { ProductDTO } from "@/types/product";
 
 const toSlug = (value: string) =>
@@ -53,25 +52,26 @@ export default function ProductCarousel({ category }: { category: string }) {
     load();
   }, [categorySlug]);
 
-  /* --------------------- LOADING --------------------- */
+  /* --------------------- LOADING SKELETON --------------------- */
   if (loading)
     return (
-      <section className="carousel-section">
-        <div className="carousel-header">
-          <h2>{category.toUpperCase()}</h2>
-          <div className="skeleton-button shimmer" />
+      <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-16">
+        <div className="mb-6 flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
+          <h2 className="text-[2rem] font-bold text-[#111] md:text-[2.4rem] xl:text-[4rem]">
+            {category.toUpperCase()}
+          </h2>
+          <div className="h-10 w-[100px] animate-pulse rounded-full bg-neutral-200 md:w-[120px]" />
         </div>
 
-        <div className="carousel-container">
-          <div className="skeleton-track">
+        <div className="relative mx-auto">
+          <div className="grid grid-flow-col auto-cols-[85%] gap-6 overflow-hidden md:auto-cols-[70%] xl:auto-cols-[calc(25%-1.125rem)] pointer-events-none">
             {[1, 2, 3, 4].map((i) => (
-              <div className="skeleton-card" key={i}>
-                <div className="skeleton-image shimmer"></div>
-
-                <div className="skeleton-info">
-                  <div className="skeleton-line long shimmer" />
-                  <div className="skeleton-line medium shimmer" />
-                  <div className="skeleton-line short shimmer" />
+              <div className="flex w-full flex-col gap-3" key={i}>
+                <div className="aspect-[3/4] w-full animate-pulse rounded-[12px] bg-neutral-200" />
+                <div className="flex flex-col items-center gap-2 px-2">
+                  <div className="h-[14px] w-[80%] animate-pulse rounded-[6px] bg-neutral-200" />
+                  <div className="h-[14px] w-[60%] animate-pulse rounded-[6px] bg-neutral-200" />
+                  <div className="h-[14px] w-[40%] animate-pulse rounded-[6px] bg-neutral-200" />
                 </div>
               </div>
             ))}
@@ -83,35 +83,43 @@ export default function ProductCarousel({ category }: { category: string }) {
   /* --------------------- EMPTY --------------------- */
   if (!products.length)
     return (
-      <section className="carousel-section">
-        <h2>{category.toUpperCase()}</h2>
-        <p className="carousel-empty">No products found.</p>
+      <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-16">
+        <h2 className="text-[2rem] font-bold text-[#111] md:text-[2.4rem] xl:text-[4rem]">
+          {category.toUpperCase()}
+        </h2>
+        <p className="mt-4 text-neutral-500">No products found.</p>
       </section>
     );
 
   /* --------------------- LOADED --------------------- */
   return (
-    <section className="carousel-section fade-in">
-      <div className="carousel-header">
-        <h2>{category.toUpperCase()}</h2>
+    <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-16">
+      <div className="mb-6 flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
+        <h2 className="text-[2rem] font-bold text-[#111] md:text-[2.4rem] xl:text-[4rem] leading-none">
+          {category.toUpperCase()}
+        </h2>
 
-        <Link href={viewAllHref} className="view-all">
-          View All <FaArrowRight className="arrow-icon" />
+        <Link
+          href={viewAllHref}
+          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#525252] bg-[#262626] px-5 text-[0.9rem] font-semibold text-white no-underline transition-all duration-300 ease-in-out hover:border-[#15d1f5] hover:bg-[#111] hover:text-white md:w-auto"
+        >
+          View All <FaArrowRight />
         </Link>
       </div>
 
-      <div className="carousel-container">
-        <div className="carousel-track">
+      <div className="relative mx-auto">
+        <div className="grid grid-flow-col auto-cols-[85%] gap-6 overflow-x-auto scroll-smooth pr-6 md:pr-2 snap-x snap-proximity md:auto-cols-[70%] xl:auto-cols-[calc(25%-1.125rem)] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {products.map((p) => (
-            <ProductCard
-              key={p._id}
-              id={p._id}
-              name={p.name}
-              category={p.category}
-              price={p.price}
-              image={p.image}
-              slug={p.slug ?? p._id}
-            />
+            <div key={p._id} className="snap-center">
+              <ProductCard
+                id={p._id}
+                name={p.name}
+                category={p.category}
+                price={p.price}
+                image={p.image}
+                slug={p.slug ?? p._id}
+              />
+            </div>
           ))}
         </div>
       </div>

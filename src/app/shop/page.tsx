@@ -1,48 +1,34 @@
 import ShopPage from "./[category]/ShopPage";
-import { connectDB } from "@/lib/mongoose";
-import Product from "@/models/Product";
-import { normalizeProduct } from "@/lib/products";
+import { getFilteredProducts } from "@/lib/products";
 import { buildBrandFilter, combineFilters, parseListParam } from "@/lib/productFilters";
-import type { ProductDTO } from "@/types/product";
 
 export const dynamic = "force-dynamic";
 
-type LeanProduct = Parameters<typeof normalizeProduct>[0];
-
 type ShopIndexPageProps = {
-  searchParams: Promise<{ brand?: string | string[] }>;
+  searchParams: Promise<{ brand?: string | string[]; search?: string | string[] }>;
 };
 
 export default async function ShopIndexPage({ searchParams }: ShopIndexPageProps) {
-  const { brand } = await searchParams;
+  const { brand, search } = await searchParams;
   const brandFilters = parseListParam(brand ?? null);
+  const searchTerm = Array.isArray(search) ? search[0] ?? "" : search ?? "";
   const filter = combineFilters(buildBrandFilter(brandFilters));
-
-  await connectDB();
-
-  const page = 1;
-  const limit = 9;
-
-  const [totalProducts, products] = await Promise.all([
-    Product.countDocuments(filter),
-    Product.find(filter)
-      .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean<LeanProduct[]>(),
-  ]);
-
-  const totalPages = totalProducts ? Math.ceil(totalProducts / limit) : 0;
-  const plainProducts: ProductDTO[] = products.map(normalizeProduct);
+  const data = await getFilteredProducts(filter, {
+    search: searchTerm,
+    page: 1,
+    limit: 9,
+    sort: "default",
+  });
 
   return (
     <ShopPage
       categorySlug=""
       initialBrandFilters={brandFilters}
-      initialProducts={plainProducts}
-      initialPage={totalProducts ? Math.min(page, totalPages || 1) : 1}
-      initialTotalPages={totalPages}
-      initialTotalProducts={totalProducts}
+      initialSearchTerm={searchTerm}
+      initialProducts={data.products}
+      initialPage={data.currentPage ?? 1}
+      initialTotalPages={data.totalPages ?? 1}
+      initialTotalProducts={data.totalProducts ?? 0}
     />
   );
 }

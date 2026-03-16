@@ -4,8 +4,16 @@ import { isValidObjectId, type FilterQuery, Types } from "mongoose";
 import type { ProductDTO } from "@/types/product";
 import type { ProductDocument } from "@/models/Product";
 import { normalizeSlug } from "./productFilters";
+import { getProductSearchScore, normalizeSearchTerm } from "./productSearch";
 
 type LeanProduct = ProductDocument & { _id: Types.ObjectId };
+type ProductSortOption =
+  | "default"
+  | "price-asc"
+  | "price-desc"
+  | "name-asc"
+  | "name-desc"
+  | "newest";
 
 export const normalizeProduct = (product: LeanProduct): ProductDTO => ({
   _id: product._id.toString(),
@@ -47,4 +55,121 @@ export const getProducts = async (
     .lean<LeanProduct[]>();
 
   return products.map(normalizeProduct);
+};
+
+const getSortQuery = (sort: ProductSortOption) => {
+  switch (sort) {
+    case "price-asc":
+      return { price: 1 as const };
+    case "price-desc":
+      return { price: -1 as const };
+    case "name-asc":
+      return { name: 1 as const };
+    case "name-desc":
+      return { name: -1 as const };
+    case "newest":
+    case "default":
+    default:
+      return { createdAt: -1 as const };
+  }
+};
+
+const sortNormalizedProducts = (
+  products: ProductDTO[],
+  sort: ProductSortOption
+) => {
+  const sorted = [...products];
+
+  switch (sort) {
+    case "price-asc":
+      sorted.sort((left, right) => left.price - right.price);
+      break;
+    case "price-desc":
+      sorted.sort((left, right) => right.price - left.price);
+      break;
+    case "name-asc":
+      sorted.sort((left, right) => left.name.localeCompare(right.name));
+      break;
+    case "name-desc":
+      sorted.sort((left, right) => right.name.localeCompare(left.name));
+      break;
+    case "newest":
+    case "default":
+    default:
+      break;
+  }
+
+  return sorted;
+};
+
+export const getFilteredProducts = async (
+  query: FilterQuery<ProductDocument> = {},
+  {
+    search,
+    page = 1,
+    limit = 9,
+    sort = "default",
+  }: {
+    search?: string;
+    page?: number;
+    limit?: number;
+    sort?: ProductSortOption;
+  } = {}
+) => {
+  await connectDB();
+
+  const safePage = Math.max(page, 1);
+  const safeLimit = Math.min(Math.max(limit, 1), 60);
+  const normalizedSearch = normalizeSearchTerm(search);
+
+  if (!normalizedSearch) {
+    const [totalProducts, products] = await Promise.all([
+      Product.countDocuments(query),
+      Product.find(query)
+        .sort(getSortQuery(sort))
+        .skip((safePage - 1) * safeLimit)
+        .limit(safeLimit)
+        .lean<LeanProduct[]>(),
+    ]);
+
+    const totalPages = totalProducts ? Math.ceil(totalProducts / safeLimit) : 0;
+
+    return {
+      products: products.map(normalizeProduct),
+      totalProducts,
+      totalPages,
+      currentPage: totalProducts ? Math.min(safePage, totalPages || 1) : 1,
+    };
+  }
+
+  const candidates = await Product.find(query)
+    .sort({ createdAt: -1 })
+    .lean<LeanProduct[]>();
+
+  const ranked = candidates
+    .map((product) => ({
+      product: normalizeProduct(product),
+      score: getProductSearchScore(product, normalizedSearch),
+    }))
+    .filter((entry) => entry.score > 0);
+
+  const sorted = [...ranked].sort((left, right) => right.score - left.score);
+  const normalizedProducts = sort === "default"
+    ? sorted.map((entry) => entry.product)
+    : sortNormalizedProducts(
+        sorted.map((entry) => entry.product),
+        sort
+      );
+
+  const totalProducts = normalizedProducts.length;
+  const totalPages = totalProducts ? Math.ceil(totalProducts / safeLimit) : 0;
+  const start = (safePage - 1) * safeLimit;
+  const pagedProducts = normalizedProducts.slice(start, start + safeLimit);
+
+  return {
+    products: pagedProducts,
+    totalProducts,
+    totalPages,
+    currentPage: totalProducts ? Math.min(safePage, totalPages || 1) : 1,
+  };
 };

@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Oswald, Roboto } from "next/font/google";
 import "./globals.css";
-import Header from "@/components/Header";
+import TopHeader from "@/components/TopHeader";
+import BottomHeader from "@/components/BottomHeader";
 import Footer from "@/components/Footer";
 import { Toaster } from "react-hot-toast";
 import { CartProvider } from "@/context/CartContext";
@@ -26,27 +27,32 @@ export const metadata: Metadata = {
   description: "Your trusted source for fitness supplements in Sri Lanka",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" className={`${oswald.variable} ${roboto.variable}`} suppressHydrationWarning>
-      <body>
+      <body className="font-body bg-black text-white antialiased">
         <AuthProvider>
           <CartProvider>
-            <ChatWrapper>
-              <Toaster position="top-center" />
+            <Toaster position="top-center" />
+            
+            <header className="w-full bg-black">
+              <TopHeader />
+              <BottomHeader />
+            </header>
 
-              <Header />
-              <main style={{ minHeight: "70vh" }}>{children}</main>
-              <Footer />
-            </ChatWrapper>
+            <main className="min-h-[70vh] flex flex-col">
+              {children}
+            </main>
+
+            <Footer />
+            <ChatWrapper />
           </CartProvider>
         </AuthProvider>
       </body>
     </html>
   );
 }
-
-/* 
-  We separate chat into a client-only wrapper 
-  so RootLayout stays server component compliant.
-*/

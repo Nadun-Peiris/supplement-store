@@ -18,6 +18,7 @@ type BrandResponse = { _id?: string; slug?: string | null; name?: string | null 
 type ShopPageProps = {
   categorySlug: string;
   initialBrandFilters?: string[];
+  initialSearchTerm?: string;
   initialProducts: ProductDTO[];
   initialPage: number;
   initialTotalPages: number;
@@ -70,6 +71,7 @@ const clampPriceValue = (value: number) =>
 export default function ShopPage({
   categorySlug,
   initialBrandFilters = [],
+  initialSearchTerm = "",
   initialProducts,
   initialPage,
   initialTotalPages,
@@ -92,6 +94,7 @@ export default function ShopPage({
     useState<string[]>(initialCategoryFilter);
   const [selectedBrands, setSelectedBrands] =
     useState<string[]>(initialBrandFilters.map(slugifyText));
+  const [searchTerm] = useState(initialSearchTerm.trim());
 
   const [priceInput, setPriceInput] = useState(() => ({
     min: 0,
@@ -210,6 +213,9 @@ export default function ShopPage({
         params.set("max", String(priceRange.max));
         params.set("page", String(currentPage));
         params.set("limit", String(PRODUCTS_PER_PAGE));
+        if (searchTerm) {
+          params.set("search", searchTerm);
+        }
 
         if (sortOption !== "default") {
           params.set("sort", sortOption);
@@ -268,6 +274,7 @@ export default function ShopPage({
     selectedBrands,
     priceRange.min,
     priceRange.max,
+    searchTerm,
     sortOption,
     currentPage,
   ]);
@@ -411,6 +418,7 @@ export default function ShopPage({
               ) : (
                 <span>
                   Showing {products.length} of {totalProducts} products
+                  {searchTerm ? ` for "${searchTerm}"` : ""}
                 </span>
               )}
 

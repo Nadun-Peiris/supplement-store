@@ -70,17 +70,6 @@ textarea {
   font: inherit;
 }
 
-/* Accent link/button utility */
-a {
-  color: var(--accent);
-  text-decoration: none;
-  transition: color 0.2s ease;
-}
-
-a:hover {
-  color: var(--accent-hover);
-}
-
 /* Optional global border style */
 hr,
 .divider {

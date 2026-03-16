@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import "./styles/categoryCarousel.css";
 
 interface Category {
   _id: string;
@@ -82,51 +81,74 @@ export default function CategoryCarousel() {
 
   // Skeleton loader
   const renderSkeleton = () => (
-    <div className="category-skeleton-row">
+    <div className="flex overflow-hidden px-6 pt-8 md:px-16 gap-5 md:gap-8">
       {Array.from({ length: 8 }).map((_, i) => (
-        <div className="category-skeleton" key={i}>
-          <div className="category-visual">
-            <span className="circle-bg skeleton" aria-hidden="true" />
+        <div className="flex flex-col items-center flex-none" key={i}>
+          <div className="relative flex items-center justify-center w-[136px] h-[136px] md:w-[156px] md:h-[156px]">
+            <span
+              className="absolute top-1/2 left-1/2 w-[120px] h-[120px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-neutral-100 animate-pulse md:w-[140px] md:h-[140px]"
+              aria-hidden="true"
+            />
           </div>
-          <div className="skeleton-label" />
+          <div className="mt-4 h-[14px] w-[120px] rounded-full bg-neutral-200 animate-pulse" />
         </div>
       ))}
     </div>
   );
 
   return (
-    <section className="category-section">
-      <h2 className="category-title">
-        <span className="shopby">SHOP BY</span> CATEGORY
+    <section className="w-full bg-white py-10 md:py-16">
+      <h2 className="ml-6 text-left text-[2.5rem] font-bold text-black md:ml-16 md:text-[4rem] leading-tight">
+        <span className="text-[#03c7fe]">SHOP BY</span> CATEGORY
       </h2>
 
       {loading && renderSkeleton()}
-      {!loading && error && <p className="category-message error">{error}</p>}
+      
+      {!loading && error && (
+        <p className="px-6 pt-8 text-base font-medium text-red-600 md:px-16">
+          {error}
+        </p>
+      )}
+      
       {!loading && !error && categories.length === 0 && (
-        <p className="category-message">No categories available.</p>
+        <p className="px-6 pt-8 text-base font-medium text-gray-700 md:px-16">
+          No categories available.
+        </p>
       )}
 
       {!loading && !error && categories.length > 0 && (
-        <div className="category-carousel-wrapper">
-          <div className="category-carousel" ref={carouselRef}>
+        <div className="m-0 w-full px-6 md:px-16">
+          <div
+            className="flex w-full snap-x snap-mandatory touch-pan-x gap-5 overflow-x-auto pt-8 scrollbar-none md:gap-8 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+            ref={carouselRef}
+          >
             {categories.map((cat) => (
               <Link
                 href={`/shop/${cat.slug}`}
                 key={cat._id}
-                className="category-item"
+                className="group flex flex-none snap-center flex-col items-center min-w-[150px] text-black md:min-w-[170px]"
               >
-                <div className="category-visual">
-                  <span className="circle-bg" aria-hidden="true" />
+                {/* Visual Container */}
+                <div className="relative flex items-center justify-center w-[136px] h-[136px] md:w-[156px] md:h-[156px]">
+                  {/* Circle Background */}
+                  <span
+                    className="pointer-events-none absolute top-1/2 left-1/2 w-[120px] h-[120px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#f3f3f3] transition-colors duration-300 ease-in-out group-hover:bg-[#03c7fe] md:w-[140px] md:h-[140px]"
+                    aria-hidden="true"
+                  />
+                  {/* Category Image */}
                   <Image
                     src={cat.image}
                     alt={cat.name}
-                    width={140}
-                    height={140}
-                    className="category-img"
+                    width={150}
+                    height={150}
+                    className="relative z-10 w-[120px] h-[120px] object-contain transition-transform duration-300 ease-in-out group-hover:scale-110 md:w-[150px] md:h-[150px]"
                   />
                 </div>
 
-                <p className="cat-name">{cat.name}</p>
+                {/* Category Name */}
+                <p className="mt-4 text-base font-bold tracking-[0.4px] md:mt-5 md:text-[1.2rem]">
+                  {cat.name}
+                </p>
               </Link>
             ))}
           </div>

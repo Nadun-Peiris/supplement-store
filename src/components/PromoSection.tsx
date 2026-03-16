@@ -1,9 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { absoluteUrl } from "@/lib/absoluteUrl";
-import "./styles/promoSection.css";
 
 interface FeaturedCategory {
   _id: string;
@@ -74,8 +74,8 @@ export default function PromoSection() {
 
   if (!loading && featured.length === 0) {
     return (
-      <section className="promo-section">
-        <p className="promo-message">
+      <section className="w-full py-12">
+        <p className="px-6 py-8 text-center text-[#b3b3b3]">
           Featured categories will appear here once they are selected.
         </p>
       </section>
@@ -83,13 +83,14 @@ export default function PromoSection() {
   }
 
   return (
-    <section className="promo-section">
-      <div className="promo-carousel">
+    <section className="w-full py-12 max-sm:py-10">
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-8 overflow-visible px-8 max-[900px]:flex max-[900px]:justify-start max-[900px]:snap-x max-[900px]:snap-mandatory max-[900px]:overflow-x-auto max-[900px]:scroll-p-6 max-sm:gap-5 max-sm:px-4 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {loading &&
           skeletons.map((_, idx) => (
-            <div className="promo-card promo-skeleton" key={`promo-skel-${idx}`}>
-              <span className="promo-skeleton-bg" />
-            </div>
+            <div
+              key={`promo-skel-${idx}`}
+              className="relative h-[380px] w-full max-w-[560px] flex-none animate-pulse overflow-hidden rounded-[22px] bg-gradient-to-br from-[#0f0f0f] to-[#1a1a1a] max-[900px]:w-[420px] max-[900px]:max-w-none max-sm:h-[320px] max-sm:w-[calc(100%-2rem)] max-sm:rounded-[20px]"
+            />
           ))}
 
         {!loading &&
@@ -103,43 +104,68 @@ export default function PromoSection() {
               fallbackProducts[0];
 
             return (
-              <a
+              <Link
                 key={promo._id}
                 href={`/shop/${promo.category.slug}`}
-                className="promo-card"
+                className="group relative block h-[380px] w-full max-w-[560px] flex-none snap-center overflow-hidden rounded-[22px] bg-black text-white shadow-[0_25px_70px_rgba(0,0,0,0.45)] no-underline max-[900px]:w-[420px] max-[900px]:max-w-none max-sm:h-[320px] max-sm:w-[calc(100%-2rem)] max-sm:rounded-[20px]"
               >
-                <span className="promo-glow" aria-hidden="true" />
+                {/* GLOW */}
+                <span
+                  className="absolute -inset-[40%] z-[1] bg-[radial-gradient(ellipse_at_20%_30%,rgba(3,199,254,0.28),transparent_50%)] blur-[12px]"
+                  aria-hidden="true"
+                />
 
                 {/* BG */}
-                <Image fill src={bg} alt={promo.category.name} className="promo-bg" />
-                <span className="promo-overlay" aria-hidden="true" />
+                <Image
+                  fill
+                  src={bg}
+                  alt={promo.category.name}
+                  className="absolute inset-0 z-[1] object-cover"
+                />
+                
+                {/* OVERLAY */}
+                <span
+                  className="absolute inset-0 z-[2] bg-gradient-to-br from-black/70 to-black/20"
+                  aria-hidden="true"
+                />
 
                 {/* TEXT */}
-                <div className="promo-content">
-                  <div className="promo-meta">
-                    <span className="promo-rank">TOP {i + 1}</span>
-                    <span className="promo-pill">FEATURED</span>
+                <div className="absolute left-8 right-8 top-8 z-[6] max-sm:left-6 max-sm:right-6 max-sm:top-6">
+                  <div className="mb-3 flex items-center gap-2.5">
+                    <span className="rounded-full border border-white/20 bg-white/12 px-[0.7rem] py-[0.2rem] text-[0.8rem] font-bold tracking-[0.04em]">
+                      TOP {i + 1}
+                    </span>
+                    <span className="rounded-full border border-[#09e1ff] bg-[#03c7fe] px-[0.7rem] py-[0.2rem] text-[0.8rem] font-bold tracking-[0.04em] text-[#031821] shadow-[0_0_20px_rgba(3,199,254,0.35)]">
+                      FEATURED
+                    </span>
                   </div>
-                  <h2>{promo.category.name}</h2>
-                  <p className="promo-subtitle">Bestsellers and new drops curated for you.</p>
+                  <h2 className="text-[2.7rem] font-extrabold leading-[1.15] max-[900px]:text-[2.2rem] max-sm:max-w-[10ch] max-sm:text-[1.8rem]">
+                    {promo.category.name}
+                  </h2>
+                  <p className="mt-2 max-w-[32ch] leading-[1.45] text-white/75 max-sm:max-w-[24ch]">
+                    Bestsellers and new drops curated for you.
+                  </p>
                 </div>
 
                 {/* PRODUCT */}
-                <div className="promo-product-wrapper">
+                <div className="absolute bottom-12 right-0 z-[8] max-sm:-right-5 max-sm:bottom-[5.5rem] max-sm:origin-bottom-right max-sm:scale-[0.85]">
                   <Image
                     src={product}
                     alt={promo.category.name}
                     width={304}
                     height={226}
-                    className="promo-product"
+                    className="transition-transform duration-400 ease-in-out group-hover:scale-[1.18]"
                   />
                 </div>
 
-                <button className="promo-btn">
+                {/* BUTTON */}
+                <button className="group/btn absolute bottom-[1.6rem] left-8 z-10 inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#525252] bg-[#262626] px-[1.6rem] py-[0.7rem] text-[0.95rem] font-semibold text-white transition-all duration-300 hover:border-[#03c7fe] hover:bg-[#111] hover:text-white hover:shadow-[0_12px_30px_rgba(3,199,254,0.18)] active:scale-95 max-sm:bottom-4 max-sm:left-6 max-sm:px-[1.4rem] max-sm:py-[0.65rem] max-sm:text-[0.85rem]">
                   Shop Now
-                  <span className="promo-arrow">→</span>
+                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#525252] transition-all duration-250 ease-in-out group-hover/btn:translate-x-1 group-hover/btn:border-[#03c7fe] group-hover/btn:bg-[#0a2831]">
+                    →
+                  </span>
                 </button>
-              </a>
+              </Link>
             );
           })}
       </div>
