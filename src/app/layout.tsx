@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Oswald, Roboto } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import TopHeader from "@/components/TopHeader";
 import BottomHeader from "@/components/BottomHeader";
@@ -41,7 +42,9 @@ export default function RootLayout({
             
             <header className="w-full bg-black">
               <TopHeader />
-              <BottomHeader />
+              <Suspense fallback={<div className="h-[88px] w-full rounded-t-[36px] bg-white" />}>
+                <BottomHeader />
+              </Suspense>
             </header>
 
             <main className="min-h-[70vh] flex flex-col">
