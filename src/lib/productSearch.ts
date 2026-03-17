@@ -2,7 +2,7 @@ type SearchableProduct = {
   name?: string;
   category?: string;
   brandName?: string;
-  description?: string;
+  description?: string | null;
 };
 
 const normalizeText = (value: string) =>

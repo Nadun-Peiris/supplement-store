@@ -1,6 +1,6 @@
 import Product from "@/models/Product";
 import { connectDB } from "./mongoose";
-import { isValidObjectId, type FilterQuery, Types } from "mongoose";
+import { isValidObjectId, type FilterQuery, type SortOrder, Types } from "mongoose";
 import type { ProductDTO } from "@/types/product";
 import type { ProductDocument } from "@/models/Product";
 import { normalizeSlug } from "./productFilters";
@@ -57,7 +57,9 @@ export const getProducts = async (
   return products.map(normalizeProduct);
 };
 
-const getSortQuery = (sort: ProductSortOption) => {
+const getSortQuery = (
+  sort: ProductSortOption
+): Record<string, SortOrder | { $meta: unknown }> => {
   switch (sort) {
     case "price-asc":
       return { price: 1 as const };

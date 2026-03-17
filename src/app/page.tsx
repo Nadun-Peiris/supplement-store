@@ -6,14 +6,9 @@ import PromoSection from "@/components/PromoSection";
 import FeaturesSection from "@/components/FeaturesSection";
 
 export default function HomePage() {
-  const slides = [
-    { src: "/banners/banner1.png", alt: "Hero 1" },
-    { src: "/banners/banner2.png", alt: "Hero 2" },
-  ];
-
   return (
     <main>
-      <HeroSlider className="pt-4 md:pt-5" slides={slides} autoPlayMs={5000} />
+      <HeroSlider className="pt-4 md:pt-5" autoPlayMs={5000} />
 
       <CategoryCarousel />
 
@@ -23,7 +18,7 @@ export default function HomePage() {
 
       <BrandLogoSlider />
 
-      <HeroSlider slides={slides} autoPlayMs={5000} />
+      <HeroSlider autoPlayMs={5000} />
 
       <ProductCarousel category="Protein" />
 
