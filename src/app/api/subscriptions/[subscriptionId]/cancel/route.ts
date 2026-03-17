@@ -4,6 +4,9 @@ import Subscription from "@/models/Subscription";
 import { getAuth } from "firebase-admin/auth";
 import "@/lib/firebaseAdmin";
 
+const isTruthy = (value: string | undefined) =>
+  value === "true" || value === "1" || value === "yes";
+
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ subscriptionId: string }> }
@@ -32,17 +35,32 @@ export async function POST(
     }
 
     // --- PAYHERE EXTERNAL API CALL ---
-    
-    // 3. Get Access Token from PayHere
-    // PayHere requires a Base64 encoded string of AppID:AppSecret
+
+    // Subscription management uses PayHere OAuth app credentials, not merchant hash credentials.
     const appId = process.env.PAYHERE_APP_ID;
     const appSecret = process.env.PAYHERE_APP_SECRET;
+    const useSandbox = isTruthy(process.env.PAYHERE_SANDBOX);
+
+    if (!appId || !appSecret) {
+      console.error("Missing PayHere OAuth credentials for subscription cancel API");
+      return NextResponse.json(
+        {
+          error:
+            "Server is missing PAYHERE_APP_ID and PAYHERE_APP_SECRET required for PayHere subscription cancellation.",
+        },
+        { status: 500 }
+      );
+    }
+
+    const payHereBaseUrl = useSandbox
+      ? "https://sandbox.payhere.lk"
+      : "https://www.payhere.lk";
     const base64Auth = Buffer.from(`${appId}:${appSecret}`).toString("base64");
 
-    const tokenRes = await fetch("https://sandbox.payhere.lk/merchant/v1/oauth/token", {
+    const tokenRes = await fetch(`${payHereBaseUrl}/merchant/v1/oauth/token`, {
       method: "POST",
       headers: {
-        "Authorization": `Basic ${base64Auth}`,
+        Authorization: `Basic ${base64Auth}`,
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: "grant_type=client_credentials",
@@ -52,20 +70,20 @@ export async function POST(
     const accessToken = tokenData.access_token;
 
     if (!accessToken) {
-      throw new Error("Failed to retrieve PayHere access token");
+      throw new Error(
+        `Failed to retrieve PayHere access token: ${tokenData?.msg ?? tokenData?.error ?? tokenRes.statusText}`
+      );
     }
 
     // 4. Tell PayHere to Stop the Subscription
-    // Note: Use 'https://www.payhere.lk/...' for production
-    const cancelRes = await fetch("https://sandbox.payhere.lk/merchant/v1/subscription/retry", {
+    const cancelRes = await fetch(`${payHereBaseUrl}/merchant/v1/subscription/cancel`, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${accessToken}`,
+        Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         subscription_id: subscription.subscriptionId,
-        type: "CANCEL" // This tells PayHere to deactivate the recurring token
       }),
     });
 
