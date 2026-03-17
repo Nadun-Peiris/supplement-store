@@ -86,7 +86,7 @@ export default function ProductCard({
 
       {/* ADD TO CART BUTTON */}
       <button
-        className="absolute -bottom-[70px] left-0 w-full rounded-b-[24px] border-none bg-[#15D1F5] p-[0.8rem] text-center text-[0.9rem] font-bold text-white opacity-0 transition-all duration-300 ease-in-out group-hover:bottom-0 group-hover:opacity-100 max-sm:static max-sm:my-4 max-sm:mx-5 max-sm:w-[calc(100%-2.5rem)] max-sm:rounded-[16px] max-sm:opacity-100"
+        className="absolute -bottom-[70px] left-0 w-full rounded-b-[24px] border-none bg-[#15D1F5] p-[0.8rem] text-center text-[0.9rem] font-black text-white opacity-0 transition-all duration-300 ease-in-out group-hover:bottom-0 group-hover:opacity-100 max-sm:static max-sm:my-4 max-sm:mx-5 max-sm:w-[calc(100%-2.5rem)] max-sm:rounded-[16px] max-sm:opacity-100"
         onClick={handleAddToCart}
       >
         ADD TO CART
