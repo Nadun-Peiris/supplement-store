@@ -33,7 +33,7 @@ export async function GET(
     if (order.orderType === "subscription" && !subscriptionId) {
       const subscription = await Subscription.findOne({ orderId: order._id })
         .select("subscriptionId")
-        .lean();
+        .lean<{ subscriptionId?: string | null } | null>();
 
       subscriptionId = subscription?.subscriptionId ?? null;
     }

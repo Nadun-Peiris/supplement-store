@@ -1,15 +1,16 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Subscription from "@/models/Subscription";
 import { getAuth } from "firebase-admin/auth";
 import "@/lib/firebaseAdmin";
 
 export async function POST(
-  req: Request,
-  { params }: { params: { SubscriptionId: string } }
+  req: NextRequest,
+  { params }: { params: Promise<{ subscriptionId: string }> }
 ) {
   try {
     await connectDB();
+    const { subscriptionId } = await params;
 
     // 1. Authenticate User
     const authHeader = req.headers.get("Authorization");
@@ -21,7 +22,7 @@ export async function POST(
     await getAuth().verifyIdToken(token);
 
     // 2. Find Subscription in your DB
-    const subscription = await Subscription.findById(params.SubscriptionId);
+    const subscription = await Subscription.findById(subscriptionId);
     if (!subscription || !subscription.subscriptionId) {
       return NextResponse.json({ error: "Subscription not found" }, { status: 404 });
     }
