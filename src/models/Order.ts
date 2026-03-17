@@ -1,16 +1,9 @@
 import mongoose, { Schema, Document, models, model } from "mongoose";
 
 export interface IOrder extends Document {
-
   user?: mongoose.Types.ObjectId | null;
   guestUser?: mongoose.Types.ObjectId | null;
-  cartOwnerUserId?: string | null;
-  cartOwnerGuestId?: string | null;
-
-  // NORMAL OR SUBSCRIPTION ORDER
   orderType: "normal" | "subscription";
-
-  subscriptionId?: string | null;
 
   items: {
     product: mongoose.Types.ObjectId;
@@ -24,7 +17,7 @@ export interface IOrder extends Document {
   shippingCost: number;
   total: number;
 
-  paymentProvider: "payhere";
+  paymentProvider: "payhere" | "lemon";
 
   paymentStatus: "pending" | "paid" | "failed" | "refunded";
 
@@ -41,8 +34,6 @@ export interface IOrder extends Document {
 
   shippedAt?: Date | null;
   deliveredAt?: Date | null;
-
-  shipDate?: Date | null;
 
   billingDetails: {
     firstName: string;
@@ -74,29 +65,11 @@ const OrderSchema = new Schema<IOrder>(
       default: null,
     },
 
-    // Used to clear cart safely after async payment notifications
-    cartOwnerUserId: {
-      type: String,
-      default: null,
-    },
-
-    cartOwnerGuestId: {
-      type: String,
-      default: null,
-    },
-
-    // NORMAL OR SUBSCRIPTION
     orderType: {
       type: String,
       enum: ["normal", "subscription"],
       default: "normal",
       required: true,
-    },
-
-    // LINK TO SUBSCRIPTION
-    subscriptionId: {
-      type: String,
-      default: null,
     },
 
     items: [
@@ -113,24 +86,13 @@ const OrderSchema = new Schema<IOrder>(
       },
     ],
 
-    subtotal: {
-      type: Number,
-      required: true,
-    },
-
-    shippingCost: {
-      type: Number,
-      required: true,
-    },
-
-    total: {
-      type: Number,
-      required: true,
-    },
+    subtotal: { type: Number, required: true },
+    shippingCost: { type: Number, required: true },
+    total: { type: Number, required: true },
 
     paymentProvider: {
       type: String,
-      enum: ["payhere"],
+      enum: ["payhere", "lemon"],
       required: true,
     },
 
@@ -167,12 +129,6 @@ const OrderSchema = new Schema<IOrder>(
     },
 
     deliveredAt: {
-      type: Date,
-      default: null,
-    },
-
-    // SHIPPING DATE (used for subscription orders)
-    shipDate: {
       type: Date,
       default: null,
     },

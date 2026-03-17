@@ -41,6 +41,7 @@ function CheckoutSuccessContent() {
   const [animationData, setAnimationData] = useState<object | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const orderNumber = order?._id || orderId;
 
   // Load animation
   useEffect(() => {
@@ -70,6 +71,8 @@ function CheckoutSuccessContent() {
 
     fetchOrder();
   }, [orderId]);
+
+  const isSubscription = order?.orderType === "subscription";
 
   const getMessage = () => {
     if (!order) return "Processing...";
@@ -108,11 +111,17 @@ function CheckoutSuccessContent() {
           )}
         </div>
 
-        <h2 className="mb-3 text-3xl font-black tracking-tight text-[#111]">Order Received</h2>
+        <h2 className="mb-3 text-3xl font-black tracking-tight text-[#111]">
+          {isSubscription ? "Subscription Active" : "Order Received"}
+        </h2>
 
         <p className="mb-6 text-[15px] font-medium text-gray-500">{getMessage()}</p>
 
         <div className="mb-8 flex flex-col gap-2 text-[14px]">
+          <p className="text-gray-500">
+            Order No: <strong className="text-[#111]">{orderNumber}</strong>
+          </p>
+
           <p className="text-gray-500">
             Order ID: <strong className="text-[#111]">{orderId}</strong>
           </p>
