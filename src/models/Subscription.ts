@@ -5,13 +5,13 @@ const SubscriptionSchema = new Schema(
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      default: null,
+      required: true,
     },
 
     orderId: {
       type: Schema.Types.ObjectId,
       ref: "Order",
-      required: true,
+      default: null,
     },
 
     subscriptionId: {
@@ -40,8 +40,18 @@ const SubscriptionSchema = new Schema(
       default: "active",
     },
 
+    adminViewed: {
+      type: Boolean,
+      default: false,
+    },
+
     nextBillingDate: {
       type: Date,
+    },
+
+    lastPaymentDate: {
+      type: Date,
+      default: Date.now,
     },
 
     recurrence: {
@@ -51,7 +61,7 @@ const SubscriptionSchema = new Schema(
 
     totalInstallmentsPaid: {
       type: Number,
-      default: 1,
+      default: 0,
     },
   },
   { timestamps: true }

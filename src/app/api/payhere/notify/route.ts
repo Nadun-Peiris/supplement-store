@@ -46,7 +46,6 @@ export async function POST(req: Request) {
   const payment_id = params.get("payment_id");
   const subscription_id = params.get("subscription_id");
   const message_type = params.get("message_type");
-  const installmentPaid = params.get("item_rec_install_paid");
   const payherePaidOn = params.get("payhere_paid_on");
   const recurrenceFromPayload =
     params.get("item_recurrence") ??
@@ -109,16 +108,6 @@ export async function POST(req: Request) {
 
   try {
     const latestPaymentDate = parsePayHerePaidAt(payherePaidOn) ?? new Date();
-    const parsedInstallmentsPaidRaw = installmentPaid
-      ? Number(installmentPaid)
-      : undefined;
-
-    const parsedInstallmentsPaid =
-      parsedInstallmentsPaidRaw !== undefined &&
-      Number.isFinite(parsedInstallmentsPaidRaw)
-        ? parsedInstallmentsPaidRaw
-        : undefined;
-
     type OrderForNotify = Pick<IOrder, "user" | "items"> & {
       _id?: string;
       subtotal?: number;
@@ -198,6 +187,18 @@ export async function POST(req: Request) {
       }
     };
 
+    const countSuccessfulSubscriptionPayments = async (
+      activeSubscriptionId: string | null
+    ) => {
+      if (!activeSubscriptionId) return 0;
+
+      return Order.countDocuments({
+        orderType: "subscription",
+        subscriptionId: activeSubscriptionId,
+        paymentStatus: "paid",
+      });
+    };
+
     if (
       message_type === "AUTHORIZATION_SUCCESS" &&
       status_code === PAYHERE_SUCCESS_STATUS
@@ -266,9 +267,7 @@ export async function POST(req: Request) {
           nextBillingDate: resolvedNextBillingDate,
           recurrence: recurrenceValue,
           totalInstallmentsPaid:
-            parsedInstallmentsPaid && parsedInstallmentsPaid > 0
-              ? parsedInstallmentsPaid
-              : 1,
+            (await countSuccessfulSubscriptionPayments(subscription_id)) || 1,
         };
 
         if (existing) {
@@ -404,9 +403,8 @@ export async function POST(req: Request) {
                 status: "active",
                 nextBillingDate: resolvedNextBillingDate,
                 recurrence: recurrenceValue,
-                ...(typeof parsedInstallmentsPaid === "number"
-                  ? { totalInstallmentsPaid: parsedInstallmentsPaid }
-                  : {}),
+                totalInstallmentsPaid:
+                  await countSuccessfulSubscriptionPayments(subscription_id),
               }
             );
             processingNotes.push(
@@ -432,6 +430,14 @@ export async function POST(req: Request) {
             processingNotes.push(
               `Created recurring order ${String(recurringOrder._id)} for subscription ${subscription_id}.`
             );
+
+            await Subscription.updateOne(
+              { subscriptionId: subscription_id },
+              {
+                totalInstallmentsPaid:
+                  await countSuccessfulSubscriptionPayments(subscription_id),
+              }
+            );
           }
         }
       } else {
@@ -447,9 +453,8 @@ export async function POST(req: Request) {
             status: "active",
             nextBillingDate: resolvedNextBillingDate,
             recurrence: recurrenceValue,
-            ...(typeof parsedInstallmentsPaid === "number"
-              ? { totalInstallmentsPaid: parsedInstallmentsPaid }
-              : {}),
+            totalInstallmentsPaid:
+              await countSuccessfulSubscriptionPayments(subscription_id),
           }
         );
       }

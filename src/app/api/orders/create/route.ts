@@ -92,6 +92,7 @@ export async function POST(req: Request) {
       subtotal,
       shippingCost,
       total,
+      shippingMethod: "standard_shipping",
 
       paymentProvider: "payhere",
       paymentStatus: "pending",

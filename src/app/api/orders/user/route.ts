@@ -3,6 +3,7 @@ import { getAuth } from "firebase-admin/auth";
 import "@/lib/firebaseAdmin";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
+import Subscription from "@/models/Subscription";
 import User from "@/models/User";
 
 export async function GET(req: NextRequest) {
@@ -30,7 +31,40 @@ export async function GET(req: NextRequest) {
       .sort({ createdAt: -1 })
       .lean();
 
-    return NextResponse.json({ orders });
+    const subscriptionOrderIds = orders
+      .filter((order) => order.orderType === "subscription")
+      .map((order) => order._id);
+
+    let subscriptionIdByOrderId = new Map<string, string>();
+
+    if (subscriptionOrderIds.length > 0) {
+      const subscriptions = await Subscription.find({
+        orderId: { $in: subscriptionOrderIds },
+      })
+        .select("orderId subscriptionId")
+        .lean();
+
+      subscriptionIdByOrderId = new Map(
+        subscriptions
+          .filter((subscription) => subscription.orderId && subscription.subscriptionId)
+          .map((subscription) => [
+            String(subscription.orderId),
+            String(subscription.subscriptionId),
+          ])
+      );
+    }
+
+    const enrichedOrders = orders.map((order) => ({
+      ...order,
+      subscriptionId:
+        order.orderType === "subscription"
+          ? order.subscriptionId ??
+            subscriptionIdByOrderId.get(String(order._id)) ??
+            null
+          : null,
+    }));
+
+    return NextResponse.json({ orders: enrichedOrders });
   } catch (err) {
     console.error("User orders load error:", err);
     return NextResponse.json(

@@ -58,10 +58,6 @@ export default function CheckoutPage() {
     apartment: "",
   });
 
-  const [shippingMethod, setShippingMethod] = useState<
-    "local_pickup" | "express_3_days"
-  >("local_pickup");
-
   const [purchaseType, setPurchaseType] = useState<
     "one_time" | "subscription"
   >("one_time");
@@ -223,6 +219,7 @@ export default function CheckoutPage() {
         subtotal,
         shippingCost,
         total,
+        shippingMethod: "standard_shipping",
         purchaseType,
         billingDetails: billing,
       }),
@@ -371,7 +368,7 @@ export default function CheckoutPage() {
     0
   );
 
-  const shippingCost = shippingMethod === "express_3_days" ? 500 : 0;
+  const shippingCost = 0;
   const total = subtotal + shippingCost;
 
   return (
@@ -526,25 +523,11 @@ export default function CheckoutPage() {
 
           <div className="mt-5 border-t border-gray-100 pt-5">
             <span className="block mb-3 text-[15px] font-medium text-gray-500">Shipping</span>
-            <div className="flex flex-col gap-3 pl-2">
-              <label className="flex cursor-pointer items-center gap-3 text-sm text-[#111] font-medium">
-                <input
-                  type="radio"
-                  className="h-4 w-4 cursor-pointer accent-[#111]"
-                  checked={shippingMethod === "local_pickup"}
-                  onChange={() => setShippingMethod("local_pickup")}
-                />
-                Local Pickup (Free)
-              </label>
-              <label className="flex cursor-pointer items-center gap-3 text-sm text-[#111] font-medium">
-                <input
-                  type="radio"
-                  className="h-4 w-4 cursor-pointer accent-[#111]"
-                  checked={shippingMethod === "express_3_days"}
-                  onChange={() => setShippingMethod("express_3_days")}
-                />
-                Express 3 Days (LKR 500)
-              </label>
+            <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
+              <div className="flex items-center justify-between gap-4 text-sm font-medium text-[#111]">
+                <span>Standard Shipping</span>
+                <span>Free</span>
+              </div>
             </div>
           </div>
 

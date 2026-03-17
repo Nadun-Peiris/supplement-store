@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import "./orderDetails.css";
 import { auth } from "@/lib/firebase";
-import { Package, CheckCircle, XCircle, Clock, ArrowLeft } from "lucide-react";
+import { Package, CheckCircle, XCircle, Clock, ArrowLeft, Truck } from "lucide-react";
 
 interface OrderItem {
   name: string;
@@ -12,109 +11,110 @@ interface OrderItem {
   price: number;
 }
 
+interface BillingDetails {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  street: string;
+  city: string;
+  country: string;
+  postcode: string;
+  apartment?: string;
+}
+
 interface Order {
   _id: string;
   createdAt: string;
-  status: string;
+  paymentStatus: string;
+  fulfillmentStatus: string;
+  trackingNumber?: string;
   orderType: string;
+  subscriptionId?: string | null;
   total: number;
   shippingMethod: string;
   paymentProvider: string;
-  billingDetails: any;
+  billingDetails: BillingDetails;
   items: OrderItem[];
   nextBillingDate?: string;
 }
 
 const LoadingSkeleton = () => {
   return (
-    <div className="orderDetails-container">
-      <div className="order-hero skeleton-hero">
-        <div>
-          <div className="skeleton-line skeleton-kicker" />
-          <div className="skeleton-line skeleton-title" />
-          <div className="skeleton-line skeleton-subtitle" />
+    <div className="flex flex-col gap-4 p-4 md:p-6 lg:p-8">
+      {/* HERO SKELETON */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-dashed border-[#d9f6ff] bg-white p-5">
+        <div className="flex flex-col gap-2">
+          <div className="h-2.5 w-[140px] animate-pulse rounded-full bg-gray-100" />
+          <div className="h-6 w-[240px] animate-pulse rounded-full bg-gray-100" />
+          <div className="h-3 w-[200px] animate-pulse rounded-full bg-gray-100" />
         </div>
-        <div className="order-hero-right">
-          <div className="skeleton-pill pill-wide" />
-          <div className="status-chip">
-            <div className="skeleton-circle small" />
-            <div className="skeleton-line skeleton-short" />
-          </div>
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-[130px] animate-pulse rounded-full bg-gray-100" />
+          <div className="h-8 w-[100px] animate-pulse rounded-full bg-gray-100" />
+          <div className="h-8 w-[100px] animate-pulse rounded-full bg-gray-100" />
         </div>
       </div>
 
-      <div className="order-card skeleton-card">
-        <div className="order-grid">
-          <div className="order-block">
-            <div className="order-header">
-              <div className="order-icon-wrap">
-                <div className="skeleton-circle" />
+      {/* CARD SKELETON */}
+      <div className="rounded-2xl border border-[#e8ecf2] bg-white p-5">
+        <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-[1.4fr_1fr]">
+          
+          {/* LEFT BLOCK */}
+          <div className="flex flex-col gap-4 rounded-xl border border-transparent p-4">
+            <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-4">
+              <div className="h-10 w-10 shrink-0 animate-pulse rounded-xl bg-gray-100" />
+              <div className="flex flex-col gap-2">
+                <div className="h-2.5 w-[90px] animate-pulse rounded-full bg-gray-100" />
+                <div className="h-3 w-[140px] animate-pulse rounded-full bg-gray-100" />
               </div>
-              <div>
-                <div className="skeleton-line skeleton-label" />
-                <div className="skeleton-line skeleton-medium" />
-              </div>
-              <div>
-                <div className="skeleton-line skeleton-label" />
-                <div className="skeleton-line skeleton-medium" />
-              </div>
-            </div>
-
-            <div className="order-section">
-              <div className="section-header">
-                <div className="skeleton-line skeleton-medium" />
-                <div className="skeleton-pill" />
-              </div>
-
-              <div className="item-list">
-                {[1, 2, 3].map((idx) => (
-                  <div key={idx} className="item-row card-row">
-                    <div>
-                      <div className="skeleton-line skeleton-medium" />
-                      <div className="skeleton-line skeleton-short" />
-                    </div>
-                    <div className="skeleton-line skeleton-short" />
-                  </div>
-                ))}
+              <div className="flex flex-col gap-2">
+                <div className="h-2.5 w-[90px] animate-pulse rounded-full bg-gray-100" />
+                <div className="h-3 w-[140px] animate-pulse rounded-full bg-gray-100" />
               </div>
             </div>
 
-            <div className="total-row total-card">
-              <div>
-                <div className="skeleton-line skeleton-label" />
-                <div className="skeleton-line skeleton-medium" />
+            <div className="mt-4 flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div className="h-4 w-[140px] animate-pulse rounded-full bg-gray-100" />
+                <div className="h-6 w-[80px] animate-pulse rounded-full bg-gray-100" />
               </div>
-              <div>
-                <div className="skeleton-line skeleton-label" />
-                <div className="skeleton-line skeleton-long" />
-              </div>
-            </div>
-          </div>
-
-          <div className="order-block detail-block">
-            <div className="detail-grid">
               {[1, 2, 3].map((idx) => (
-                <div key={idx}>
-                  <div className="skeleton-line skeleton-label" />
-                  <div className="skeleton-line skeleton-medium" />
+                <div key={idx} className="flex items-center justify-between rounded-xl border border-gray-100 p-3">
+                  <div className="flex flex-col gap-2">
+                    <div className="h-3 w-[140px] animate-pulse rounded-full bg-gray-100" />
+                    <div className="h-2.5 w-[80px] animate-pulse rounded-full bg-gray-100" />
+                  </div>
+                  <div className="h-3 w-[80px] animate-pulse rounded-full bg-gray-100" />
                 </div>
               ))}
             </div>
+          </div>
 
-            <div className="billing-section card-row">
-              <div>
-                <div className="skeleton-line skeleton-label" />
-                <div className="skeleton-line skeleton-medium" />
-                <div className="skeleton-line skeleton-short" />
-                <div className="skeleton-line skeleton-short" />
+          {/* RIGHT BLOCK */}
+          <div className="flex flex-col gap-6 rounded-xl border border-[#e8ecf2] p-4">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(180px,1fr))] gap-4">
+              {[1, 2, 3, 4, 5].map((idx) => (
+                <div key={idx} className="flex flex-col gap-2">
+                  <div className="h-2.5 w-[90px] animate-pulse rounded-full bg-gray-100" />
+                  <div className="h-3 w-[140px] animate-pulse rounded-full bg-gray-100" />
+                </div>
+              ))}
+            </div>
+            
+            <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-2">
+              <div className="flex flex-col gap-2">
+                <div className="h-2.5 w-[90px] animate-pulse rounded-full bg-gray-100" />
+                <div className="h-3 w-[140px] animate-pulse rounded-full bg-gray-100" />
+                <div className="h-2.5 w-[100px] animate-pulse rounded-full bg-gray-100" />
               </div>
-              <div className="billing-address">
-                <div className="skeleton-line skeleton-label" />
-                <div className="skeleton-line skeleton-long" />
-                <div className="skeleton-line skeleton-long" />
+              <div className="flex flex-col gap-2 min-[900px]:text-right text-left">
+                <div className="h-2.5 w-[90px] animate-pulse rounded-full bg-gray-100 min-[900px]:ml-auto" />
+                <div className="h-3 w-full max-w-[200px] animate-pulse rounded-full bg-gray-100 min-[900px]:ml-auto" />
               </div>
             </div>
           </div>
+
         </div>
       </div>
     </div>
@@ -176,145 +176,228 @@ export default function OrderDetailsPage() {
     return () => unsubscribe();
   }, [orderId]);
 
-  const renderStatus = () => {
+  // Dynamic Payment Badge
+  const renderPaymentStatus = () => {
     if (!order) return null;
-
-    switch (order.status) {
-      case "paid":
-        return (
-          <>
-            <CheckCircle className="status-icon success" size={20} />
-            <span className="status success">Paid</span>
-          </>
-        );
-      case "pending":
-        return (
-          <>
-            <Clock className="status-icon pending" size={20} />
-            <span className="status pending">Pending</span>
-          </>
-        );
-      default:
-        return (
-          <>
-            <XCircle className="status-icon failed" size={20} />
-            <span className="status failed">Failed</span>
-          </>
-        );
+    
+    let config = { bg: "bg-[#fff6d6]", text: "text-[#d4a800]", border: "border-[#f1c40f]/20", icon: Clock, label: "Pending" };
+    
+    if (order.paymentStatus === "paid") {
+      config = { bg: "bg-[#e8f9ef]", text: "text-[#2ecc71]", border: "border-[#2ecc71]/20", icon: CheckCircle, label: "Paid" };
+    } else if (order.paymentStatus === "failed") {
+      config = { bg: "bg-[#ffe6e6]", text: "text-[#e74c3c]", border: "border-[#e74c3c]/20", icon: XCircle, label: "Failed" };
     }
+
+    const Icon = config.icon;
+    
+    return (
+      <div className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-bold uppercase tracking-wide ${config.bg} ${config.text} ${config.border}`}>
+        <Icon size={14} />
+        {config.label}
+      </div>
+    );
+  };
+
+  // Dynamic Fulfillment Badge
+  const renderFulfillmentStatus = () => {
+    if (!order) return null;
+    const status = order.fulfillmentStatus || "unfulfilled";
+    
+    let config = { bg: "bg-gray-100", text: "text-gray-600", border: "border-gray-200", icon: Package, label: formatLabel(status) };
+
+    if (status === "completed" || status === "delivered") {
+      config = { bg: "bg-green-100", text: "text-green-700", border: "border-green-200", icon: CheckCircle, label: formatLabel(status) };
+    } else if (status === "shipped") {
+      config = { bg: "bg-blue-100", text: "text-blue-700", border: "border-blue-200", icon: Truck, label: "Shipped" };
+    }
+
+    const Icon = config.icon;
+    
+    return (
+      <div className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-[12px] font-bold uppercase tracking-wide ${config.bg} ${config.text} ${config.border}`}>
+        <Icon size={14} />
+        {config.label}
+      </div>
+    );
   };
 
   if (loading) return <LoadingSkeleton />;
-  if (!order) return <p className="order-empty">Order not found.</p>;
+  if (!order) return <p className="mt-10 text-center text-base text-gray-500">Order not found.</p>;
 
   return (
-    <div className="orderDetails-container">
+    <div className="flex flex-col gap-4 p-4 md:p-6 lg:p-8">
 
-      <button className="back-button" onClick={() => window.history.back()}>
+      {/* BACK BUTTON */}
+      <button 
+        className="inline-flex items-center self-start gap-1.5 rounded-[10px] border border-[#d9f6ff] bg-[#f0fbff] px-3 py-2 text-sm font-semibold text-[#0f172a] transition-all duration-200 hover:border-[#00c7fc] hover:shadow-[0_6px_14px_rgba(0,199,252,0.16)]"
+        onClick={() => window.history.back()}
+      >
         <ArrowLeft size={16} />
         Back
       </button>
 
-      <div className="order-hero">
+      {/* HERO SECTION */}
+      <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[#d9f6ff] bg-[linear-gradient(135deg,#f5fcff_0%,#eaf9ff_100%)] p-5 px-6">
         <div>
-          <p className="order-eyebrow">Order #{order._id.slice(-6)}</p>
-          <h1 className="order-title">Order Details</h1>
-          <p className="order-subtitle">
-            Placed on {new Date(order.createdAt).toLocaleString()}
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-[0.08em] text-[#5f89a1]">
+            Order #{order._id.slice(-6)}
           </p>
+          <h1 className="text-[26px] font-bold text-[#0f172a]">Order Details</h1>
+          <p className="mt-1 text-sm text-[#5a6a80]">
+            Placed on {new Date(order.createdAt).toLocaleString(undefined, {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </p>
+          {order.orderType === "subscription" && order.subscriptionId && (
+            <p className="mt-2 text-sm font-semibold text-[#00a9d9]">
+              Subscription ID: {order.subscriptionId}
+            </p>
+          )}
         </div>
-        <div className="order-hero-right">
-          <span className="pill pill-muted">{formatLabel(order.orderType)}</span>
-          <div className="status-chip">{renderStatus()}</div>
+        
+        {/* BADGES */}
+        <div className="flex flex-wrap items-center gap-2.5">
+          <span className="inline-flex items-center gap-1.5 rounded-md bg-[#e7ecf7] px-2.5 py-1 text-[12px] font-bold uppercase tracking-wide text-[#4a6070]">
+            {formatLabel(order.orderType)}
+          </span>
+          {renderPaymentStatus()}
+          {renderFulfillmentStatus()}
         </div>
       </div>
 
-      <div className="order-card">
-        <div className="order-grid">
-          <div className="order-block">
-            <div className="order-header">
-              <div className="order-icon-wrap">
-                <Package className="order-icon" size={20} />
+      {/* MAIN CARD */}
+      <div className="rounded-2xl border border-[#d9f6ff] bg-white p-5 shadow-[0_10px_30px_rgba(9,30,66,0.04)]">
+        <div className="grid grid-cols-1 gap-4 min-[900px]:grid-cols-[1.4fr_1fr]">
+          
+          {/* LEFT BLOCK (Items & Totals) */}
+          <div className="flex flex-col gap-3 rounded-[14px] border border-[#d9f6ff] bg-[#f9feff] p-4">
+            
+            {/* Header */}
+            <div className="grid grid-cols-[auto_1fr_1fr] items-center gap-3">
+              <div className="flex h-[42px] w-[42px] shrink-0 items-center justify-center rounded-xl bg-[#e6faff] text-[#00c7fc]">
+                <Package size={20} />
               </div>
               <div>
-                <p className="order-small">Shipping</p>
-                <p className="order-strong">
-                  {formatLabel(order.shippingMethod)}
-                </p>
+                <p className="mb-1 text-xs text-[#6e7c90]">Shipping Method</p>
+                <p className="font-bold text-[#0f172a]">{formatLabel(order.shippingMethod || "standard_shipping")}</p>
               </div>
               <div>
-                <p className="order-small">Payment</p>
-                <p className="order-strong">
-                  {formatLabel(order.paymentProvider)}
-                </p>
+                <p className="mb-1 text-xs text-[#6e7c90]">Payment Method</p>
+                <p className="font-bold text-[#0f172a]">{formatLabel(order.paymentProvider)}</p>
               </div>
             </div>
 
-            <div className="order-section">
-              <div className="section-header">
-                <h4>Items</h4>
-                <span className="pill">{order.items.length} items</span>
+            {/* Item List */}
+            <div className="mt-2">
+              <div className="mb-2.5 flex items-center justify-between">
+                <h4 className="text-base font-bold text-[#0f172a]">Items</h4>
+                <span className="inline-flex rounded-full bg-[#00c7fc]/10 px-3 py-1.5 text-xs font-semibold text-[#00c7fc]">
+                  {order.items.length} items
+                </span>
               </div>
 
-              <div className="item-list">
+              <div className="flex flex-col gap-2">
                 {order.items.map((item, idx) => (
-                  <div key={idx} className="item-row card-row">
+                  <div key={idx} className="flex items-center justify-between rounded-xl border border-[#e9eff7] bg-white px-3 py-2.5">
                     <div>
-                      <p className="item-name">{item.name}</p>
-                      <p className="item-qty">Qty: {item.quantity}</p>
+                      <p className="font-semibold text-[#0f172a]">{item.name}</p>
+                      <p className="text-[13px] text-[#6e7c90]">Qty: {item.quantity}</p>
                     </div>
-                    <strong>LKR {(item.price * item.quantity).toLocaleString()}</strong>
+                    <strong className="text-[#0f172a]">
+                      LKR {(item.price * item.quantity).toLocaleString()}
+                    </strong>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="total-row total-card">
+            {/* Total Row */}
+            <div className="mt-2 grid grid-cols-2 items-center gap-3">
               <div>
-                <p className="order-small">Order Type</p>
-                <p className="order-strong">{formatLabel(order.orderType)}</p>
+                <p className="mb-1 text-xs text-[#6e7c90]">Order Type</p>
+                <p className="font-bold text-[#0f172a]">{formatLabel(order.orderType)}</p>
               </div>
               <div>
-                <p className="order-small">Total</p>
-                <p className="order-total">LKR {order.total.toLocaleString()}</p>
+                <p className="mb-1 text-xs text-[#6e7c90]">Total</p>
+                <p className="text-[22px] font-extrabold text-[#00c7fc]">
+                  LKR {order.total.toLocaleString()}
+                </p>
               </div>
             </div>
           </div>
 
-          <div className="order-block detail-block">
-            <div className="detail-grid">
+          {/* RIGHT BLOCK (Details) */}
+          <div className="flex flex-col gap-4 rounded-[14px] border border-[#d9f6ff] bg-white p-4">
+            
+            {/* Status Grid */}
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-3">
               <div>
-                <p className="order-small">Status</p>
-                <div className="status-chip">{renderStatus()}</div>
+                <p className="mb-1 text-xs text-[#6e7c90]">Payment Status</p>
+                <div className="mt-0.5">
+                  {renderPaymentStatus()}
+                </div>
               </div>
+
+              <div>
+                <p className="mb-1 text-xs text-[#6e7c90]">Fulfillment Status</p>
+                <div className="mt-0.5">
+                  {renderFulfillmentStatus()}
+                </div>
+              </div>
+
+              {/* WAYBILL / TRACKING NUMBER DISPLAY */}
+              {order.trackingNumber && (
+                <div>
+                  <p className="mb-1 text-xs text-[#6e7c90]">Waybill / Tracking No.</p>
+                  <p className="break-all font-mono text-xs font-bold text-[#00c7fc]">
+                    {order.trackingNumber}
+                  </p>
+                </div>
+              )}
 
               {order.orderType === "subscription" && order.nextBillingDate && (
                 <div>
-                  <p className="order-small">Next Billing</p>
-                  <p className="order-strong">
+                  <p className="mb-1 text-xs text-[#6e7c90]">Next Billing</p>
+                  <p className="font-bold text-[#0f172a]">
                     {new Date(order.nextBillingDate).toLocaleDateString()}
                   </p>
                 </div>
               )}
 
               <div>
-                <p className="order-small">Order ID</p>
-                <p className="order-strong monospace">{order._id}</p>
+                <p className="mb-1 text-xs text-[#6e7c90]">Order ID</p>
+                <p className="break-all font-mono text-xs font-medium text-[#4a6070]">
+                  {order._id}
+                </p>
               </div>
+
+              {order.orderType === "subscription" && order.subscriptionId && (
+                <div>
+                  <p className="mb-1 text-xs text-[#6e7c90]">Subscription ID</p>
+                  <p className="break-all font-mono text-xs font-medium text-[#00c7fc]">
+                    {order.subscriptionId}
+                  </p>
+                </div>
+              )}
             </div>
 
-            <div className="billing-section card-row">
+            {/* Billing Row */}
+            <div className="mt-2 grid grid-cols-1 items-start gap-4 rounded-xl border border-[#e9eff7] p-3 min-[900px]:grid-cols-2">
               <div>
-                <p className="order-small">Billing Contact</p>
-                <p className="order-strong">
+                <p className="mb-1 text-xs text-[#6e7c90]">Billing Contact</p>
+                <p className="font-bold text-[#0f172a]">
                   {order.billingDetails.firstName} {order.billingDetails.lastName}
                 </p>
-                <p className="order-muted">{order.billingDetails.email}</p>
-                <p className="order-muted">{order.billingDetails.phone}</p>
+                <p className="text-[13px] text-[#6e7c90]">{order.billingDetails.email}</p>
+                <p className="text-[13px] text-[#6e7c90]">{order.billingDetails.phone}</p>
               </div>
-              <div className="billing-address">
-                <p className="order-small">Address</p>
-                <p className="order-muted">
+              <div className="text-left min-[900px]:text-right">
+                <p className="mb-1 text-xs text-[#6e7c90]">Address</p>
+                <p className="text-[13px] text-[#6e7c90]">
                   {order.billingDetails.street}
                   <br />
                   {order.billingDetails.city}, {order.billingDetails.country}
@@ -322,9 +405,9 @@ export default function OrderDetailsPage() {
               </div>
             </div>
           </div>
+
         </div>
       </div>
-
     </div>
   );
 }
