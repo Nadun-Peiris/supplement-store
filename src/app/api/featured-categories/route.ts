@@ -12,7 +12,8 @@ export async function GET() {
       .populate({
         path: "categoryId",
         model: Category,
-        select: "name title slug image",
+        // Added the new fields to the select string here
+        select: "name title slug image description itemCount tag backgroundImage",
       })
       .lean();
 
@@ -25,6 +26,11 @@ export async function GET() {
           title?: string;
           slug?: string;
           image?: string;
+          // Added typings for the new fields
+          description?: string;
+          itemCount?: number;
+          tag?: string;
+          backgroundImage?: string;
         };
 
         const displayName =
@@ -41,6 +47,11 @@ export async function GET() {
             name: displayName,
             slug: category.slug,
             image: category.image,
+            // Passing the new fields to the frontend
+            description: category.description,
+            itemCount: category.itemCount,
+            tag: category.tag,
+            backgroundImage: category.backgroundImage,
           },
         };
       });

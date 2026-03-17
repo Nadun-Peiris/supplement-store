@@ -13,7 +13,7 @@ export default function HomePage() {
 
   return (
     <main>
-      <HeroSlider slides={slides} autoPlayMs={5000} />
+      <HeroSlider className="pt-4 md:pt-5" slides={slides} autoPlayMs={5000} />
 
       <CategoryCarousel />
 

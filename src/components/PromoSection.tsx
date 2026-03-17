@@ -12,10 +12,15 @@ interface FeaturedCategory {
     _id: string;
     name: string;
     slug: string;
-    image?: string;
+    image?: string;          // True product image
+    backgroundImage?: string;// True background image
+    description?: string;    // True category description
+    itemCount?: number;      // True number of items in the category
+    tag?: string;            // True promotional tag (e.g., "SALE")
   };
 }
 
+// Kept purely as a safety net to prevent Next.js Image crashes if API data is missing
 const fallbackBackgrounds = [
   "/promo/mass-bg.png",
   "/promo/explosive-bg.png",
@@ -95,7 +100,9 @@ export default function PromoSection() {
 
         {!loading &&
           featured.map((promo, i) => {
+            // Prioritize true API data, fallback only if missing to prevent UI crashes
             const bg =
+              promo.category.backgroundImage ||
               fallbackBackgrounds[i % fallbackBackgrounds.length] ||
               fallbackBackgrounds[0];
             const product =
@@ -107,7 +114,7 @@ export default function PromoSection() {
               <Link
                 key={promo._id}
                 href={`/shop/${promo.category.slug}`}
-                className="group relative block h-[380px] w-full max-w-[560px] flex-none snap-center overflow-hidden rounded-[22px] bg-black text-white shadow-[0_25px_70px_rgba(0,0,0,0.45)] no-underline max-[900px]:w-[420px] max-[900px]:max-w-none max-sm:h-[320px] max-sm:w-[calc(100%-2rem)] max-sm:rounded-[20px]"
+                className="group relative block h-[380px] w-full max-w-[560px] flex-none snap-center overflow-hidden rounded-[22px] bg-black text-white no-underline max-[900px]:w-[420px] max-[900px]:max-w-none max-sm:h-[320px] max-sm:w-[calc(100%-2rem)] max-sm:rounded-[20px]"
               >
                 {/* GLOW */}
                 <span
@@ -125,26 +132,46 @@ export default function PromoSection() {
                 
                 {/* OVERLAY */}
                 <span
-                  className="absolute inset-0 z-[2] bg-gradient-to-br from-black/70 to-black/20"
+                  className="absolute inset-0 z-[2] bg-gradient-to-br from-black/80 to-black/20"
                   aria-hidden="true"
                 />
 
-                {/* TEXT */}
+                {/* TEXT & TRUE DATA CONTENT */}
                 <div className="absolute left-8 right-8 top-8 z-[6] max-sm:left-6 max-sm:right-6 max-sm:top-6">
                   <div className="mb-3 flex items-center gap-2.5">
                     <span className="rounded-full border border-white/20 bg-white/12 px-[0.7rem] py-[0.2rem] text-[0.8rem] font-bold tracking-[0.04em]">
                       TOP {i + 1}
                     </span>
-                    <span className="rounded-full border border-[#09e1ff] bg-[#03c7fe] px-[0.7rem] py-[0.2rem] text-[0.8rem] font-bold tracking-[0.04em] text-[#031821] shadow-[0_0_20px_rgba(3,199,254,0.35)]">
+                    <span className="rounded-full border border-[#09e1ff] bg-[#03c7fe] px-[0.7rem] py-[0.2rem] text-[0.8rem] font-bold tracking-[0.04em] text-[#031821]">
                       FEATURED
                     </span>
                   </div>
                   <h2 className="text-[2.7rem] font-extrabold leading-[1.15] max-[900px]:text-[2.2rem] max-sm:max-w-[10ch] max-sm:text-[1.8rem]">
                     {promo.category.name}
                   </h2>
-                  <p className="mt-2 max-w-[32ch] leading-[1.45] text-white/75 max-sm:max-w-[24ch]">
-                    Bestsellers and new drops curated for you.
-                  </p>
+                  
+                  {/* Only render description if provided by API */}
+                  {promo.category.description && (
+                    <p className="mt-2 max-w-[32ch] leading-[1.45] text-white/75 max-sm:max-w-[24ch]">
+                      {promo.category.description}
+                    </p>
+                  )}
+                  
+                  {/* Only render extra metadata if provided by API */}
+                  {(promo.category.tag || promo.category.itemCount) && (
+                    <div className="mt-4 flex items-center gap-3">
+                      {promo.category.tag && (
+                        <span className="rounded-md bg-[#03c7fe]/15 px-2.5 py-1 text-[0.75rem] font-bold uppercase tracking-wider text-[#03c7fe]">
+                          {promo.category.tag}
+                        </span>
+                      )}
+                      {promo.category.itemCount && (
+                        <span className="text-[0.85rem] font-medium text-white/60">
+                          • {promo.category.itemCount} Items
+                        </span>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* PRODUCT */}
@@ -158,10 +185,10 @@ export default function PromoSection() {
                   />
                 </div>
 
-                {/* BUTTON */}
-                <button className="group/btn absolute bottom-[1.6rem] left-8 z-10 inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#525252] bg-[#262626] px-[1.6rem] py-[0.7rem] text-[0.95rem] font-semibold text-white transition-all duration-300 hover:border-[#03c7fe] hover:bg-[#111] hover:text-white hover:shadow-[0_12px_30px_rgba(3,199,254,0.18)] active:scale-95 max-sm:bottom-4 max-sm:left-6 max-sm:px-[1.4rem] max-sm:py-[0.65rem] max-sm:text-[0.85rem]">
+                {/* BUTTON (Black & Blue Accent) */}
+                <button className="group/btn absolute bottom-[1.6rem] left-8 z-10 inline-flex cursor-pointer items-center gap-2 rounded-full border border-[#03c7fe]/40 bg-[#050505] px-6 py-2.5 text-[0.95rem] font-bold text-white transition-all duration-300 hover:border-[#03c7fe] hover:bg-[#03c7fe]/10 hover:shadow-[0_0_20px_rgba(3,199,254,0.25)] active:scale-95 max-sm:bottom-4 max-sm:left-6 max-sm:px-5 max-sm:py-2 max-sm:text-[0.85rem]">
                   Shop Now
-                  <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-[#525252] transition-all duration-250 ease-in-out group-hover/btn:translate-x-1 group-hover/btn:border-[#03c7fe] group-hover/btn:bg-[#0a2831]">
+                  <span className="text-[#03c7fe] transition-transform duration-300 ease-in-out group-hover/btn:translate-x-1">
                     →
                   </span>
                 </button>

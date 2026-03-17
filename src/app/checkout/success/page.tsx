@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Lottie from "lottie-react";
-import "../../register/success/success.css";
 
 interface Order {
   _id: string;
@@ -22,9 +21,10 @@ export default function CheckoutSuccess() {
   return (
     <Suspense
       fallback={
-        <div className="success-container">
-          <div className="success-card fade-in">
-            <p className="success-sub">Loading your order...</p>
+        <div className="flex min-h-[70vh] w-full items-center justify-center px-6 py-12">
+          <div className="w-full max-w-lg rounded-3xl border border-gray-100 bg-white p-10 text-center shadow-sm">
+            <div className="mx-auto mb-6 h-8 w-8 animate-spin rounded-full border-4 border-gray-200 border-t-[#111]" />
+            <p className="text-[15px] font-medium text-gray-500">Loading your order...</p>
           </div>
         </div>
       }
@@ -96,57 +96,78 @@ function CheckoutSuccessContent() {
   };
 
   return (
-    <div className="success-container">
-      <div className="success-card fade-in">
-        <div className="lottie-wrapper">
-          {animationData && (
+    <div className="flex min-h-[75vh] w-full items-center justify-center bg-white px-6 py-12">
+      <div className="w-full max-w-lg animate-[fadeIn_0.5s_ease-out] rounded-3xl border border-gray-100 bg-white p-8 text-center shadow-sm sm:p-10">
+        
+        {/* LOTTIE ANIMATION WRAPPER */}
+        <div className="mx-auto mb-6 flex h-32 w-32 items-center justify-center">
+          {animationData ? (
             <Lottie animationData={animationData} loop={false} />
+          ) : (
+            <div className="h-20 w-20 rounded-full bg-gray-50" /> // Placeholder while lottie loads
           )}
         </div>
 
-        <h2 className="success-title">Order Received 🎉</h2>
+        <h2 className="mb-3 text-3xl font-black tracking-tight text-[#111]">Order Received</h2>
 
-        <p className="success-sub">{getMessage()}</p>
+        <p className="mb-6 text-[15px] font-medium text-gray-500">{getMessage()}</p>
 
-        <p className="success-sub">
-          Order ID: <strong>{orderId}</strong>
-        </p>
-
-        {!loading && order && (
-          <p className="success-sub">
-            Payment status:{" "}
-            <strong style={{ textTransform: "capitalize" }}>
-              {order.paymentStatus}
-            </strong>
+        <div className="mb-8 flex flex-col gap-2 text-[14px]">
+          <p className="text-gray-500">
+            Order ID: <strong className="text-[#111]">{orderId}</strong>
           </p>
-        )}
 
-        {!loading && order && (
-          <p className="success-sub">
-            Paid via:{" "}
-            <strong style={{ textTransform: "capitalize" }}>
-              {order.paymentProvider.replace("_", " ")}
-            </strong>
-          </p>
-        )}
-
-        {!loading && order && (
-          <div className="order-summary-box">
-            <h4>Order Summary</h4>
-            {order.items.map((item, index) => (
-              <p key={index} className="success-sub">
-                {item.name} × {item.quantity} — LKR{" "}
-                {item.price * item.quantity}
-              </p>
-            ))}
-
-            <p className="success-sub total-line">
-              Total: <strong>LKR {order.total}</strong>
+          {!loading && order && (
+            <p className="text-gray-500">
+              Payment status:{" "}
+              <strong className="capitalize text-[#111]">
+                {order.paymentStatus}
+              </strong>
             </p>
+          )}
+
+          {!loading && order && (
+            <p className="text-gray-500">
+              Paid via:{" "}
+              <strong className="capitalize text-[#111]">
+                {order.paymentProvider.replace("_", " ")}
+              </strong>
+            </p>
+          )}
+        </div>
+
+        {/* ORDER SUMMARY BOX */}
+        {!loading && order && (
+          <div className="mt-8 rounded-2xl border border-gray-100 bg-[#f8f8f8] p-6 text-left">
+            <h4 className="mb-4 text-xs font-bold uppercase tracking-wider text-gray-400">
+              Order Summary
+            </h4>
+            
+            <div className="flex flex-col gap-3">
+              {order.items.map((item, index) => (
+                <div key={index} className="flex justify-between text-[14px] font-medium text-gray-600">
+                  <span className="flex-1 pr-4">
+                    {item.name} <span className="text-gray-400">× {item.quantity}</span>
+                  </span>
+                  <span className="text-[#111]">
+                    LKR {(item.price * item.quantity).toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-5 flex items-center justify-between border-t border-gray-200 pt-4 text-lg font-black text-[#111]">
+              <span>Total</span>
+              <span>LKR {order.total.toLocaleString()}</span>
+            </div>
           </div>
         )}
 
-        <a href="/dashboard" className="success-btn">
+        {/* DASHBOARD BUTTON */}
+        <a 
+          href="/dashboard" 
+          className="mt-8 block w-full rounded-full bg-[#111] py-4 text-center text-[15px] font-bold tracking-wide text-white transition-all duration-200 hover:bg-black hover:shadow-md active:scale-[0.98]"
+        >
           Go to dashboard →
         </a>
       </div>

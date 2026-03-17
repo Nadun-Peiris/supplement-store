@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import "./checkout.css";
 import { auth } from "@/lib/firebase";
 
 interface CheckoutCartItem {
@@ -128,7 +127,7 @@ export default function CheckoutPage() {
         }
 
         const text = await res.text();
-        if (!text) return; // No content returned for this request
+        if (!text) return;
 
         let data: UserProfileResponse;
         try {
@@ -338,9 +337,6 @@ export default function CheckoutPage() {
 
     setLoading(true);
 
-    // ---------------------------
-    // ONE-TIME PayHere Payment
-    // ---------------------------
     if (purchaseType === "one_time") {
       try {
         await handlePayHerePayment();
@@ -353,9 +349,6 @@ export default function CheckoutPage() {
       return;
     }
 
-    // ---------------------------
-    // SUBSCRIPTION PayHere
-    // ---------------------------
     if (purchaseType === "subscription") {
       try {
         const order = await createPayHereOrder();
@@ -378,205 +371,206 @@ export default function CheckoutPage() {
     0
   );
 
-  const shippingCost =
-    shippingMethod === "express_3_days" ? 500 : 0;
-
+  const shippingCost = shippingMethod === "express_3_days" ? 500 : 0;
   const total = subtotal + shippingCost;
 
   return (
-    <div className="checkout-container">
-      {/* LEFT SIDE */}
-      <div className="checkout-left">
-        <h2 className="checkout-title">Billing Details</h2>
+    <div className="w-full bg-white px-6 py-12 md:px-12 lg:px-20 lg:py-16 xl:px-28 2xl:px-40">
+      
+      {/* HEADER SECTION (Optional, to match cart) */}
+      <h1 className="mb-10 text-center text-[2.5rem] font-black tracking-wide text-[#111] md:mb-16 md:text-[3.5rem]">
+        CHECKOUT
+      </h1>
 
-        <div className="form-grid">
-          <div>
-            <label>First name *</label>
+      {/* FULL WIDTH GRID LAYOUT */}
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[1.2fr_400px] xl:grid-cols-[1fr_450px] xl:gap-16">
+        
+        {/* LEFT SIDE: BILLING */}
+        <div className="flex flex-col gap-6">
+          <h2 className="mb-2 text-2xl font-black text-[#111]">Billing Details</h2>
+
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-gray-700">First name *</label>
+              <input
+                className="w-full rounded-lg border border-gray-300 p-3 text-sm outline-none transition-colors focus:border-[#111] focus:ring-1 focus:ring-[#111]"
+                value={billing.firstName}
+                onChange={(e) => updateBilling("firstName", e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-gray-700">Last name *</label>
+              <input
+                className="w-full rounded-lg border border-gray-300 p-3 text-sm outline-none transition-colors focus:border-[#111] focus:ring-1 focus:ring-[#111]"
+                value={billing.lastName}
+                onChange={(e) => updateBilling("lastName", e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-gray-700">Email *</label>
             <input
-              value={billing.firstName}
-              onChange={(e) =>
-                updateBilling("firstName", e.target.value)
-              }
+              className="w-full rounded-lg border border-gray-300 p-3 text-sm outline-none transition-colors focus:border-[#111] focus:ring-1 focus:ring-[#111]"
+              value={billing.email}
+              onChange={(e) => updateBilling("email", e.target.value)}
             />
           </div>
 
-          <div>
-            <label>Last name *</label>
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-gray-700">Phone *</label>
             <input
-              value={billing.lastName}
-              onChange={(e) =>
-                updateBilling("lastName", e.target.value)
-              }
+              className="w-full rounded-lg border border-gray-300 p-3 text-sm outline-none transition-colors focus:border-[#111] focus:ring-1 focus:ring-[#111]"
+              value={billing.phone}
+              onChange={(e) => updateBilling("phone", e.target.value)}
             />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-gray-700">Street address *</label>
+            <input
+              className="w-full rounded-lg border border-gray-300 p-3 text-sm outline-none transition-colors focus:border-[#111] focus:ring-1 focus:ring-[#111]"
+              placeholder="House number and street"
+              value={billing.street}
+              onChange={(e) => updateBilling("street", e.target.value)}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm font-semibold text-gray-700">Apartment (optional)</label>
+            <input
+              className="w-full rounded-lg border border-gray-300 p-3 text-sm outline-none transition-colors focus:border-[#111] focus:ring-1 focus:ring-[#111]"
+              value={billing.apartment}
+              onChange={(e) => updateBilling("apartment", e.target.value)}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-gray-700">City *</label>
+              <input
+                className="w-full rounded-lg border border-gray-300 p-3 text-sm outline-none transition-colors focus:border-[#111] focus:ring-1 focus:ring-[#111]"
+                value={billing.city}
+                onChange={(e) => updateBilling("city", e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-gray-700">Postcode *</label>
+              <input
+                className="w-full rounded-lg border border-gray-300 p-3 text-sm outline-none transition-colors focus:border-[#111] focus:ring-1 focus:ring-[#111]"
+                value={billing.postcode}
+                onChange={(e) => updateBilling("postcode", e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="form-full">
-          <label>Email *</label>
-          <input
-            value={billing.email}
-            onChange={(e) =>
-              updateBilling("email", e.target.value)
-            }
-          />
-        </div>
+        {/* RIGHT SIDE: ORDER SUMMARY */}
+        <div className="h-fit w-full rounded-2xl border border-gray-100 bg-white p-7 shadow-sm xl:p-9">
+          <h2 className="mb-6 text-xl font-black text-[#111] xl:text-2xl">YOUR ORDER</h2>
 
-        <div className="form-full">
-          <label>Phone *</label>
-          <input
-            value={billing.phone}
-            onChange={(e) =>
-              updateBilling("phone", e.target.value)
-            }
-          />
-        </div>
-
-        <div className="form-full">
-          <label>Street address *</label>
-          <input
-            placeholder="House number and street"
-            value={billing.street}
-            onChange={(e) =>
-              updateBilling("street", e.target.value)
-            }
-          />
-        </div>
-
-        <div className="form-full">
-          <label>Apartment (optional)</label>
-          <input
-            value={billing.apartment}
-            onChange={(e) =>
-              updateBilling("apartment", e.target.value)
-            }
-          />
-        </div>
-
-        <div className="form-half">
-          <label>City *</label>
-          <input
-            value={billing.city}
-            onChange={(e) =>
-              updateBilling("city", e.target.value)
-            }
-          />
-        </div>
-
-        <div className="form-half">
-          <label>Postcode *</label>
-          <input
-            value={billing.postcode}
-            onChange={(e) =>
-              updateBilling("postcode", e.target.value)
-            }
-          />
-        </div>
-      </div>
-
-      {/* RIGHT SIDE */}
-      <div className="checkout-right">
-        <h2 className="checkout-title">Your Order</h2>
-
-        <div className="order-summary">
-          {cartLoading ? (
-            <div className="order-skeleton-list">
-              {Array.from({ length: 3 }).map((_, idx) => (
-                <div key={idx} className="order-item skeleton">
-                  <div className="order-item-info">
-                    <div className="order-item-thumb skeleton-box" />
-                    <div className="order-item-text">
-                      <div className="skeleton-box line" />
-                      <div className="skeleton-box line short" />
+          {/* ITEM LIST */}
+          <div className="flex flex-col mb-6">
+            {cartLoading ? (
+              // SKELETONS
+              <div className="flex flex-col gap-4">
+                {Array.from({ length: 3 }).map((_, idx) => (
+                  <div key={idx} className="flex items-center gap-4 py-2">
+                    <div className="h-12 w-12 shrink-0 animate-pulse rounded-xl bg-gray-200" />
+                    <div className="flex w-full flex-col gap-2">
+                      <div className="h-4 w-32 animate-pulse rounded-md bg-gray-200" />
+                      <div className="h-3 w-20 animate-pulse rounded-md bg-gray-200" />
+                    </div>
+                    <div className="h-4 w-16 animate-pulse rounded-md bg-gray-200" />
+                  </div>
+                ))}
+              </div>
+            ) : cartItems.length > 0 ? (
+              cartItems.map((item) => (
+                <div key={item.productId} className="flex items-center justify-between border-b border-gray-100 py-4 last:border-none">
+                  <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#f8f8f8] text-sm font-bold text-gray-500 uppercase">
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          loading="lazy"
+                          className="h-full w-full object-cover mix-blend-multiply"
+                        />
+                      ) : (
+                        <span>{getInitial(item.name)}</span>
+                      )}
+                    </div>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[15px] font-bold text-[#111]">{item.name}</span>
+                      <span className="text-[13px] font-medium text-gray-500">
+                        Qty {item.quantity} × LKR {item.price.toLocaleString()}
+                      </span>
                     </div>
                   </div>
-                  <div className="skeleton-box price" />
+                  <span className="text-[15px] font-bold text-[#111]">
+                    LKR {(item.price * item.quantity).toLocaleString()}
+                  </span>
                 </div>
-              ))}
-            </div>
-          ) : cartItems.length > 0 ? (
-            cartItems.map((item) => (
-              <div key={item.productId} className="order-item">
-                <div className="order-item-info">
-                  <div className="order-item-thumb">
-                    {item.image ? (
-                      <img
-                        src={item.image}
-                        alt={item.name}
-                        loading="lazy"
-                      />
-                    ) : (
-                      <span>{getInitial(item.name)}</span>
-                    )}
-                  </div>
-                  <div className="order-item-text">
-                    <span className="order-item-name">{item.name}</span>
-                    <span className="order-item-meta">
-                      Qty {item.quantity} × LKR {item.price}
-                    </span>
-                  </div>
-                </div>
-                <span className="order-item-total">
-                  LKR {item.price * item.quantity}
-                </span>
-              </div>
-            ))
-          ) : (
-            <p className="order-empty">No items in your cart.</p>
-          )}
-
-          <div className="summary-line">
-            <span>Subtotal</span>
-            <span>LKR {subtotal}</span>
+              ))
+            ) : (
+              <p className="py-4 text-center text-gray-500">No items in your cart.</p>
+            )}
           </div>
 
-          <div className="summary-line shipping">
-            <span>Shipping</span>
-            <div className="shipping-options">
-              <label>
+          {/* TOTALS */}
+          <div className="mt-2 flex justify-between text-[15px] font-medium text-gray-500">
+            <span>Subtotal</span>
+            <span className="text-[#111]">LKR {subtotal.toLocaleString()}</span>
+          </div>
+
+          <div className="mt-5 border-t border-gray-100 pt-5">
+            <span className="block mb-3 text-[15px] font-medium text-gray-500">Shipping</span>
+            <div className="flex flex-col gap-3 pl-2">
+              <label className="flex cursor-pointer items-center gap-3 text-sm text-[#111] font-medium">
                 <input
                   type="radio"
+                  className="h-4 w-4 cursor-pointer accent-[#111]"
                   checked={shippingMethod === "local_pickup"}
                   onChange={() => setShippingMethod("local_pickup")}
                 />
                 Local Pickup (Free)
               </label>
-
-              <label>
+              <label className="flex cursor-pointer items-center gap-3 text-sm text-[#111] font-medium">
                 <input
                   type="radio"
-                  checked={
-                    shippingMethod === "express_3_days"
-                  }
-                  onChange={() =>
-                    setShippingMethod("express_3_days")
-                  }
+                  className="h-4 w-4 cursor-pointer accent-[#111]"
+                  checked={shippingMethod === "express_3_days"}
+                  onChange={() => setShippingMethod("express_3_days")}
                 />
                 Express 3 Days (LKR 500)
               </label>
             </div>
           </div>
 
-          <div className="summary-total">
-            <span>Total</span>
-            <strong>LKR {total}</strong>
+          <div className="mt-8 border-t border-gray-100 pt-6">
+            <div className="flex justify-between text-2xl font-black text-[#111]">
+              <span>Total</span>
+              <span>LKR {total.toLocaleString()}</span>
+            </div>
           </div>
 
           {/* PURCHASE TYPE */}
-          <div className="payment-box">
-            <h3>Choose Purchase Type</h3>
-
-            <label className="pay-option">
+          <div className="mt-8 border-t border-gray-100 pt-6">
+            <h3 className="mb-4 text-lg font-bold text-[#111]">Purchase Type</h3>
+            <label className="mb-3 flex cursor-pointer items-center gap-3 text-[15px] text-[#111] font-medium">
               <input
                 type="radio"
+                className="h-4 w-4 cursor-pointer accent-[#111]"
                 checked={purchaseType === "one_time"}
                 onChange={() => setPurchaseType("one_time")}
               />
               One-Time Purchase
             </label>
-
-            <label className="pay-option">
+            <label className="flex cursor-pointer items-center gap-3 text-[15px] text-[#111] font-medium">
               <input
                 type="radio"
+                className="h-4 w-4 cursor-pointer accent-[#111]"
                 checked={purchaseType === "subscription"}
                 onChange={() => setPurchaseType("subscription")}
               />
@@ -585,30 +579,27 @@ export default function CheckoutPage() {
           </div>
 
           {/* PAYMENT METHOD */}
-          <div className="payment-box">
-            <h3>Payment Method</h3>
-
+          <div className="mt-8 border-t border-gray-100 pt-6">
+            <h3 className="mb-4 text-lg font-bold text-[#111]">Payment Method</h3>
             {purchaseType === "one_time" && (
-              <label className="pay-option">
-                <input type="radio" checked readOnly />
+              <label className="flex cursor-pointer items-center gap-3 text-[15px] text-[#111] font-medium">
+                <input type="radio" className="h-4 w-4 accent-[#111]" checked readOnly />
                 Pay by Card (PayHere)
               </label>
             )}
-
             {purchaseType === "subscription" && (
-              <>
-                <label className="pay-option">
-                  <input type="radio" checked readOnly />
-                  Pay by Card (Subscription)
-                </label>
-              </>
+              <label className="flex cursor-pointer items-center gap-3 text-[15px] text-[#111] font-medium">
+                <input type="radio" className="h-4 w-4 accent-[#111]" checked readOnly />
+                Pay by Card (Subscription)
+              </label>
             )}
           </div>
 
           {/* TERMS */}
-          <label className="terms">
+          <label className="my-8 flex cursor-pointer items-center gap-3 text-sm text-gray-700">
             <input
               type="checkbox"
+              className="h-4 w-4 cursor-pointer rounded border-gray-300 accent-[#111]"
               checked={agreeTerms}
               onChange={() => setAgreeTerms(!agreeTerms)}
             />
@@ -617,7 +608,7 @@ export default function CheckoutPage() {
 
           {/* BUTTON */}
           <button
-            className="place-order-btn"
+            className="w-full cursor-pointer rounded-full bg-[#111] py-4 text-base font-bold tracking-wide text-white transition-all duration-200 hover:bg-black hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:bg-gray-400"
             onClick={placeOrder}
             disabled={loading}
           >

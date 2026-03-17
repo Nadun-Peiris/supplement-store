@@ -48,7 +48,13 @@ const slides: SlideInput[] = [
   },
 ];
 
-export default function HeroSlider({ autoPlayMs = 6000 }: { autoPlayMs?: number }) {
+export default function HeroSlider({
+  autoPlayMs = 6000,
+  className = "",
+}: {
+  autoPlayMs?: number;
+  className?: string;
+}) {
   const [current, setCurrent] = useState(0);
 
   useEffect(() => {
@@ -61,8 +67,8 @@ export default function HeroSlider({ autoPlayMs = 6000 }: { autoPlayMs?: number 
   const currentSlide = slides[current];
 
   return (
-    <div className="w-full px-3 pb-10 pt-3 md:px-12 md:pt-4">
-      <div className="relative mx-auto h-[600px] w-full max-w-[110rem] overflow-hidden rounded-[40px] bg-black text-white md:h-[750px]">
+    <div className={`w-full px-3 py-10 md:px-6 ${className}`.trim()}>
+      <div className="relative mx-auto h-[600px] w-full max-w-[110rem] overflow-hidden rounded-[40px] bg-black text-white shadow-2xl md:h-[750px]">
         <AnimatePresence mode="wait">
           <motion.div
             key={currentSlide.id}
@@ -84,7 +90,7 @@ export default function HeroSlider({ autoPlayMs = 6000 }: { autoPlayMs?: number 
             </motion.div>
 
             {/* Content Container */}
-            <div className="relative z-10 flex h-full items-center px-6 md:px-10 lg:px-16">
+            <div className="relative z-10 flex h-full items-center px-12 md:px-20 lg:px-32">
               <div className="grid w-full grid-cols-1 items-center gap-8 lg:grid-cols-2">
                 
                 {/* Left: Text Content */}
@@ -146,7 +152,7 @@ export default function HeroSlider({ autoPlayMs = 6000 }: { autoPlayMs?: number 
         </AnimatePresence>
 
         {/* Progress Bar Indicators */}
-        <div className="absolute bottom-12 left-6 flex space-x-3 md:left-10 lg:left-16">
+        <div className="absolute bottom-12 left-12 flex space-x-3 md:left-20 lg:left-32">
           {slides.map((_, index) => (
             <button
               key={index}
