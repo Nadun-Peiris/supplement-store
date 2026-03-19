@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { User, Package, CreditCard, LogOut, LayoutDashboard, Boxes } from "lucide-react";
+import { User, Package, CreditCard, LogOut, LayoutDashboard } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import toast from "react-hot-toast";
 
@@ -16,7 +16,6 @@ export default function Sidebar() {
     { name: "Overview", href: "/dashboard", icon: <LayoutDashboard size={20} /> },
     { name: "Profile", href: "/dashboard/profile", icon: <User size={20} /> },
     { name: "Orders", href: "/dashboard/orders", icon: <Package size={20} /> },
-    { name: "Products", href: "/dashboard/products", icon: <Boxes size={20} /> },
     {
       name: "Subscription",
       href: "/dashboard/subscription",
