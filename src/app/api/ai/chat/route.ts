@@ -40,6 +40,17 @@ type ParsedAIResponse = {
   products?: ParsedAIProduct[];
 };
 
+type EnrichedAIProduct = {
+  id: string;
+  name: string;
+  price: number;
+  discountPrice?: number;
+  image?: string;
+  slug?: string;
+  reason: string;
+  score: number;
+};
+
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
@@ -176,13 +187,13 @@ ${JSON.stringify(minifiedProducts)}
     // -----------------------
     // 🧩 ENRICH PRODUCT DATA (ONLY IF INTENT IS 'recommend')
     // -----------------------
-    let enrichedProducts = [];
+    let enrichedProducts: EnrichedAIProduct[] = [];
     
     if (parsed.intent === "recommend" && Array.isArray(parsed.products)) {
       const index = new Map(rawProducts.map((p) => [p._id.toString(), p]));
 
       enrichedProducts = parsed.products
-        .map((p) => {
+        .map<EnrichedAIProduct | null>((p) => {
           const match = index.get(p.id);
           if (!match) return null;
 
@@ -197,7 +208,9 @@ ${JSON.stringify(minifiedProducts)}
             score: p.score || 0,
           };
         })
-        .filter(Boolean);
+        .filter(
+          (product): product is EnrichedAIProduct => product !== null
+        );
     }
 
     // -----------------------
