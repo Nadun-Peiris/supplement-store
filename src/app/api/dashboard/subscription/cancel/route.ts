@@ -17,7 +17,9 @@ export async function POST(req: NextRequest) {
 
     const user = await User.findOne({ firebaseId: decoded.uid });
 
-    if (!user || !user.subscription?.id) {
+    const subscriptionId = user?.subscription?.subscriptionId;
+
+    if (!user || !subscriptionId) {
       return NextResponse.json(
         { error: "No active subscription" },
         { status: 400 }
@@ -25,12 +27,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Cancel on Lemon Squeezy
-    await lemonFetch(`/subscriptions/${user.subscription.id}`, {
+    await lemonFetch(`/subscriptions/${subscriptionId}`, {
       method: "PATCH",
       body: JSON.stringify({
         data: {
           type: "subscriptions",
-          id: String(user.subscription.id),
+          id: String(subscriptionId),
           attributes: {
             cancelled: true,
           },

@@ -4,6 +4,15 @@ import { connectDB } from "@/lib/mongoose";
 import User, { type IUser } from "@/models/User";
 import Subscription from "@/models/Subscription";
 
+type DashboardSubscription = {
+  id: string | null;
+  subscriptionId: string | null;
+  status: "active" | "cancelled" | "completed" | null;
+  active: boolean;
+  nextBillingDate: Date | null;
+  cancelledAt: Date | null;
+};
+
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
@@ -22,13 +31,22 @@ export async function GET(req: NextRequest) {
     if (!user)
       return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    let subscription = user.subscription;
+    let subscription: DashboardSubscription | null = user.subscription
+      ? {
+          id: user.subscription.subscriptionId,
+          subscriptionId: user.subscription.subscriptionId,
+          status: user.subscription.status,
+          active: user.subscription.active,
+          nextBillingDate: user.subscription.nextBillingDate,
+          cancelledAt: user.subscription.cancelledAt,
+        }
+      : null;
 
     // Fallback: if the embedded subscription is missing, try the Subscription collection
-    if (!subscription?.id) {
+    if (!subscription?.subscriptionId) {
       type SubscriptionFallback = {
         subscriptionId?: string | null;
-        status?: string | null;
+        status?: "active" | "cancelled" | "completed" | null;
         nextBillingDate?: Date | null;
       };
 
@@ -39,22 +57,28 @@ export async function GET(req: NextRequest) {
       if (latest) {
         subscription = {
           id: latest.subscriptionId ?? null,
+          subscriptionId: latest.subscriptionId ?? null,
           status: latest.status ?? null,
           active:
-            typeof latest.status === "string" &&
-            ["active"].includes(
-              latest.status.toLowerCase()
-            ),
+            latest.status === "active",
           nextBillingDate: latest.nextBillingDate ?? null,
-          lemonCustomerId: null,
-          cancelledAt:
-            latest.status === "cancelled" ? new Date() : null,
+          cancelledAt: latest.status === "cancelled" ? new Date() : null,
         };
 
         // Keep user doc in sync for future reads
         await User.updateOne(
           { _id: user._id },
-          { $set: { subscription } }
+          {
+            $set: {
+              subscription: {
+                subscriptionId: subscription.subscriptionId,
+                status: subscription.status,
+                active: subscription.active,
+                nextBillingDate: subscription.nextBillingDate,
+                cancelledAt: subscription.cancelledAt,
+              },
+            },
+          }
         );
       }
     }
