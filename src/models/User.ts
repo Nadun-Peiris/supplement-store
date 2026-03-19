@@ -1,5 +1,3 @@
-// src/models/User.ts
-
 import mongoose, {
   Schema,
   Document,
@@ -14,20 +12,19 @@ import mongoose, {
 export interface IUser extends Document {
   _id: Types.ObjectId;
   firebaseId: string;
-
   fullName: string;
   email: string;
   phone: string;
   age: number;
-  gender: string;
+  gender: "Male" | "Female" | "Other"; // Strict types
 
   height?: number;
   weight?: number;
   bmi?: number;
-  goal?: string;
-  activity?: string;
+  goal?: "Weight Loss" | "Muscle Gain" | "Maintenance";
+  activity?: "Sedentary" | "Light" | "Moderate" | "Active" | "Very Active";
   conditions?: string;
-  diet?: string;
+  diet?: "Standard" | "Keto" | "Vegan" | "Vegetarian" | "Paleo";
   sleepHours?: number;
   waterIntake?: number;
 
@@ -38,18 +35,15 @@ export interface IUser extends Document {
   country: string;
 
   subscription: {
-    id: string | null;
+    subscriptionId: string | null; // Changed to match PayHere logic
     active: boolean;
     nextBillingDate: Date | null;
-    lemonCustomerId: string | null;
-    status: string | null;
+    status: "active" | "cancelled" | "completed" | null;
     cancelledAt: Date | null;
   };
 
-  // 🔐 NEW FIELDS
   role: "customer" | "admin" | "superadmin";
   isBlocked: boolean;
-
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,22 +54,39 @@ export interface IUser extends Document {
 const UserSchema = new Schema<IUser>(
   {
     firebaseId: { type: String, required: true, unique: true },
-
-    // Step 1
     fullName: { type: String, required: true },
     email: { type: String, required: true, unique: true },
     phone: { type: String, required: true, unique: true },
     age: { type: Number, required: true },
-    gender: { type: String, required: true },
+    
+    // 🔐 ENFORCED DROPDOWN OPTIONS
+    gender: { 
+      type: String, 
+      required: true, 
+      enum: ["Male", "Female", "Other"] 
+    },
 
-    // Step 2 - Health
+    // Step 2 - Health (Enforced Enums)
     height: Number,
     weight: Number,
     bmi: Number,
-    goal: String,
-    activity: String,
+    goal: { 
+      type: String, 
+      enum: ["Weight Loss", "Muscle Gain", "Maintenance"],
+      default: "Maintenance"
+    },
+    activity: { 
+      type: String, 
+      enum: ["Sedentary", "Light", "Moderate", "Active", "Very Active"],
+      default: "Moderate"
+    },
+    diet: { 
+      type: String, 
+      enum: ["Standard", "Keto", "Vegan", "Vegetarian", "Paleo"],
+      default: "Standard"
+    },
+    
     conditions: String,
-    diet: String,
     sleepHours: Number,
     waterIntake: Number,
 
@@ -84,47 +95,35 @@ const UserSchema = new Schema<IUser>(
     addressLine2: { type: String },
     city: { type: String, required: true },
     postalCode: { type: String, required: true },
-    country: { type: String, required: true },
+    country: { type: String, required: true, default: "Sri Lanka" },
 
     subscription: {
-      id: { type: String, default: null },
+      subscriptionId: { type: String, default: null },
       active: { type: Boolean, default: false },
       nextBillingDate: { type: Date, default: null },
-      lemonCustomerId: { type: String, default: null },
-      status: { type: String, default: null },
+      status: { 
+        type: String, 
+        enum: ["active", "cancelled", "completed", null], 
+        default: null 
+      },
       cancelledAt: { type: Date, default: null },
     },
 
-    // 🔐 ROLE SYSTEM
     role: {
       type: String,
       enum: ["customer", "admin", "superadmin"],
       default: "customer",
     },
 
-    // 🔐 BLOCK SYSTEM
-    isBlocked: {
-      type: Boolean,
-      default: false,
-    },
-
-    createdAt: { type: Date, default: Date.now },
+    isBlocked: { type: Boolean, default: false },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-/* ---------------------------------------------------------
-   Indexes (Performance Optimization)
---------------------------------------------------------- */
 UserSchema.index({ email: 1 });
 UserSchema.index({ firebaseId: 1 });
 UserSchema.index({ role: 1 });
 
-/* ---------------------------------------------------------
-   Export Model
---------------------------------------------------------- */
 const User: Model<IUser> =
   (models.User as Model<IUser>) ||
   mongoose.model<IUser>("User", UserSchema);

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
-import "./dashboard.css";
+import { Loader2, LayoutDashboard } from "lucide-react";
 
 import UserSummary from "./components/UserSummary";
 import HealthCards from "./components/HealthCards";
@@ -35,36 +35,55 @@ export default function Dashboard() {
     });
 
     return () => unsub();
-  }, []);
+  }, [router]);
 
-  if (loading) return <div className="dashboard-loading">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex h-[80vh] w-full flex-col items-center justify-center gap-4">
+        <Loader2 className="h-10 w-10 animate-spin text-[#03c7fe]" />
+        <p className="text-sm font-bold uppercase tracking-widest text-gray-400">
+          Syncing Dashboard...
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div className="dashboard-container">
-      {/* Summary */}
+    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-8 p-6 lg:p-8">
+
+      {/* TOP SUMMARY (User stats, daily greeting) */}
       <UserSummary />
 
-      {/* Health Cards */}
+      {/* QUICK STAT CARDS (Height, Weight, BMI, Activity) */}
       <HealthCards />
 
-      <div className="dashboard-grid">
-        {/* Weight Chart */}
-        <WeightChart />
+      {/* ANALYTICS GRID */}
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+        {/* Weight Progression Chart */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+           <WeightChart />
+        </div>
 
-        {/* Water Intake Chart */}
-        <WaterChart />
+        {/* Water Intake Tracker */}
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+          <WaterChart />
+        </div>
       </div>
 
-      {/* Orders Section */}
-      <OrdersSection />
+      {/* BOTTOM SECTION GRID */}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+        {/* Recent Orders (Spans 2 columns on large screens) */}
+        <div className="lg:col-span-2">
+          <OrdersSection />
+        </div>
 
-      {/* Subscription Status */}
-      <SubscriptionSection />
-
-      {/* AI Recommendation Widget */}
-      <AIWidget />
+        {/* Subscription Sidebar */}
+        <div className="flex flex-col gap-6">
+          <SubscriptionSection />
+          {/* AI Insights Widget inside this column */}
+          <AIWidget />
+        </div>
+      </div>
     </div>
   );
 }
-
-

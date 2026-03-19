@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { FaChevronDown, FaEye, FaEyeSlash } from "react-icons/fa";
+import { FaEye, FaEyeSlash, FaChevronDown } from "react-icons/fa";
+import { HEALTH_OPTIONS } from "@/lib/constants";
 
 export default function Step1() {
   const router = useRouter();
@@ -14,10 +15,10 @@ export default function Step1() {
     confirmPassword: "",
     countryCode: "+94",
     phoneLocal: "",
-    phone: "",
     age: "",
     gender: "",
   });
+  
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -25,45 +26,17 @@ export default function Step1() {
     if (localStorage.getItem("registration_complete")) {
       router.replace("/dashboard");
     }
-  }, [router]);
-
-  // Load saved data (back button)
-  useEffect(() => {
     const saved = localStorage.getItem("register_step1");
     if (saved) {
-      const parsed = JSON.parse(saved);
-      const savedCountry = parsed.countryCode || "+94";
-      let localPart = parsed.phoneLocal || "";
-      if (!localPart && typeof parsed.phone === "string") {
-        localPart = parsed.phone.replace(savedCountry, "");
-      }
-      setForm((prev) => ({
-        ...prev,
-        ...parsed,
-        countryCode: savedCountry,
-        phoneLocal: localPart,
-        phone: parsed.phone || `${savedCountry}${localPart}`,
-      }));
+      setForm(JSON.parse(saved));
     }
-  }, []);
+  }, [router]);
 
-  const handleChange = (e: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSelectChange = (e: any) => {
-    handleChange(e);
-    e.target.blur();
-  };
-
-  const countryOptions = [
-    { code: "+94", label: "Sri Lanka (+94)", flag: "🇱🇰" },
-    { code: "+1", label: "United States (+1)", flag: "🇺🇸" },
-    { code: "+44", label: "United Kingdom (+44)", flag: "🇬🇧" },
-    { code: "+61", label: "Australia (+61)", flag: "🇦🇺" },
-  ];
-
-  const handleNext = (e: any) => {
+  const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (form.password !== form.confirmPassword) {
@@ -73,36 +46,35 @@ export default function Step1() {
 
     const digitsOnly = form.phoneLocal.replace(/\D/g, "");
     const trimmedPhone = `${form.countryCode}${digitsOnly}`;
-    const e164Regex = /^\+[1-9]\d{6,14}$/;
-    if (!e164Regex.test(trimmedPhone)) {
-      alert("Please enter a valid phone number (include area code).");
+    if (!/^\+94\d{9}$/.test(trimmedPhone)) {
+      alert("Please enter a valid Sri Lankan phone number (e.g., 771234567).");
       return;
     }
 
-    const payload = {
-      ...form,
-      phone: trimmedPhone,
-      phoneLocal: digitsOnly,
-    };
-    localStorage.setItem("register_step1", JSON.stringify(payload));
+    localStorage.setItem("register_step1", JSON.stringify({ ...form, phone: trimmedPhone }));
     router.push("/register/health-info");
   };
 
+  // Reusable Tailwind classes for the "Sync" Look
+  const inputClass = "w-full rounded-xl border border-[#cfeef7] bg-[#fbfdff] p-3 text-sm outline-none transition-all focus:border-[#31D7FF] focus:ring-2 focus:ring-[#31D7FF]/20 placeholder:text-gray-300";
+  const labelClass = "text-sm font-bold text-[#111] mb-1.5 block";
+  const selectWrapper = "relative flex items-center";
+  const selectIcon = "pointer-events-none absolute right-4 text-gray-400 group-focus-within:text-[#31D7FF] transition-colors";
+
   return (
-    <div className="register-container">
-      <div className="register-card fade-in">
+    <div className="flex min-h-screen items-center justify-center bg-[#f2fbff] px-4 py-12">
+      <div className="w-full max-w-[480px] rounded-[22px] border border-[#e6faff] bg-white p-8 shadow-xl animate-in fade-in slide-in-from-bottom-2">
+        
+        <h2 className="text-center text-3xl font-black text-[#111]">Create Account</h2>
+        <p className="mb-8 text-center text-sm font-medium text-gray-500">Step 1 of 3 — Basic Information</p>
 
-        <h2 className="register-title">Create Your Account</h2>
-        <p className="register-sub">Step 1 of 3 — Basic Information</p>
-
-        <form onSubmit={handleNext} className="register-form">
-
+        <form onSubmit={handleNext} className="space-y-5">
           {/* FULL NAME */}
-          <div className="input-group">
-            <label>Full Name</label>
+          <div>
+            <label className={labelClass}>Full Name</label>
             <input
-              type="text"
               name="fullName"
+              className={inputClass}
               value={form.fullName}
               onChange={handleChange}
               placeholder="Enter your full name"
@@ -111,11 +83,12 @@ export default function Step1() {
           </div>
 
           {/* EMAIL */}
-          <div className="input-group">
-            <label>Email Address</label>
+          <div>
+            <label className={labelClass}>Email Address</label>
             <input
               type="email"
               name="email"
+              className={inputClass}
               value={form.email}
               onChange={handleChange}
               placeholder="example@gmail.com"
@@ -123,137 +96,114 @@ export default function Step1() {
             />
           </div>
 
-          {/* PASSWORD */}
-          <div className="input-group">
-            <label>Password</label>
-            <div className="password-wrapper">
-              <input
-                type={showPassword ? "text" : "password"}
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                placeholder="Minimum 6 characters"
-                required
-              />
-              <button
-                type="button"
-                className="toggle-password"
-                data-visible={showPassword}
-                onClick={() => setShowPassword((prev) => !prev)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                <FaEye
-                  className="toggle-password-icon toggle-password-icon-open"
-                  aria-hidden="true"
+          {/* PASSWORD GRID */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className={labelClass}>Password</label>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  className={inputClass}
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Min 6 chars"
+                  required
                 />
-                <FaEyeSlash
-                  className="toggle-password-icon toggle-password-icon-closed"
-                  aria-hidden="true"
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#31D7FF] transition-colors"
+                >
+                  {showPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <div>
+              <label className={labelClass}>Confirm</label>
+              <div className="relative">
+                <input
+                  type={showConfirmPassword ? "text" : "password"}
+                  name="confirmPassword"
+                  className={inputClass}
+                  value={form.confirmPassword}
+                  onChange={handleChange}
+                  placeholder="Repeat"
+                  required
                 />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#31D7FF] transition-colors"
+                >
+                  {showConfirmPassword ? <FaEyeSlash size={16} /> : <FaEye size={16} />}
+                </button>
+              </div>
             </div>
           </div>
 
-          {/* CONFIRM PASSWORD */}
-          <div className="input-group">
-            <label>Re-enter Password</label>
-            <div className="password-wrapper">
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                name="confirmPassword"
-                value={form.confirmPassword}
-                onChange={handleChange}
-                placeholder="Re-enter password"
-                required
-              />
-              <button
-                type="button"
-                className="toggle-password"
-                data-visible={showConfirmPassword}
-                onClick={() => setShowConfirmPassword((prev) => !prev)}
-                aria-label={
-                  showConfirmPassword ? "Hide confirm password" : "Show confirm password"
-                }
-              >
-                <FaEye
-                  className="toggle-password-icon toggle-password-icon-open"
-                  aria-hidden="true"
-                />
-                <FaEyeSlash
-                  className="toggle-password-icon toggle-password-icon-closed"
-                  aria-hidden="true"
-                />
-              </button>
-            </div>
-          </div>
-
-          {/* PHONE NUMBER */}
-          <div className="input-group">
-            <label>Phone Number</label>
-            <div className="phone-input">
-              <select
-                name="countryCode"
-                value={form.countryCode}
-                onChange={handleChange}
-                required
-              >
-                {countryOptions.map((country) => (
-                  <option key={country.code} value={country.code}>
-                    {country.flag} {country.label}
-                  </option>
-                ))}
-              </select>
+          {/* PHONE (Sri Lanka Only) */}
+          <div>
+            <label className={labelClass}>Phone Number</label>
+            <div className="flex gap-2">
+              <div className="flex w-[100px] items-center justify-center rounded-xl border border-[#cfeef7] bg-gray-50 text-sm font-bold text-gray-500">
+                🇱🇰 +94
+              </div>
               <input
                 type="tel"
                 name="phoneLocal"
+                className={inputClass}
                 value={form.phoneLocal}
                 onChange={handleChange}
                 placeholder="771234567"
-                pattern="\d{6,14}"
-                title="Enter digits only"
                 required
               />
             </div>
           </div>
 
-          {/* AGE */}
-          <div className="input-group">
-            <label>Age</label>
-            <input
-              type="number"
-              name="age"
-              value={form.age}
-              onChange={handleChange}
-              placeholder="Your age"
-              required
-            />
-          </div>
-
-          {/* GENDER SELECT */}
-          <div className="input-group">
-            <label>Gender</label>
-            <div className="select-wrapper">
-              <select
-                name="gender"
-                value={form.gender}
-                onChange={handleSelectChange}
+          <div className="grid grid-cols-2 gap-4">
+            {/* AGE */}
+            <div>
+              <label className={labelClass}>Age</label>
+              <input
+                type="number"
+                name="age"
+                className={inputClass}
+                value={form.age}
+                onChange={handleChange}
+                placeholder="Years"
                 required
-              >
-                <option value="" disabled>
-                  Select gender
-                </option>
-                <option value="male">Male</option>
-                <option value="female">Female</option>
-                <option value="other">Other</option>
-              </select>
-              <FaChevronDown className="select-icon" />
+              />
+            </div>
+
+            {/* GENDER CUSTOM DROPDOWN */}
+            <div className="group flex flex-col">
+              <label className={labelClass}>Gender</label>
+              <div className={selectWrapper}>
+                <select
+                  name="gender"
+                  className={`${inputClass} appearance-none cursor-pointer pr-10`}
+                  value={form.gender}
+                  onChange={handleChange}
+                  required
+                >
+                  <option value="" disabled className="text-gray-300">Select</option>
+                  {HEALTH_OPTIONS.gender.map(g => (
+                    <option key={g} value={g} className="text-[#111]">{g}</option>
+                  ))}
+                </select>
+                <FaChevronDown className={selectIcon} size={12} />
+              </div>
             </div>
           </div>
 
-          <button className="register-btn" type="submit">
-            Continue →
+          <button
+            type="submit"
+            className="mt-4 w-full rounded-xl bg-[#262626] py-4 text-sm font-bold text-white shadow-md transition-all hover:bg-[#111] hover:shadow-xl hover:-translate-y-0.5 active:scale-[0.98]"
+          >
+            Continue to Health Info →
           </button>
-
         </form>
       </div>
     </div>

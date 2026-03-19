@@ -28,9 +28,56 @@ export const normalizeProduct = (product: LeanProduct): ProductDTO => ({
     product.brandSlug ??
     (product.brandName ? normalizeSlug(product.brandName) : undefined),
   price: product.price,
+  discountPrice: product.discountPrice ?? undefined,
+  currency: product.currency ?? "LKR",
   image: product.image,
   hoverImage: product.hoverImage ?? undefined,
+  gallery: product.gallery?.filter(Boolean) ?? [],
   description: product.description ?? undefined,
+  details: product.details
+    ? {
+        overview: product.details.overview ?? undefined,
+        ingredients: product.details.ingredients?.filter(Boolean) ?? [],
+        benefits: product.details.benefits?.filter(Boolean) ?? [],
+        howToUse: product.details.howToUse?.filter(Boolean) ?? [],
+        warnings: product.details.warnings?.filter(Boolean) ?? [],
+        additionalInfo: product.details.additionalInfo?.filter(Boolean) ?? [],
+        servingInfo: product.details.servingInfo
+          ? {
+              title: product.details.servingInfo.title ?? "Nutrition Facts",
+              servingSize: product.details.servingInfo.servingSize ?? undefined,
+              servingsPerContainer:
+                product.details.servingInfo.servingsPerContainer ?? undefined,
+              amountPerServingLabel:
+                product.details.servingInfo.amountPerServingLabel ??
+                "Amount Per Serving",
+              dailyValueLabel:
+                product.details.servingInfo.dailyValueLabel ?? "% Daily Value",
+              footnote: product.details.servingInfo.footnote ?? undefined,
+              ingredientsText:
+                product.details.servingInfo.ingredientsText ?? undefined,
+              containsText:
+                product.details.servingInfo.containsText ?? undefined,
+              noticeText: product.details.servingInfo.noticeText ?? undefined,
+              nutrients:
+                product.details.servingInfo.nutrients?.map((nutrient) => ({
+                  name: nutrient.name ?? undefined,
+                  amount: nutrient.amount ?? undefined,
+                  dailyValue: nutrient.dailyValue ?? undefined,
+                  indentLevel: nutrient.indentLevel ?? 0,
+                  emphasized: nutrient.emphasized ?? false,
+                })) ?? [],
+            }
+          : undefined,
+      }
+    : undefined,
+  coa: product.coa
+    ? {
+        certificateUrl: product.coa.certificateUrl ?? undefined,
+        verified: product.coa.verified ?? false,
+      }
+    : undefined,
+  isActive: product.isActive ?? true,
   stock: typeof product.stock === "number" ? Math.max(product.stock, 0) : 0,
 });
 

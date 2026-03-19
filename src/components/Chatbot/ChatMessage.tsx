@@ -1,21 +1,14 @@
 "use client";
+import { FiMessageCircle } from "react-icons/fi";
 
-import ProductCardAI from "./ProductCardAI";
-import "./ChatMessage.css";
-
-export default function ChatMessage({ message }: any) {
+export default function ChatButton({ onClick }: { onClick: () => void }) {
   return (
-    <div className={`chat-message ${message.sender}`}>
-      <p className="chat-text">{message.text}</p>
-
-      {/* Product cards */}
-      {message.products?.length > 0 && (
-        <div className="ai-product-list">
-          {message.products.map((p: any, index: number) => (
-            <ProductCardAI key={index} product={p} />
-          ))}
-        </div>
-      )}
-    </div>
+    <button
+      className="fixed bottom-[25px] right-[25px] z-[999999] inline-flex h-[2.75rem] items-center gap-[10px] rounded-full border border-[#525252] bg-[#262626] px-[18px] text-[1.05rem] font-semibold text-white shadow-[0_6px_18px_rgba(0,0,0,0.25)] transition-all duration-[250ms] ease-in-out hover:border-[#03C7FE] hover:bg-[#111]"
+      onClick={onClick}
+    >
+      <FiMessageCircle aria-hidden className="text-[1.1em]" />
+      <span className="tracking-[0.4px]">Chat</span>
+    </button>
   );
 }
