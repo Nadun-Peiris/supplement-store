@@ -8,6 +8,8 @@ import User from "@/models/User";
 import Product from "@/models/Product";
 import { NextResponse } from "next/server";
 import CryptoJS from "crypto-js";
+import { sendEmail } from "@/lib/mail/nodemailer";
+import { getOrderConfirmationHtml } from "@/lib/mail/orderConfirmation";
 
 const PAYHERE_SUCCESS_STATUS = "2";
 const STORE_CURRENCY = "LKR";
@@ -142,6 +144,28 @@ export async function POST(req: Request) {
       }
     };
 
+    const sendOrderConfirmationEmail = async (order: OrderForNotify | null) => {
+      const recipientEmail = order?.billingDetails?.email;
+
+      if (!order || !recipientEmail) return;
+
+      try {
+        await sendEmail({
+          to: recipientEmail,
+          subject: "Order Confirmation 🛒",
+          html: getOrderConfirmationHtml({
+            _id: String(order._id),
+            items: order.items,
+            subtotal: Number(order.subtotal) || 0,
+            shippingCost: Number(order.shippingCost) || 0,
+            total: Number(order.total) || 0,
+          }),
+        });
+      } catch (emailError) {
+        console.error("Order confirmation email failed:", emailError);
+      }
+    };
+
     const decrementStockForItems = async (
       items:
         | {
@@ -246,6 +270,7 @@ export async function POST(req: Request) {
       if (updatedOrder) {
         await decrementStockForItems(updatedOrder.items);
         await clearCartForOrder(updatedOrder);
+        await sendOrderConfirmationEmail(updatedOrder);
       } else {
         await clearCartForOrder(orderDoc);
       }
@@ -316,6 +341,7 @@ export async function POST(req: Request) {
       if (updatedOrder) {
         await decrementStockForItems(updatedOrder.items);
         await clearCartForOrder(updatedOrder);
+        await sendOrderConfirmationEmail(updatedOrder);
       } else {
         await clearCartForOrder(orderDoc);
       }

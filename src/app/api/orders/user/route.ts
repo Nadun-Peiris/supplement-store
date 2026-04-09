@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ orders: [] });
     }
 
-    const orders = await Order.find({ user: user._id })
+    const orders = await Order.find({ user: user._id, paymentStatus: "paid" })
       .sort({ createdAt: -1 })
       .lean();
 
