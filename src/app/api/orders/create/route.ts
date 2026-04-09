@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     let cartOwnerUserId: string | null = null;
     const cartOwnerGuestId: string | null = guestId || null;
 
-    let userEmail: string | null = billingDetails.email || null; 
+    let userEmail: string | null = billingDetails.email || null;
 
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.split(" ")[1];
@@ -113,104 +113,82 @@ export async function POST(req: Request) {
       await Cart.deleteMany({ guestId: cartOwnerGuestId });
     }
 
-    // 📧 SEND PROFESSIONAL EMAIL
+    // 📧 SEND EMAIL
     if (userEmail) {
       try {
-        const orderIdString = (order._id as any).toString().toUpperCase().slice(-8);
-
         await sendEmail({
           to: userEmail,
-          subject: `Order Confirmation - Order #${orderIdString}`,
+          subject: `Order Confirmation - Order #${String(order._id).toUpperCase().slice(-8)}`,
           html: `
-            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; padding: 40px 0; width: 100%;">
-              <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-top: 6px solid #01C7FE; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f9f9f9; padding: 20px;">
+              <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; border: 1px solid #e1e1e1;">
                 
-                <tr>
-                  <td style="padding: 30px 40px; text-align: left;">
-                    <h1 style="color: #333333; margin: 0; font-size: 22px;">Order Received</h1>
-                    <p style="color: #666666; font-size: 14px; margin-top: 5px;">Order Reference: #${orderIdString}</p>
-                  </td>
-                </tr>
+                <div style="background-color: #01C7FE; padding: 40px 20px; text-align: center;">
+                  <h1 style="color: #ffffff; margin: 0; font-size: 26px; text-transform: uppercase; letter-spacing: 2px;">Order Confirmed</h1>
+                </div>
 
-                <tr>
-                  <td style="padding: 0 40px 20px 40px;">
-                    <p style="font-size: 15px; color: #444; line-height: 1.6;">
-                      Dear ${billingDetails.firstName || 'Customer'},<br><br>
-                      Thank you for your purchase. We are pleased to confirm that your order has been successfully placed and is currently being processed.
-                    </p>
-                  </td>
-                </tr>
+                <div style="padding: 30px;">
+                  <p style="font-size: 16px; color: #333;">Dear ${billingDetails.firstName || 'Customer'},</p>
+                  <p style="font-size: 14px; color: #555; line-height: 1.6;">
+                    Thank you for your purchase. We have received your order and are currently processing it. Below are your order details and shipping information.
+                  </p>
 
-                <tr>
-                  <td style="padding: 0 40px 30px 40px;">
-                    <table width="100%" cellspacing="0" cellpadding="0" style="background-color: #fcfcfc; border: 1px solid #eeeeee; border-radius: 4px;">
-                      <tr>
-                        <td style="padding: 20px;">
-                          <h3 style="margin: 0 0 10px 0; font-size: 13px; color: #01C7FE; text-transform: uppercase; letter-spacing: 1px;">Delivery Details</h3>
-                          <p style="margin: 0; font-size: 14px; color: #555; line-height: 1.5;">
-                            <strong>${billingDetails.firstName} ${billingDetails.lastName}</strong><br>
-                            ${billingDetails.addressLine1}${billingDetails.addressLine2 ? ', ' + billingDetails.addressLine2 : ''}<br>
-                            ${billingDetails.city}, ${billingDetails.state || ''} ${billingDetails.postalCode || ''}<br>
-                            ${billingDetails.phone}
-                          </p>
-                        </td>
+                  <table width="100%" style="border-collapse: collapse; margin-top: 25px;">
+                    <thead>
+                      <tr style="border-bottom: 2px solid #01C7FE;">
+                        <th align="left" style="padding: 10px 0; font-size: 12px; color: #888; text-transform: uppercase;">Description</th>
+                        <th align="center" style="padding: 10px 0; font-size: 12px; color: #888; text-transform: uppercase;">Qty</th>
+                        <th align="right" style="padding: 10px 0; font-size: 12px; color: #888; text-transform: uppercase;">Amount</th>
                       </tr>
-                    </table>
-                  </td>
-                </tr>
-
-                <tr>
-                  <td style="padding: 0 40px;">
-                    <table width="100%" cellspacing="0" cellpadding="0" style="border-bottom: 2px solid #f4f4f4;">
-                      <thead>
-                        <tr>
-                          <th align="left" style="padding-bottom: 10px; font-size: 12px; color: #999; text-transform: uppercase;">Item</th>
-                          <th align="right" style="padding-bottom: 10px; font-size: 12px; color: #999; text-transform: uppercase;">Total</th>
+                    </thead>
+                    <tbody>
+                      ${order.items.map((item: any) => `
+                        <tr style="border-bottom: 1px solid #eee;">
+                          <td style="padding: 15px 0; font-size: 14px; color: #333;">${item.name}</td>
+                          <td align="center" style="padding: 15px 0; font-size: 14px; color: #666;">${item.quantity}</td>
+                          <td align="right" style="padding: 15px 0; font-size: 14px; color: #333; font-weight: bold;">LKR ${item.lineTotal.toLocaleString()}</td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        ${order.items.map((item: any) => `
-                          <tr>
-                            <td style="padding: 12px 0; border-top: 1px solid #f9f9f9;">
-                              <span style="font-size: 14px; color: #333; font-weight: 500;">${item.name}</span><br>
-                              <span style="font-size: 12px; color: #888;">Quantity: ${item.quantity}</span>
-                            </td>
-                            <td align="right" style="padding: 12px 0; border-top: 1px solid #f9f9f9; font-size: 14px; color: #333;">
-                              LKR ${item.lineTotal?.toLocaleString()}
-                            </td>
-                          </tr>
-                        `).join("")}
-                      </tbody>
-                    </table>
-                  </td>
-                </tr>
+                      `).join('')}
+                    </tbody>
+                  </table>
 
-                <tr>
-                  <td style="padding: 20px 40px;">
-                    <table width="100%" cellspacing="0" cellpadding="0">
+                  <div style="margin-top: 20px; background-color: #fcfcfc; padding: 15px; border-radius: 4px;">
+                    <table width="100%">
                       <tr>
-                        <td align="right" style="padding: 5px 0; font-size: 14px; color: #777;">Subtotal</td>
-                        <td align="right" style="padding: 5px 0 0 20px; font-size: 14px; color: #333; width: 100px;">LKR ${subtotal.toLocaleString()}</td>
+                        <td style="font-size: 14px; color: #666;">Subtotal</td>
+                        <td align="right" style="font-size: 14px; color: #333;">LKR ${subtotal.toLocaleString()}</td>
                       </tr>
                       <tr>
-                        <td align="right" style="padding: 5px 0; font-size: 14px; color: #777;">Shipping</td>
-                        <td align="right" style="padding: 5px 0 0 20px; font-size: 14px; color: #333;">LKR ${shippingCost.toLocaleString()}</td>
+                        <td style="font-size: 14px; color: #666;">Shipping Cost</td>
+                        <td align="right" style="font-size: 14px; color: #333;">LKR ${shippingCost.toLocaleString()}</td>
                       </tr>
                       <tr>
-                        <td align="right" style="padding: 15px 0; font-size: 16px; font-weight: bold; color: #333;">Total Paid</td>
-                        <td align="right" style="padding: 15px 0 0 20px; font-size: 16px; font-weight: bold; color: #01C7FE;">LKR ${total.toLocaleString()}</td>
+                        <td style="font-size: 16px; font-weight: bold; color: #01C7FE; padding-top: 10px;">Total</td>
+                        <td align="right" style="font-size: 18px; font-weight: bold; color: #01C7FE; padding-top: 10px;">LKR ${total.toLocaleString()}</td>
                       </tr>
                     </table>
-                  </td>
-                </tr>
+                  </div>
 
-                <tr>
-                  <td style="padding: 30px 40px; background-color: #333; text-align: center;">
-                    <p style="margin: 0; font-size: 12px; color: #bbb;">You will receive a shipping notification once your order is dispatched.</p>
-                    <p style="margin: 10px 0 0 0; font-size: 12px; color: #888;">&copy; ${new Date().getFullYear()} Your Brand Name. All rights reserved.</p>
-                  </td>
-                </tr>
-              </table>
+                  <div style="margin-top: 30px; display: flex; gap: 20px;">
+                    <div style="flex: 1;">
+                      <h4 style="font-size: 12px; color: #01C7FE; text-transform: uppercase; margin-bottom: 10px; border-bottom: 1px solid #01C7FE; display: inline-block;">Shipping Address</h4>
+                      <p style="font-size: 13px; color: #555; line-height: 1.5; margin: 0;">
+                        ${billingDetails.firstName} ${billingDetails.lastName}<br>
+                        ${billingDetails.address}<br>
+                        ${billingDetails.city}, ${billingDetails.postalCode}<br>
+                        ${billingDetails.phone}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="background-color: #f4f4f4; padding: 20px; text-align: center; border-top: 1px solid #eee;">
+                  <p style="font-size: 12px; color: #999; margin: 0;">
+                    This is an automated message. Please do not reply to this email.<br>
+                    Order ID: ${order._id}
+                  </p>
+                </div>
+              </div>
             </div>
           `,
         });
