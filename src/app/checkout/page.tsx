@@ -526,7 +526,7 @@ export default function CheckoutPage() {
             <div className="rounded-xl border border-gray-100 bg-gray-50 px-4 py-3">
               <div className="flex items-center justify-between gap-4 text-sm font-medium text-[#111]">
                 <span>Standard Shipping</span>
-                <span>Free</span>
+                <span>400</span>
               </div>
             </div>
           </div>
