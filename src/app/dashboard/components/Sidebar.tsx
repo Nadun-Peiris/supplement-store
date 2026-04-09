@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { User, Package, CreditCard, LogOut, LayoutDashboard } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import toast from "react-hot-toast";
+import { BiHealth } from "react-icons/bi";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -14,6 +15,7 @@ export default function Sidebar() {
 
   const menu = [
     { name: "Overview", href: "/dashboard", icon: <LayoutDashboard size={20} /> },
+    { name: "Health", href: "/dashboard/health", icon: <BiHealth size={20} /> },
     { name: "Profile", href: "/dashboard/profile", icon: <User size={20} /> },
     { name: "Orders", href: "/dashboard/orders", icon: <Package size={20} /> },
     {

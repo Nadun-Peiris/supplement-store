@@ -23,20 +23,30 @@ async function fetchProfile(req: Request) {
   const lastName = rest.join(" ");
 
   return NextResponse.json({
-    user: {
-      firstName,
-      lastName,
-      email: profile.email,
-      phone: profile.phone,
-      billingAddress: {
-        street: profile.addressLine1 || "",
-        city: profile.city || "",
-        country: profile.country || "Sri Lanka",
-        postcode: profile.postalCode || "",
-        apartment: profile.addressLine2 || "",
-      },
+  user: {
+    _id: profile._id, // ✅ IMPORTANT
+
+    firstName,
+    lastName,
+    email: profile.email,
+    phone: profile.phone,
+
+    age: profile.age,
+    gender: profile.gender,
+    height: profile.height,
+    weight: profile.weight,
+    goal: profile.goal,
+    activity: profile.activity,
+
+    billingAddress: {
+      street: profile.addressLine1 || "",
+      city: profile.city || "",
+      country: profile.country || "Sri Lanka",
+      postcode: profile.postalCode || "",
+      apartment: profile.addressLine2 || "",
     },
-  });
+  },
+});
 }
 
 export async function GET(req: Request) {

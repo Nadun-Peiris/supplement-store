@@ -17,6 +17,7 @@ interface Order {
   fulfillmentStatus: string;   // FIXED: Added to track shipping state
   orderType: string;
   subscriptionId?: string | null;
+  trackingNumber?: string | null;
   total: number;
   paymentProvider: string;
   items: OrderItem[];
@@ -226,6 +227,15 @@ export default function OrdersPage() {
                 {order.items.length > 2 && (
                   <p className="mt-1 text-[12px] font-bold text-[#03c7fe]">
                     + {order.items.length - 2} more items
+                  </p>
+                )}
+
+                {order.trackingNumber && (
+                  <p className="mt-2 text-[12px] font-semibold text-[#4a6070]">
+                    Waybill No:{" "}
+                    <span className="font-mono font-bold text-[#03c7fe]">
+                      {order.trackingNumber}
+                    </span>
                   </p>
                 )}
               </div>
