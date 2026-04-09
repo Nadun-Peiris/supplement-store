@@ -1,13 +1,14 @@
+import CryptoJS from "crypto-js";
+import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
 import type { IOrder } from "@/models/Order";
+import PendingOrder from "@/models/PendingOrder";
 import Subscription from "@/models/Subscription";
 import PayHereWebhookEvent from "@/models/PayHereWebhookEvent";
 import Cart from "@/models/Cart";
 import User from "@/models/User";
 import Product from "@/models/Product";
-import { NextResponse } from "next/server";
-import CryptoJS from "crypto-js";
 import { sendEmail } from "@/lib/mail/nodemailer";
 import { getOrderConfirmationHtml } from "@/lib/mail/orderConfirmation";
 
@@ -28,6 +29,20 @@ const addDays = (baseDate: Date, days: number) => {
   const nextDate = new Date(baseDate.getTime());
   nextDate.setDate(nextDate.getDate() + days);
   return nextDate;
+};
+
+type CheckoutRecord = {
+  _id?: string;
+  user?: IOrder["user"];
+  orderType?: "normal" | "subscription";
+  items?: IOrder["items"];
+  subtotal?: number;
+  shippingCost?: number;
+  total?: number;
+  billingDetails?: IOrder["billingDetails"];
+  cartOwnerUserId?: string | null;
+  cartOwnerGuestId?: string | null;
+  createdOrderId?: string | null;
 };
 
 export async function POST(req: Request) {
@@ -110,28 +125,19 @@ export async function POST(req: Request) {
 
   try {
     const latestPaymentDate = parsePayHerePaidAt(payherePaidOn) ?? new Date();
-    type OrderForNotify = Pick<IOrder, "user" | "items"> & {
-      _id?: string;
-      subtotal?: number;
-      shippingCost?: number;
-      total?: number;
-      billingDetails?: IOrder["billingDetails"];
-      cartOwnerUserId?: string | null;
-      cartOwnerGuestId?: string | null;
-    };
 
-    const orderDoc = (await Order.findById(order_id).select(
-      "user items total cartOwnerUserId cartOwnerGuestId"
-    )) as OrderForNotify | null;
+    const pendingOrderDoc = (await PendingOrder.findById(order_id).select(
+      "user orderType items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId createdOrderId"
+    )) as CheckoutRecord | null;
 
-    const clearCartForOrder = async (order: OrderForNotify | null) => {
-      if (!order) return;
+    const clearCartForCheckout = async (checkout: CheckoutRecord | null) => {
+      if (!checkout) return;
 
-      let userCartId: string | null = order.cartOwnerUserId ?? null;
-      const guestCartId: string | null = order.cartOwnerGuestId ?? null;
+      let userCartId: string | null = checkout.cartOwnerUserId ?? null;
+      const guestCartId = checkout.cartOwnerGuestId ?? null;
 
-      if (!userCartId && order.user) {
-        const user = await User.findById(order.user).select("firebaseId");
+      if (!userCartId && checkout.user) {
+        const user = await User.findById(checkout.user).select("firebaseId");
         userCartId = user?.firebaseId ?? null;
       }
 
@@ -141,28 +147,6 @@ export async function POST(req: Request) {
 
       if (guestCartId) {
         await Cart.deleteMany({ guestId: guestCartId });
-      }
-    };
-
-    const sendOrderConfirmationEmail = async (order: OrderForNotify | null) => {
-      const recipientEmail = order?.billingDetails?.email;
-
-      if (!order || !recipientEmail) return;
-
-      try {
-        await sendEmail({
-          to: recipientEmail,
-          subject: "Order Confirmation 🛒",
-          html: getOrderConfirmationHtml({
-            _id: String(order._id),
-            items: order.items,
-            subtotal: Number(order.subtotal) || 0,
-            shippingCost: Number(order.shippingCost) || 0,
-            total: Number(order.total) || 0,
-          }),
-        });
-      } catch (emailError) {
-        console.error("Order confirmation email failed:", emailError);
       }
     };
 
@@ -211,6 +195,27 @@ export async function POST(req: Request) {
       }
     };
 
+    const sendOrderConfirmationEmail = async (order: IOrder | null) => {
+      const recipientEmail = order?.billingDetails?.email;
+      if (!order || !recipientEmail) return;
+
+      try {
+        await sendEmail({
+          to: recipientEmail,
+          subject: "Order Confirmation 🛒",
+          html: getOrderConfirmationHtml({
+            _id: String(order._id),
+            items: order.items,
+            subtotal: Number(order.subtotal) || 0,
+            shippingCost: Number(order.shippingCost) || 0,
+            total: Number(order.total) || 0,
+          }),
+        });
+      } catch (emailError) {
+        console.error("Order confirmation email failed:", emailError);
+      }
+    };
+
     const countSuccessfulSubscriptionPayments = async (
       activeSubscriptionId: string | null
     ) => {
@@ -223,6 +228,67 @@ export async function POST(req: Request) {
       });
     };
 
+    const createPaidOrderFromPending = async () => {
+      if (!pendingOrderDoc) return null;
+
+      const latestPendingState = await PendingOrder.findById(order_id).select(
+        "createdOrderId"
+      );
+
+      if (latestPendingState?.createdOrderId) {
+        return Order.findById(latestPendingState.createdOrderId);
+      }
+
+      const createdOrder = await Order.create({
+        user: pendingOrderDoc.user ?? null,
+        orderType: subscription_id
+          ? "subscription"
+          : pendingOrderDoc.orderType === "subscription"
+          ? "subscription"
+          : "normal",
+        subscriptionId: subscription_id ?? null,
+        items: pendingOrderDoc.items ?? [],
+        subtotal: pendingOrderDoc.subtotal ?? 0,
+        shippingCost: pendingOrderDoc.shippingCost ?? 0,
+        total: pendingOrderDoc.total ?? 0,
+        billingDetails: pendingOrderDoc.billingDetails,
+        paymentProvider: "payhere",
+        paymentStatus: "paid",
+        paymentReference: payment_id,
+        fulfillmentStatus: "unfulfilled",
+      });
+
+      await PendingOrder.updateOne(
+        { _id: order_id, createdOrderId: null },
+        {
+          $set: {
+            paymentStatus: "paid",
+            paymentReference: payment_id,
+            subscriptionId: subscription_id ?? null,
+            createdOrderId: createdOrder._id,
+          },
+        }
+      );
+
+      await decrementStockForItems(createdOrder.items);
+      await clearCartForCheckout(pendingOrderDoc);
+      await sendOrderConfirmationEmail(createdOrder);
+
+      return createdOrder;
+    };
+
+    const markPendingFailed = async () => {
+      await PendingOrder.updateOne(
+        { _id: order_id },
+        {
+          $set: {
+            paymentStatus: "failed",
+            paymentReference: payment_id,
+          },
+        }
+      );
+    };
+
     if (
       message_type === "AUTHORIZATION_SUCCESS" &&
       status_code === PAYHERE_SUCCESS_STATUS
@@ -230,16 +296,16 @@ export async function POST(req: Request) {
       processingNotes.push("Handled AUTHORIZATION_SUCCESS.");
 
       const paidAmount = Number(payhere_amount);
-      const expectedAmount = Number(orderDoc?.total);
+      const expectedAmount = Number(pendingOrderDoc?.total);
       const isAmountValid =
         Number.isFinite(paidAmount) &&
         Number.isFinite(expectedAmount) &&
         amountsMatch(paidAmount, expectedAmount);
       const isCurrencyValid = payhere_currency === STORE_CURRENCY;
 
-      if (!orderDoc || !isAmountValid || !isCurrencyValid) {
+      if (!pendingOrderDoc || !isAmountValid || !isCurrencyValid) {
         processingNotes.push(
-          `Rejected AUTHORIZATION_SUCCESS due to invalid amount/currency. paid=${payhere_amount} expected=${orderDoc?.total ?? "n/a"} currency=${payhere_currency}`
+          `Rejected AUTHORIZATION_SUCCESS due to invalid amount/currency. paid=${payhere_amount} expected=${pendingOrderDoc?.total ?? "n/a"} currency=${payhere_currency}`
         );
         await finalizeWebhookEvent("rejected");
         return NextResponse.json(
@@ -248,34 +314,9 @@ export async function POST(req: Request) {
         );
       }
 
-      const updatedOrder = (await Order.findOneAndUpdate(
-        { _id: order_id, paymentStatus: { $ne: "paid" } },
-        {
-          paymentStatus: "paid",
-          paymentReference: payment_id,
-          ...(subscription_id
-            ? {
-                orderType: "subscription" as const,
-                subscriptionId: subscription_id,
-              }
-            : {}),
-        },
-        { new: true }
-      ).select(
-        "user items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId"
-      )) as
-        | OrderForNotify
-        | null;
+      const createdOrder = await createPaidOrderFromPending();
 
-      if (updatedOrder) {
-        await decrementStockForItems(updatedOrder.items);
-        await clearCartForOrder(updatedOrder);
-        await sendOrderConfirmationEmail(updatedOrder);
-      } else {
-        await clearCartForOrder(orderDoc);
-      }
-
-      if (subscription_id) {
+      if (subscription_id && createdOrder) {
         const existing = await Subscription.findOne({
           subscriptionId: subscription_id,
         });
@@ -284,10 +325,10 @@ export async function POST(req: Request) {
         const resolvedNextBillingDate = addDays(latestPaymentDate, 30);
 
         const payload = {
-          user: orderDoc?.user ?? null,
-          orderId: order_id,
+          user: pendingOrderDoc.user ?? null,
+          orderId: createdOrder._id,
           subscriptionId: subscription_id,
-          items: orderDoc?.items ?? [],
+          items: pendingOrderDoc.items ?? [],
           status: "active",
           nextBillingDate: resolvedNextBillingDate,
           recurrence: recurrenceValue,
@@ -309,42 +350,46 @@ export async function POST(req: Request) {
         );
       }
     }
+
     if (
       message_type === "AUTHORIZATION_SUCCESS" &&
       status_code !== PAYHERE_SUCCESS_STATUS
     ) {
+      await markPendingFailed();
       processingNotes.push(
         `Ignored AUTHORIZATION_SUCCESS with non-success status_code=${status_code}.`
       );
     }
 
-    if (!message_type && status_code === "2") {
-      const updatedOrder = (await Order.findOneAndUpdate(
-        { _id: order_id, paymentStatus: { $ne: "paid" } },
-        {
-          paymentStatus: "paid",
-          paymentReference: payment_id,
-          ...(subscription_id
-            ? {
-                orderType: "subscription" as const,
-                subscriptionId: subscription_id,
-              }
-            : {}),
-        },
-        { new: true }
-      ).select(
-        "user items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId"
-      )) as
-        | OrderForNotify
-        | null;
+    if (!message_type && status_code === PAYHERE_SUCCESS_STATUS) {
+      const paidAmount = Number(payhere_amount);
+      const expectedAmount = Number(pendingOrderDoc?.total);
+      const isAmountValid =
+        Number.isFinite(paidAmount) &&
+        Number.isFinite(expectedAmount) &&
+        amountsMatch(paidAmount, expectedAmount);
+      const isCurrencyValid = payhere_currency === STORE_CURRENCY;
 
-      if (updatedOrder) {
-        await decrementStockForItems(updatedOrder.items);
-        await clearCartForOrder(updatedOrder);
-        await sendOrderConfirmationEmail(updatedOrder);
-      } else {
-        await clearCartForOrder(orderDoc);
+      if (!pendingOrderDoc || !isAmountValid || !isCurrencyValid) {
+        processingNotes.push(
+          `Rejected success callback due to invalid amount/currency. paid=${payhere_amount} expected=${pendingOrderDoc?.total ?? "n/a"} currency=${payhere_currency}`
+        );
+        await finalizeWebhookEvent("rejected");
+        return NextResponse.json(
+          { error: "Invalid payment amount or currency" },
+          { status: 400 }
+        );
       }
+
+      await createPaidOrderFromPending();
+      processingNotes.push("Handled success callback without message_type.");
+    }
+
+    if (!message_type && status_code !== PAYHERE_SUCCESS_STATUS) {
+      await markPendingFailed();
+      processingNotes.push(
+        `Ignored callback without message_type and non-success status_code=${status_code}.`
+      );
     }
 
     if (
@@ -372,7 +417,8 @@ export async function POST(req: Request) {
 
       const recurrenceValue =
         recurrenceFromPayload ?? subscription?.recurrence ?? "1 Month";
-      const normalizedSubscriptionStatus = subscription?.status?.toLowerCase() ?? null;
+      const normalizedSubscriptionStatus =
+        subscription?.status?.toLowerCase() ?? null;
       const isDismissedSubscription =
         normalizedSubscriptionStatus !== null &&
         normalizedSubscriptionStatus !== "active";
@@ -438,7 +484,7 @@ export async function POST(req: Request) {
             );
           } else {
             const recurringOrder = await Order.create({
-              user: baseOrder?.user ?? null,
+              user: baseOrder.user ?? null,
               orderType: "subscription",
               subscriptionId: subscription_id,
               items: baseOrder.items ?? [],
@@ -453,6 +499,7 @@ export async function POST(req: Request) {
             });
 
             await decrementStockForItems(recurringOrder.items);
+            await sendOrderConfirmationEmail(recurringOrder);
             processingNotes.push(
               `Created recurring order ${String(recurringOrder._id)} for subscription ${subscription_id}.`
             );
@@ -485,6 +532,7 @@ export async function POST(req: Request) {
         );
       }
     }
+
     if (
       message_type === "RECURRING_INSTALLMENT_SUCCESS" &&
       status_code !== PAYHERE_SUCCESS_STATUS
@@ -521,8 +569,8 @@ export async function POST(req: Request) {
     if (processingNotes.length === 0) {
       processingNotes.push("No matching webhook branch; acknowledged callback.");
     }
-    await finalizeWebhookEvent("processed");
 
+    await finalizeWebhookEvent("processed");
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("PayHere notify processing failed:", error);
