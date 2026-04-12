@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     // Shipping cost
     // -------------------------
     const shippingCost =
-      shippingMethod === "express_3_days" ? 500 : 0;
+      shippingMethod === "express_3_days" ? 500 : 400;
 
     const total = subtotal + shippingCost;
 

@@ -3,8 +3,11 @@ import mongoose, { Schema, Document, models, model } from "mongoose";
 export interface IOrder extends Document {
   user?: mongoose.Types.ObjectId | null;
   guestUser?: mongoose.Types.ObjectId | null;
+  subscription?: mongoose.Types.ObjectId | null;
+  subscriptionId?: string | null;
   orderType: "normal" | "subscription";
   shippingMethod: "standard_shipping";
+  renewalNumber?: number | null;
 
   items: {
     product: mongoose.Types.ObjectId;
@@ -23,7 +26,6 @@ export interface IOrder extends Document {
   paymentStatus: "pending" | "paid" | "failed" | "refunded";
 
   paymentReference?: string | null;
-  subscriptionId?: string | null;
 
   fulfillmentStatus:
     | "unfulfilled"
@@ -66,6 +68,17 @@ const OrderSchema = new Schema<IOrder>(
       default: null,
     },
 
+    subscription: {
+      type: Schema.Types.ObjectId,
+      ref: "Subscription",
+      default: null,
+    },
+
+    subscriptionId: {
+      type: String,
+      default: null,
+    },
+
     orderType: {
       type: String,
       enum: ["normal", "subscription"],
@@ -78,6 +91,11 @@ const OrderSchema = new Schema<IOrder>(
       enum: ["standard_shipping"],
       default: "standard_shipping",
       required: true,
+    },
+
+    renewalNumber: {
+      type: Number,
+      default: null,
     },
 
     items: [
@@ -111,11 +129,6 @@ const OrderSchema = new Schema<IOrder>(
     },
 
     paymentReference: {
-      type: String,
-      default: null,
-    },
-
-    subscriptionId: {
       type: String,
       default: null,
     },

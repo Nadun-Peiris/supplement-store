@@ -206,6 +206,8 @@ export default function CheckoutPage() {
     form.submit();
   };
 
+  // Creates a pending order in our backend before handing off to PayHere.
+  // This same order id is reused for both one-time and subscription payments.
   const createPayHereOrder = async (): Promise<PayHereOrder> => {
     const cartHeaders = await getCartHeaders();
     const orderRes = await fetch("/api/orders/create", {
@@ -262,6 +264,7 @@ export default function CheckoutPage() {
     payWithPayHere(order, hashData.hash);
   };
 
+  // Builds and submits the recurring-payment form expected by PayHere for subscriptions.
   async function redirectToPayHereSubscription(
     orderId: string,
     totalAmount: number
@@ -292,6 +295,7 @@ export default function CheckoutPage() {
     form.method = "POST";
     form.action = payHereCheckoutUrl;
 
+    // `recurrence` and `duration` are what make this a subscription checkout.
     const fields: Record<string, string> = {
       merchant_id: merchantId,
       return_url: `${window.location.origin}/checkout/success?orderId=${orderId}`,
@@ -348,6 +352,8 @@ export default function CheckoutPage() {
 
     if (purchaseType === "subscription") {
       try {
+        // Subscription checkout still starts by creating a pending order locally,
+        // then redirects to PayHere with recurring billing fields.
         const order = await createPayHereOrder();
         await redirectToPayHereSubscription(order._id, order.total);
       } catch (error) {
@@ -368,7 +374,7 @@ export default function CheckoutPage() {
     0
   );
 
-  const shippingCost = 0;
+  const shippingCost = 400;
   const total = subtotal + shippingCost;
 
   return (

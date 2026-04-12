@@ -1,4 +1,5 @@
 import CryptoJS from "crypto-js";
+import type { Types } from "mongoose";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
@@ -11,6 +12,7 @@ import User from "@/models/User";
 import Product from "@/models/Product";
 import { sendEmail } from "@/lib/mail/nodemailer";
 import { getOrderConfirmationHtml } from "@/lib/mail/orderConfirmation";
+import { getSubscriptionConfirmationHtml } from "@/lib/mail/subscriptionConfirmation";
 
 const PAYHERE_SUCCESS_STATUS = "2";
 const STORE_CURRENCY = "LKR";
@@ -43,6 +45,41 @@ type CheckoutRecord = {
   cartOwnerUserId?: string | null;
   cartOwnerGuestId?: string | null;
   createdOrderId?: string | null;
+};
+
+const syncUserSubscriptionState = async ({
+  userId,
+  subscriptionId,
+  status,
+  nextBillingDate,
+  cancelledAt,
+}: {
+  userId: IOrder["user"] | null | undefined;
+  subscriptionId: string | null;
+  status: "active" | "cancelled" | "completed" | "failed";
+  nextBillingDate?: Date | null;
+  cancelledAt?: Date | null;
+}) => {
+  if (!userId) return;
+
+  await User.updateOne(
+    { _id: userId },
+    {
+      $set: {
+        "subscription.subscriptionId": subscriptionId,
+        "subscription.active": status === "active",
+        "subscription.status": ["active", "cancelled", "completed"].includes(
+          status
+        )
+          ? status
+          : null,
+        "subscription.nextBillingDate":
+          status === "active" ? nextBillingDate ?? null : null,
+        "subscription.cancelledAt":
+          status === "cancelled" ? cancelledAt ?? new Date() : null,
+      },
+    }
+  );
 };
 
 export async function POST(req: Request) {
@@ -216,6 +253,40 @@ export async function POST(req: Request) {
       }
     };
 
+    const sendSubscriptionConfirmationEmail = async ({
+      order,
+      subscriptionId,
+      recurrence,
+      nextBillingDate,
+    }: {
+      order: IOrder | null;
+      subscriptionId: string;
+      recurrence: string;
+      nextBillingDate: Date;
+    }) => {
+      const recipientEmail = order?.billingDetails?.email;
+      if (!order || !recipientEmail) return;
+
+      try {
+        await sendEmail({
+          to: recipientEmail,
+          subject: "Subscription Activated",
+          html: getSubscriptionConfirmationHtml({
+            _id: String(order._id),
+            items: order.items,
+            subtotal: Number(order.subtotal) || 0,
+            shippingCost: Number(order.shippingCost) || 0,
+            total: Number(order.total) || 0,
+            subscriptionId,
+            recurrence,
+            nextBillingDate,
+          }),
+        });
+      } catch (emailError) {
+        console.error("Subscription confirmation email failed:", emailError);
+      }
+    };
+
     const countSuccessfulSubscriptionPayments = async (
       activeSubscriptionId: string | null
     ) => {
@@ -226,6 +297,26 @@ export async function POST(req: Request) {
         subscriptionId: activeSubscriptionId,
         paymentStatus: "paid",
       });
+    };
+
+    const linkOrderToSubscription = async ({
+      orderId,
+      subscriptionDocId,
+      subscriptionId,
+    }: {
+      orderId: string;
+      subscriptionDocId: string;
+      subscriptionId: string;
+    }) => {
+      await Order.updateOne(
+        { _id: orderId },
+        {
+          $set: {
+            subscription: subscriptionDocId,
+            subscriptionId,
+          },
+        }
+      );
     };
 
     const createPaidOrderFromPending = async () => {
@@ -319,7 +410,7 @@ export async function POST(req: Request) {
       if (subscription_id && createdOrder) {
         const existing = await Subscription.findOne({
           subscriptionId: subscription_id,
-        });
+        }).select("_id recurrence");
         const recurrenceValue =
           recurrenceFromPayload ?? existing?.recurrence ?? "1 Month";
         const resolvedNextBillingDate = addDays(latestPaymentDate, 30);
@@ -341,9 +432,32 @@ export async function POST(req: Request) {
             { subscriptionId: subscription_id },
             { $set: payload }
           );
+          await linkOrderToSubscription({
+            orderId: String(createdOrder._id),
+            subscriptionDocId: String(existing._id),
+            subscriptionId: subscription_id,
+          });
         } else {
-          await Subscription.create(payload);
+          const createdSubscription = await Subscription.create(payload);
+          await linkOrderToSubscription({
+            orderId: String(createdOrder._id),
+            subscriptionDocId: String(createdSubscription._id),
+            subscriptionId: subscription_id,
+          });
+          await sendSubscriptionConfirmationEmail({
+            order: createdOrder,
+            subscriptionId: subscription_id,
+            recurrence: recurrenceValue,
+            nextBillingDate: resolvedNextBillingDate,
+          });
         }
+
+        await syncUserSubscriptionState({
+          userId: pendingOrderDoc.user ?? null,
+          subscriptionId: subscription_id,
+          status: "active",
+          nextBillingDate: resolvedNextBillingDate,
+        });
 
         processingNotes.push(
           `Subscription upserted for AUTHORIZATION_SUCCESS (${subscription_id}).`
@@ -399,6 +513,7 @@ export async function POST(req: Request) {
       processingNotes.push("Handled RECURRING_INSTALLMENT_SUCCESS.");
 
       type SubscriptionWithOrder = {
+        _id?: Types.ObjectId;
         recurrence?: string | null;
         status?: string | null;
         orderId?: {
@@ -463,10 +578,11 @@ export async function POST(req: Request) {
               { _id: existingRecurringOrder._id },
               {
                 $set: {
-                  orderType: "subscription",
-                  subscriptionId: subscription_id,
-                },
-              }
+                    orderType: "subscription",
+                    subscription: subscription._id,
+                    subscriptionId: subscription_id,
+                  },
+                }
             );
 
             await Subscription.updateOne(
@@ -486,6 +602,7 @@ export async function POST(req: Request) {
             const recurringOrder = await Order.create({
               user: baseOrder.user ?? null,
               orderType: "subscription",
+              subscription: subscription._id,
               subscriptionId: subscription_id,
               items: baseOrder.items ?? [],
               subtotal: baseOrder.subtotal ?? 0,
@@ -530,6 +647,13 @@ export async function POST(req: Request) {
               await countSuccessfulSubscriptionPayments(subscription_id),
           }
         );
+
+        await syncUserSubscriptionState({
+          userId: subscription?.orderId?.user ?? null,
+          subscriptionId: subscription_id ?? null,
+          status: "active",
+          nextBillingDate: resolvedNextBillingDate,
+        });
       }
     }
 
@@ -544,26 +668,50 @@ export async function POST(req: Request) {
 
     if (message_type === "RECURRING_INSTALLMENT_FAILED") {
       processingNotes.push("Handled RECURRING_INSTALLMENT_FAILED.");
+      const existingSubscription = await Subscription.findOne({
+        subscriptionId: subscription_id,
+      }).select("user subscriptionId");
       await Subscription.updateOne(
         { subscriptionId: subscription_id },
         { status: "failed" }
       );
+      await syncUserSubscriptionState({
+        userId: existingSubscription?.user ?? null,
+        subscriptionId: existingSubscription?.subscriptionId ?? null,
+        status: "failed",
+      });
     }
 
     if (message_type === "RECURRING_STOPPED") {
       processingNotes.push("Handled RECURRING_STOPPED.");
+      const existingSubscription = await Subscription.findOne({
+        subscriptionId: subscription_id,
+      }).select("user subscriptionId");
       await Subscription.updateOne(
         { subscriptionId: subscription_id },
         { status: "cancelled" }
       );
+      await syncUserSubscriptionState({
+        userId: existingSubscription?.user ?? null,
+        subscriptionId: existingSubscription?.subscriptionId ?? null,
+        status: "cancelled",
+      });
     }
 
     if (message_type === "RECURRING_COMPLETE") {
       processingNotes.push("Handled RECURRING_COMPLETE.");
+      const existingSubscription = await Subscription.findOne({
+        subscriptionId: subscription_id,
+      }).select("user subscriptionId");
       await Subscription.updateOne(
         { subscriptionId: subscription_id },
         { status: "completed" }
       );
+      await syncUserSubscriptionState({
+        userId: existingSubscription?.user ?? null,
+        subscriptionId: existingSubscription?.subscriptionId ?? null,
+        status: "completed",
+      });
     }
 
     if (processingNotes.length === 0) {
