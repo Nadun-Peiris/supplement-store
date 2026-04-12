@@ -13,6 +13,7 @@ interface Props {
   name: string;
   category: string;
   price: number;
+  discountPrice?: number;
   image: string;
   slug: string;
   description?: string; 
@@ -24,16 +25,20 @@ export default function ProductCard({
   name,
   category,
   price,
+  discountPrice,
   image,
   slug,
   description = "Premium grade formula designed for professional performance and rapid recovery.",
 }: Props) {
   const { addToCart } = useCart();
   const [showQuickView, setShowQuickView] = useState(false);
+  const hasDiscount =
+    typeof discountPrice === "number" && discountPrice < price;
+  const effectivePrice = hasDiscount ? discountPrice : price;
 
   const handleAddToCart = async (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
-    await addToCart({ productId: id, name, price, image });
+    await addToCart({ productId: id, name, price: effectivePrice, image });
     toast.success("Added to cart!");
     if (showQuickView) setShowQuickView(false);
   };
@@ -73,9 +78,16 @@ export default function ProductCard({
 
           {/* PRICE + ICON-ONLY QUICK VIEW BUTTON */}
           <div className="mt-auto flex items-center justify-between pt-4 transition-transform duration-300 ease-in-out group-hover:-translate-y-[25px] max-sm:flex-col max-sm:items-start max-sm:gap-2 max-sm:group-hover:translate-y-0">
-            <p className="text-[1.18rem] font-bold text-[#111]">
-              LKR {price.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
-            </p>
+            <div className="flex flex-col">
+              <p className="text-[1.18rem] font-bold text-[#111]">
+                LKR {effectivePrice.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+              </p>
+              {hasDiscount && (
+                <p className="text-[0.9rem] font-medium text-gray-400 line-through">
+                  LKR {price.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
+                </p>
+              )}
+            </div>
             
             {/* ICON-ONLY QUICK VIEW BUTTON */}
             <button
@@ -128,9 +140,16 @@ export default function ProductCard({
                 {category}
               </span>
               <h2 className="text-3xl font-black text-[#111] leading-tight">{name}</h2>
-              <p className="mt-4 text-2xl font-bold text-[#111]">
-                LKR {price.toLocaleString()}
-              </p>
+              <div className="mt-4 flex flex-col">
+                <p className="text-2xl font-bold text-[#111]">
+                  LKR {effectivePrice.toLocaleString()}
+                </p>
+                {hasDiscount && (
+                  <p className="text-base font-medium text-gray-400 line-through">
+                    LKR {price.toLocaleString()}
+                  </p>
+                )}
+              </div>
               
               <div className="mt-6 border-t border-gray-100 pt-6">
                 <h4 className="flex items-center gap-2 text-sm font-bold text-[#111] mb-3">

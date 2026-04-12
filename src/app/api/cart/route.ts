@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Cart from "@/models/Cart";
+import Product from "@/models/Product";
 import { adminAuth } from "@/lib/firebaseAdmin";
 
 // Normalize: ALWAYS use "guest-id"
@@ -42,6 +43,25 @@ export async function POST(req: Request) {
       );
 
     const quantity = Math.max(1, Number(rawQty) || 1);
+    const product = await Product.findById(productId).select(
+      "name price discountPrice image"
+    );
+
+    if (!product) {
+      return NextResponse.json(
+        { error: "Product not found" },
+        { status: 404 }
+      );
+    }
+
+    const effectivePrice =
+      typeof product.discountPrice === "number" &&
+      product.discountPrice < product.price
+        ? product.discountPrice
+        : product.price;
+    const originalPrice = product.price;
+    const resolvedName = product.name || name || "";
+    const resolvedImage = product.image || image || "";
 
     const cartFilter = userId ? { userId } : { guestId };
     let cart = await Cart.findOne(cartFilter);
@@ -51,7 +71,16 @@ export async function POST(req: Request) {
       cart = await Cart.create({
         userId: userId || undefined,
         guestId: guestId || undefined,
-        items: [{ productId, name, price, quantity, image }],
+        items: [
+          {
+            productId,
+            name: resolvedName,
+            price: effectivePrice,
+            originalPrice,
+            quantity,
+            image: resolvedImage,
+          },
+        ],
       });
 
       return NextResponse.json({ success: true, cart });
@@ -62,8 +91,19 @@ export async function POST(req: Request) {
 
     if (index >= 0) {
       cart.items[index].quantity += quantity;
+      cart.items[index].price = effectivePrice;
+      cart.items[index].originalPrice = originalPrice;
+      cart.items[index].name = resolvedName;
+      cart.items[index].image = resolvedImage;
     } else {
-      cart.items.push({ productId, name, price, quantity, image });
+      cart.items.push({
+        productId,
+        name: resolvedName,
+        price: effectivePrice,
+        originalPrice,
+        quantity,
+        image: resolvedImage,
+      });
     }
 
     await cart.save();

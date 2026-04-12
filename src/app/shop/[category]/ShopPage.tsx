@@ -456,6 +456,7 @@ export default function ShopPage({
                 name={product.name}
                 category={product.category}
                 price={product.price}
+                discountPrice={product.discountPrice}
                 image={product.image}
                 slug={product.slug ?? product._id}
               />

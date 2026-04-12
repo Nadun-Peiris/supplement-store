@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getAuth } from "firebase-admin/auth";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
+import Product from "@/models/Product";
 import User from "@/models/User";
 import "@/lib/firebaseAdmin";
 
@@ -24,25 +25,46 @@ export async function POST(req: Request) {
       );
     }
 
-    const mappedItems = items.map(
-      (item: {
-        productId: string;
-        name?: string;
-        price?: number;
-        quantity?: number;
-      }) => {
-        const quantity = Math.max(1, Number(item.quantity) || 1);
-        const price = Number(item.price) || 0;
+    const mappedItems = await Promise.all(
+      items.map(
+        async (item: {
+          productId: string;
+          name?: string;
+          price?: number;
+          quantity?: number;
+        }) => {
+          const quantity = Math.max(1, Number(item.quantity) || 1);
+          const product = await Product.findById(item.productId).select(
+            "name price discountPrice"
+          );
 
-        return {
-          product: item.productId,
-          name: item.name || "",
-          price,
-          quantity,
-          lineTotal: price * quantity,
-        };
-      }
+          if (!product) {
+            throw new Error(`Product not found: ${item.productId}`);
+          }
+
+          const effectivePrice =
+            typeof product.discountPrice === "number" &&
+            product.discountPrice < product.price
+              ? product.discountPrice
+              : product.price;
+
+          return {
+            product: item.productId,
+            name: product.name || item.name || "",
+            price: effectivePrice,
+            quantity,
+            lineTotal: effectivePrice * quantity,
+          };
+        }
+      )
     );
+
+    const computedSubtotal = mappedItems.reduce(
+      (sum, item) => sum + item.lineTotal,
+      0
+    );
+    const resolvedShippingCost = Number(shippingCost) || 0;
+    const computedTotal = computedSubtotal + resolvedShippingCost;
 
     const authHeader = req.headers.get("authorization");
     const guestId = req.headers.get("guest-id");
@@ -77,9 +99,9 @@ export async function POST(req: Request) {
       cartOwnerUserId,
       cartOwnerGuestId,
       items: mappedItems,
-      subtotal,
-      shippingCost,
-      total,
+      subtotal: computedSubtotal,
+      shippingCost: resolvedShippingCost,
+      total: computedTotal,
       paymentProvider: "payhere",
       paymentStatus: "pending",
       billingDetails,

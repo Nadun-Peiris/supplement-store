@@ -21,9 +21,15 @@ export default function CartItem({ item, updateQuantity, removeItem }: any) {
       {/* PRODUCT INFO (Stretches to fill empty space) */}
       <div className="flex flex-1 flex-col justify-center">
         <h3 className="text-lg font-extrabold text-[#111]">{item.name}</h3>
-        <p className="mt-1 text-sm font-semibold text-gray-500">
-          LKR {item.price.toLocaleString()}
-        </p>
+        <div className="mt-1 flex items-center gap-2 text-sm font-semibold">
+          <span className="text-gray-500">LKR {item.price.toLocaleString()}</span>
+          {typeof item.originalPrice === "number" &&
+          item.originalPrice > item.price ? (
+            <span className="text-gray-400 line-through">
+              LKR {item.originalPrice.toLocaleString()}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       {/* CONTROLS & SUBTOTAL */}

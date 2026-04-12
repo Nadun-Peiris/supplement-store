@@ -52,7 +52,7 @@ export default function SingleProductPage({ product }: { product: ProductDTO }) 
     await addToCart({
       productId: product._id,
       name: product.name,
-      price: product.price,
+      price: displayPrice,
       image: product.image,
       quantity: qty,
     });

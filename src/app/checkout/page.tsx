@@ -7,6 +7,7 @@ interface CheckoutCartItem {
   productId: string;
   name: string;
   price: number;
+  originalPrice?: number;
   quantity: number;
   image?: string;
 }
@@ -508,6 +509,12 @@ export default function CheckoutPage() {
                       <span className="text-[15px] font-bold text-[#111]">{item.name}</span>
                       <span className="text-[13px] font-medium text-gray-500">
                         Qty {item.quantity} × LKR {item.price.toLocaleString()}
+                        {typeof item.originalPrice === "number" &&
+                        item.originalPrice > item.price ? (
+                          <span className="ml-2 line-through text-gray-400">
+                            LKR {item.originalPrice.toLocaleString()}
+                          </span>
+                        ) : null}
                       </span>
                     </div>
                   </div>

@@ -116,6 +116,7 @@ export default function ProductCarousel({ category }: { category: string }) {
                 name={p.name}
                 category={p.category}
                 price={p.price}
+                discountPrice={p.discountPrice}
                 image={p.image}
                 slug={p.slug ?? p._id}
               />
