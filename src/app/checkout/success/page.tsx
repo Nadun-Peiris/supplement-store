@@ -8,6 +8,7 @@ interface Order {
   _id: string;
   paymentStatus: string;
   orderType: string;
+  subscriptionId?: string | null;
   paymentProvider: string;
   total: number;
   items: {
@@ -57,19 +58,43 @@ function CheckoutSuccessContent() {
   useEffect(() => {
     if (!orderId) return;
 
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
     async function fetchOrder() {
       try {
         const res = await fetch(`/api/orders/${orderId}`);
         const data = await res.json();
-        setOrder(data.order || null);
+
+        if (cancelled) return;
+
+        const nextOrder = data.order || null;
+        setOrder(nextOrder);
+
+        const shouldPoll =
+          nextOrder &&
+          nextOrder.paymentProvider === "payhere" &&
+          nextOrder.paymentStatus === "pending";
+
+        if (shouldPoll) {
+          timeoutId = setTimeout(fetchOrder, 2500);
+          return;
+        }
       } catch (err) {
         console.error("Error loading order:", err);
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
     fetchOrder();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [orderId]);
 
   const isSubscription = order?.orderType === "subscription";
@@ -125,6 +150,24 @@ function CheckoutSuccessContent() {
           <p className="text-gray-500">
             Order ID: <strong className="text-[#111]">{orderId}</strong>
           </p>
+
+          {!loading && order && (
+            <p className="text-gray-500">
+              Order type:{" "}
+              <strong className="text-[#111]">
+                {order.orderType === "subscription"
+                  ? "Subscription Order"
+                  : "Normal Order"}
+              </strong>
+            </p>
+          )}
+
+          {!loading && order?.orderType === "subscription" && order.subscriptionId && (
+            <p className="text-gray-500">
+              Subscription ID:{" "}
+              <strong className="text-[#111]">{order.subscriptionId}</strong>
+            </p>
+          )}
 
           {!loading && order && (
             <p className="text-gray-500">

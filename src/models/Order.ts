@@ -5,6 +5,8 @@ export interface IOrder extends Document {
   guestUser?: mongoose.Types.ObjectId | null;
   subscription?: mongoose.Types.ObjectId | null;
   subscriptionId?: string | null;
+  cartOwnerUserId?: string | null;
+  cartOwnerGuestId?: string | null;
   orderType: "normal" | "subscription";
   shippingMethod: "standard_shipping";
   renewalNumber?: number | null;
@@ -75,6 +77,16 @@ const OrderSchema = new Schema<IOrder>(
     },
 
     subscriptionId: {
+      type: String,
+      default: null,
+    },
+
+    cartOwnerUserId: {
+      type: String,
+      default: null,
+    },
+
+    cartOwnerGuestId: {
       type: String,
       default: null,
     },

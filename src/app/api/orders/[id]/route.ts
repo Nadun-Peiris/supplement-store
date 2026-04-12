@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
-import PendingOrder from "@/models/PendingOrder";
 
 export async function GET(
   req: NextRequest,
@@ -15,33 +14,10 @@ export async function GET(
     const order = await Order.findById(id);
 
     if (!order) {
-      const pendingOrder = await PendingOrder.findById(id).lean();
-
-      if (!pendingOrder) {
-        return NextResponse.json(
-          { error: "Order not found" },
-          { status: 404 }
-        );
-      }
-
-      if (pendingOrder.createdOrderId) {
-        const createdOrder = await Order.findById(pendingOrder.createdOrderId);
-
-        if (createdOrder) {
-          return NextResponse.json({ order: createdOrder });
-        }
-      }
-
-      return NextResponse.json({
-        order: {
-          _id: String(pendingOrder._id),
-          paymentStatus: pendingOrder.paymentStatus,
-          orderType: pendingOrder.orderType,
-          paymentProvider: pendingOrder.paymentProvider,
-          total: pendingOrder.total,
-          items: pendingOrder.items,
-        },
-      });
+      return NextResponse.json(
+        { error: "Order not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ order });

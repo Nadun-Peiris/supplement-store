@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuth } from "firebase-admin/auth";
 import { connectDB } from "@/lib/mongoose";
-import PendingOrder from "@/models/PendingOrder";
+import Order from "@/models/Order";
 import User from "@/models/User";
 import "@/lib/firebaseAdmin";
 
@@ -71,7 +71,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const pendingOrder = await PendingOrder.create({
+    const order = await Order.create({
       orderType: purchaseType === "subscription" ? "subscription" : "normal",
       user: userObjectId,
       cartOwnerUserId,
@@ -87,10 +87,10 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      orderId: pendingOrder._id,
-      _id: pendingOrder._id,
-      total: pendingOrder.total,
-      billingDetails: pendingOrder.billingDetails,
+      orderId: order._id,
+      _id: order._id,
+      total: order.total,
+      billingDetails: order.billingDetails,
     });
   } catch (err) {
     console.error("ORDER CREATE ERROR:", err);

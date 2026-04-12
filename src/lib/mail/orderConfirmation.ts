@@ -1,6 +1,18 @@
 import type { IOrder } from "@/models/Order";
 
-export function getOrderConfirmationHtml(order: Pick<IOrder, "_id" | "items" | "subtotal" | "shippingCost" | "total">) {
+export function getOrderConfirmationHtml(
+  order: Pick<
+    IOrder,
+    "_id" | "items" | "subtotal" | "shippingCost" | "total" | "orderType"
+  > & {
+    subscriptionId?: string | null;
+  }
+) {
+  const isSubscriptionOrder = order.orderType === "subscription";
+  const orderTypeLabel = isSubscriptionOrder
+    ? "Subscription Order"
+    : "Normal Order";
+
   return `
     <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f4f4f4; padding: 40px 0; width: 100%;">
       <table align="center" border="0" cellpadding="0" cellspacing="0" width="600" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
@@ -16,6 +28,26 @@ export function getOrderConfirmationHtml(order: Pick<IOrder, "_id" | "items" | "
             <p style="color: #666; font-size: 16px; line-height: 1.5; margin-top: 15px;">
               Your payment has been confirmed and we are now processing your order.
             </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 0 40px 20px 40px;">
+            <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border: 1px solid #eee; border-radius: 8px;">
+              <tr>
+                <td style="padding: 16px; color: #666; font-size: 14px;">Order type</td>
+                <td align="right" style="padding: 16px; color: #111; font-size: 14px; font-weight: 600;">${orderTypeLabel}</td>
+              </tr>
+              ${
+                isSubscriptionOrder && order.subscriptionId
+                  ? `
+              <tr>
+                <td style="padding: 0 16px 16px 16px; color: #666; font-size: 14px;">Subscription ID</td>
+                <td align="right" style="padding: 0 16px 16px 16px; color: #111; font-size: 14px; font-weight: 600;">#${order.subscriptionId}</td>
+              </tr>
+              `
+                  : ""
+              }
+            </table>
           </td>
         </tr>
         <tr>

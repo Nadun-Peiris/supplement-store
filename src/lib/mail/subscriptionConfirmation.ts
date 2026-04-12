@@ -46,8 +46,12 @@ export function getSubscriptionConfirmationHtml({
           <td style="padding: 0 40px 20px 40px;">
             <table width="100%" border="0" cellpadding="0" cellspacing="0" style="background-color: #fafafa; border: 1px solid #eee; border-radius: 8px;">
               <tr>
-                <td style="padding: 16px; color: #666; font-size: 14px;">Order ID</td>
-                <td align="right" style="padding: 16px; color: #111; font-size: 14px; font-weight: 600;">#${String(_id).toUpperCase().slice(-8)}</td>
+                <td style="padding: 16px; color: #666; font-size: 14px;">Order type</td>
+                <td align="right" style="padding: 16px; color: #111; font-size: 14px; font-weight: 600;">Subscription Order</td>
+              </tr>
+              <tr>
+                <td style="padding: 0 16px 16px 16px; color: #666; font-size: 14px;">Order ID</td>
+                <td align="right" style="padding: 0 16px 16px 16px; color: #111; font-size: 14px; font-weight: 600;">#${String(_id).toUpperCase().slice(-8)}</td>
               </tr>
               <tr>
                 <td style="padding: 0 16px 16px 16px; color: #666; font-size: 14px;">Billing cycle</td>

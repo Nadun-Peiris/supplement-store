@@ -4,7 +4,6 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
 import type { IOrder } from "@/models/Order";
-import PendingOrder from "@/models/PendingOrder";
 import Subscription from "@/models/Subscription";
 import PayHereWebhookEvent from "@/models/PayHereWebhookEvent";
 import Cart from "@/models/Cart";
@@ -44,7 +43,9 @@ type CheckoutRecord = {
   billingDetails?: IOrder["billingDetails"];
   cartOwnerUserId?: string | null;
   cartOwnerGuestId?: string | null;
-  createdOrderId?: string | null;
+  paymentStatus?: IOrder["paymentStatus"];
+  fulfillmentStatus?: IOrder["fulfillmentStatus"];
+  subscriptionId?: string | null;
 };
 
 const syncUserSubscriptionState = async ({
@@ -163,8 +164,8 @@ export async function POST(req: Request) {
   try {
     const latestPaymentDate = parsePayHerePaidAt(payherePaidOn) ?? new Date();
 
-    const pendingOrderDoc = (await PendingOrder.findById(order_id).select(
-      "user orderType items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId createdOrderId"
+    const checkoutOrderDoc = (await Order.findById(order_id).select(
+      "user orderType items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId paymentStatus fulfillmentStatus subscriptionId"
     )) as CheckoutRecord | null;
 
     const clearCartForCheckout = async (checkout: CheckoutRecord | null) => {
@@ -239,13 +240,18 @@ export async function POST(req: Request) {
       try {
         await sendEmail({
           to: recipientEmail,
-          subject: "Order Confirmation 🛒",
+          subject:
+            order.orderType === "subscription"
+              ? "Subscription Order Confirmation"
+              : "Order Confirmation 🛒",
           html: getOrderConfirmationHtml({
             _id: String(order._id),
             items: order.items,
             subtotal: Number(order.subtotal) || 0,
             shippingCost: Number(order.shippingCost) || 0,
             total: Number(order.total) || 0,
+            orderType: order.orderType,
+            subscriptionId: order.subscriptionId ?? null,
           }),
         });
       } catch (emailError) {
@@ -319,58 +325,47 @@ export async function POST(req: Request) {
       );
     };
 
-    const createPaidOrderFromPending = async () => {
-      if (!pendingOrderDoc) return null;
+    const finalizeCheckoutOrder = async () => {
+      if (!checkoutOrderDoc) return null;
 
-      const latestPendingState = await PendingOrder.findById(order_id).select(
-        "createdOrderId"
-      );
-
-      if (latestPendingState?.createdOrderId) {
-        return Order.findById(latestPendingState.createdOrderId);
+      if (checkoutOrderDoc.paymentStatus === "paid") {
+        return Order.findById(order_id);
       }
 
-      const createdOrder = await Order.create({
-        user: pendingOrderDoc.user ?? null,
-        orderType: subscription_id
-          ? "subscription"
-          : pendingOrderDoc.orderType === "subscription"
-          ? "subscription"
-          : "normal",
-        subscriptionId: subscription_id ?? null,
-        items: pendingOrderDoc.items ?? [],
-        subtotal: pendingOrderDoc.subtotal ?? 0,
-        shippingCost: pendingOrderDoc.shippingCost ?? 0,
-        total: pendingOrderDoc.total ?? 0,
-        billingDetails: pendingOrderDoc.billingDetails,
-        paymentProvider: "payhere",
-        paymentStatus: "paid",
-        paymentReference: payment_id,
-        fulfillmentStatus: "unfulfilled",
-      });
-
-      await PendingOrder.updateOne(
-        { _id: order_id, createdOrderId: null },
+      const finalizedOrder = await Order.findOneAndUpdate(
+        { _id: order_id, paymentStatus: "pending" },
         {
           $set: {
+            orderType: subscription_id
+              ? "subscription"
+              : checkoutOrderDoc.orderType === "subscription"
+              ? "subscription"
+              : "normal",
+            subscriptionId:
+              subscription_id ?? checkoutOrderDoc.subscriptionId ?? null,
             paymentStatus: "paid",
             paymentReference: payment_id,
-            subscriptionId: subscription_id ?? null,
-            createdOrderId: createdOrder._id,
+            fulfillmentStatus:
+              checkoutOrderDoc.fulfillmentStatus ?? "unfulfilled",
           },
-        }
+        },
+        { new: true }
       );
 
-      await decrementStockForItems(createdOrder.items);
-      await clearCartForCheckout(pendingOrderDoc);
-      await sendOrderConfirmationEmail(createdOrder);
+      if (!finalizedOrder) {
+        return Order.findById(order_id);
+      }
 
-      return createdOrder;
+      await decrementStockForItems(finalizedOrder.items);
+      await clearCartForCheckout(checkoutOrderDoc);
+      await sendOrderConfirmationEmail(finalizedOrder);
+
+      return finalizedOrder;
     };
 
-    const markPendingFailed = async () => {
-      await PendingOrder.updateOne(
-        { _id: order_id },
+    const markCheckoutFailed = async () => {
+      await Order.updateOne(
+        { _id: order_id, paymentStatus: "pending" },
         {
           $set: {
             paymentStatus: "failed",
@@ -387,16 +382,16 @@ export async function POST(req: Request) {
       processingNotes.push("Handled AUTHORIZATION_SUCCESS.");
 
       const paidAmount = Number(payhere_amount);
-      const expectedAmount = Number(pendingOrderDoc?.total);
+      const expectedAmount = Number(checkoutOrderDoc?.total);
       const isAmountValid =
         Number.isFinite(paidAmount) &&
         Number.isFinite(expectedAmount) &&
         amountsMatch(paidAmount, expectedAmount);
       const isCurrencyValid = payhere_currency === STORE_CURRENCY;
 
-      if (!pendingOrderDoc || !isAmountValid || !isCurrencyValid) {
+      if (!checkoutOrderDoc || !isAmountValid || !isCurrencyValid) {
         processingNotes.push(
-          `Rejected AUTHORIZATION_SUCCESS due to invalid amount/currency. paid=${payhere_amount} expected=${pendingOrderDoc?.total ?? "n/a"} currency=${payhere_currency}`
+          `Rejected AUTHORIZATION_SUCCESS due to invalid amount/currency. paid=${payhere_amount} expected=${checkoutOrderDoc?.total ?? "n/a"} currency=${payhere_currency}`
         );
         await finalizeWebhookEvent("rejected");
         return NextResponse.json(
@@ -405,7 +400,7 @@ export async function POST(req: Request) {
         );
       }
 
-      const createdOrder = await createPaidOrderFromPending();
+      const createdOrder = await finalizeCheckoutOrder();
 
       if (subscription_id && createdOrder) {
         const existing = await Subscription.findOne({
@@ -416,10 +411,10 @@ export async function POST(req: Request) {
         const resolvedNextBillingDate = addDays(latestPaymentDate, 30);
 
         const payload = {
-          user: pendingOrderDoc.user ?? null,
+          user: checkoutOrderDoc.user ?? null,
           orderId: createdOrder._id,
           subscriptionId: subscription_id,
-          items: pendingOrderDoc.items ?? [],
+          items: checkoutOrderDoc.items ?? [],
           status: "active",
           nextBillingDate: resolvedNextBillingDate,
           recurrence: recurrenceValue,
@@ -453,7 +448,7 @@ export async function POST(req: Request) {
         }
 
         await syncUserSubscriptionState({
-          userId: pendingOrderDoc.user ?? null,
+          userId: checkoutOrderDoc.user ?? null,
           subscriptionId: subscription_id,
           status: "active",
           nextBillingDate: resolvedNextBillingDate,
@@ -469,7 +464,7 @@ export async function POST(req: Request) {
       message_type === "AUTHORIZATION_SUCCESS" &&
       status_code !== PAYHERE_SUCCESS_STATUS
     ) {
-      await markPendingFailed();
+      await markCheckoutFailed();
       processingNotes.push(
         `Ignored AUTHORIZATION_SUCCESS with non-success status_code=${status_code}.`
       );
@@ -477,16 +472,16 @@ export async function POST(req: Request) {
 
     if (!message_type && status_code === PAYHERE_SUCCESS_STATUS) {
       const paidAmount = Number(payhere_amount);
-      const expectedAmount = Number(pendingOrderDoc?.total);
+      const expectedAmount = Number(checkoutOrderDoc?.total);
       const isAmountValid =
         Number.isFinite(paidAmount) &&
         Number.isFinite(expectedAmount) &&
         amountsMatch(paidAmount, expectedAmount);
       const isCurrencyValid = payhere_currency === STORE_CURRENCY;
 
-      if (!pendingOrderDoc || !isAmountValid || !isCurrencyValid) {
+      if (!checkoutOrderDoc || !isAmountValid || !isCurrencyValid) {
         processingNotes.push(
-          `Rejected success callback due to invalid amount/currency. paid=${payhere_amount} expected=${pendingOrderDoc?.total ?? "n/a"} currency=${payhere_currency}`
+          `Rejected success callback due to invalid amount/currency. paid=${payhere_amount} expected=${checkoutOrderDoc?.total ?? "n/a"} currency=${payhere_currency}`
         );
         await finalizeWebhookEvent("rejected");
         return NextResponse.json(
@@ -495,12 +490,12 @@ export async function POST(req: Request) {
         );
       }
 
-      await createPaidOrderFromPending();
+      await finalizeCheckoutOrder();
       processingNotes.push("Handled success callback without message_type.");
     }
 
     if (!message_type && status_code !== PAYHERE_SUCCESS_STATUS) {
-      await markPendingFailed();
+      await markCheckoutFailed();
       processingNotes.push(
         `Ignored callback without message_type and non-success status_code=${status_code}.`
       );
