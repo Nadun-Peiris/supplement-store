@@ -388,6 +388,9 @@ export async function POST(req: Request) {
       message_type === "AUTHORIZATION_SUCCESS" &&
       status_code === PAYHERE_SUCCESS_STATUS
     ) {
+      // PayHere webhook: initial authorization callback.
+      // For subscription checkout we only provision/link the subscription here.
+      // We do not mark the first subscription order as paid in this branch.
       processingNotes.push("Handled AUTHORIZATION_SUCCESS.");
 
       const paidAmount = Number(payhere_amount);
@@ -474,6 +477,7 @@ export async function POST(req: Request) {
           `Subscription provisioned for AUTHORIZATION_SUCCESS (${subscription_id}); awaiting recurring installment webhook to finalize the order.`
         );
       } else {
+        // Non-subscription checkout is finalized here because there is no later recurring webhook.
         await finalizeCheckoutOrder();
         processingNotes.push("Finalized non-subscription order on AUTHORIZATION_SUCCESS.");
       }
@@ -533,6 +537,10 @@ export async function POST(req: Request) {
       message_type === "RECURRING_INSTALLMENT_SUCCESS" &&
       status_code === PAYHERE_SUCCESS_STATUS
     ) {
+      // PayHere webhook: recurring installment success.
+      // We use this for subscription orders:
+      // 1. first installment -> finalize the original pending checkout order
+      // 2. later installments -> create fresh recurring renewal orders
       processingNotes.push("Handled RECURRING_INSTALLMENT_SUCCESS.");
 
       type SubscriptionWithOrder = {
@@ -598,6 +606,8 @@ export async function POST(req: Request) {
             baseOrder.paymentStatus !== "paid" && Boolean(baseOrder._id);
 
           if (isInitialInstallment && baseOrder._id) {
+            // First successful subscription installment:
+            // convert the original checkout order from pending -> paid.
             const finalizedInitialOrder = await finalizeOrderById(
               String(baseOrder._id)
             );
@@ -627,6 +637,8 @@ export async function POST(req: Request) {
               );
             }
           } else {
+          // Later successful subscription installments:
+          // create a new renewal order unless the same payment reference was already processed.
           const existingRecurringOrder = await Order.findOne({
             orderType: "subscription",
             subscriptionId: subscription_id,

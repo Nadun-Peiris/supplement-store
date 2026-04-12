@@ -176,6 +176,8 @@ export default function CheckoutPage() {
     form.method = "POST";
     form.action = payHereCheckoutUrl;
 
+    // This is the browser-side handoff that sends a one-time payment request to PayHere.
+    // PayHere later calls `notify_url` on our backend webhook after payment processing.
     const fields: Record<string, string> = {
       merchant_id: merchantId,
       return_url: `${window.location.origin}/checkout/success?orderId=${order._id}`,
@@ -296,6 +298,8 @@ export default function CheckoutPage() {
     form.method = "POST";
     form.action = payHereCheckoutUrl;
 
+    // This is the browser-side handoff that starts the subscription payment on PayHere.
+    // PayHere sends the follow-up payment webhooks to `notify_url`.
     // `recurrence` and `duration` are what make this a subscription checkout.
     const fields: Record<string, string> = {
       merchant_id: merchantId,

@@ -44,13 +44,23 @@ export async function POST(req: Request) {
 
     const quantity = Math.max(1, Number(rawQty) || 1);
     const product = await Product.findById(productId).select(
-      "name price discountPrice image"
+      "name price discountPrice image stock"
     );
 
     if (!product) {
       return NextResponse.json(
         { error: "Product not found" },
         { status: 404 }
+      );
+    }
+
+    const availableStock =
+      typeof product.stock === "number" ? Math.max(product.stock, 0) : 0;
+
+    if (availableStock <= 0) {
+      return NextResponse.json(
+        { error: "Product is out of stock" },
+        { status: 400 }
       );
     }
 
@@ -90,12 +100,28 @@ export async function POST(req: Request) {
     const index = cart.items.findIndex((i: any) => i.productId === productId);
 
     if (index >= 0) {
-      cart.items[index].quantity += quantity;
+      const nextQuantity = cart.items[index].quantity + quantity;
+
+      if (nextQuantity > availableStock) {
+        return NextResponse.json(
+          { error: "Requested quantity exceeds available stock" },
+          { status: 400 }
+        );
+      }
+
+      cart.items[index].quantity = nextQuantity;
       cart.items[index].price = effectivePrice;
       cart.items[index].originalPrice = originalPrice;
       cart.items[index].name = resolvedName;
       cart.items[index].image = resolvedImage;
     } else {
+      if (quantity > availableStock) {
+        return NextResponse.json(
+          { error: "Requested quantity exceeds available stock" },
+          { status: 400 }
+        );
+      }
+
       cart.items.push({
         productId,
         name: resolvedName,

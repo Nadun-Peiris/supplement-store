@@ -14,6 +14,7 @@ interface Props {
   category: string;
   price: number;
   discountPrice?: number;
+  stock?: number;
   image: string;
   slug: string;
   description?: string; 
@@ -26,6 +27,7 @@ export default function ProductCard({
   category,
   price,
   discountPrice,
+  stock = 0,
   image,
   slug,
   description = "Premium grade formula designed for professional performance and rapid recovery.",
@@ -35,9 +37,14 @@ export default function ProductCard({
   const hasDiscount =
     typeof discountPrice === "number" && discountPrice < price;
   const effectivePrice = hasDiscount ? discountPrice : price;
+  const isOutOfStock = stock <= 0;
 
   const handleAddToCart = async (e: MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    if (isOutOfStock) {
+      toast.error("This product is out of stock.");
+      return;
+    }
     await addToCart({ productId: id, name, price: effectivePrice, image });
     toast.success("Added to cart!");
     if (showQuickView) setShowQuickView(false);
@@ -102,10 +109,11 @@ export default function ProductCard({
 
         {/* ORIGINAL ADD TO CART BUTTON */}
         <button
+          disabled={isOutOfStock}
           className="absolute -bottom-[70px] left-0 w-full rounded-b-[24px] border-none bg-[#15D1F5] p-[0.8rem] text-center text-[0.9rem] font-bold text-white opacity-0 transition-all duration-300 ease-in-out group-hover:bottom-0 group-hover:opacity-100 max-sm:static max-sm:my-4 max-sm:mx-5 max-sm:w-[calc(100%-2.5rem)] max-sm:rounded-[16px] max-sm:opacity-100"
           onClick={handleAddToCart}
         >
-          ADD TO CART
+          {isOutOfStock ? "OUT OF STOCK" : "ADD TO CART"}
         </button>
       </div>
 
@@ -162,11 +170,12 @@ export default function ProductCard({
 
               <div className="mt-auto flex gap-3 pt-8">
                 <button
+                  disabled={isOutOfStock}
                   onClick={handleAddToCart}
-                  className="flex-[2] flex items-center justify-center gap-2 rounded-2xl bg-[#15D1F5] py-4 text-sm font-bold text-white shadow-[0_10px_20px_rgba(21,209,245,0.3)] transition-all hover:bg-[#12b8d9]"
+                  className="flex-[2] flex items-center justify-center gap-2 rounded-2xl bg-[#15D1F5] py-4 text-sm font-bold text-white shadow-[0_10px_20px_rgba(21,209,245,0.3)] transition-all hover:bg-[#12b8d9] disabled:cursor-not-allowed disabled:bg-gray-300 disabled:shadow-none"
                 >
                   <ShoppingCart size={18} />
-                  ADD TO CART
+                  {isOutOfStock ? "OUT OF STOCK" : "ADD TO CART"}
                 </button>
                 <Link
                   href={`/product/${slug}`}
