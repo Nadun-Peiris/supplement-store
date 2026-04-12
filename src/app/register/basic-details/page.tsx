@@ -1,36 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { FaEye, FaEyeSlash, FaChevronDown } from "react-icons/fa";
 import { HEALTH_OPTIONS } from "@/lib/constants";
 
 export default function Step1() {
   const router = useRouter();
+  const [form, setForm] = useState(() => {
+    if (typeof window === "undefined") {
+      return {
+        fullName: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        countryCode: "+94",
+        phoneLocal: "",
+        age: "",
+        gender: "",
+      };
+    }
 
-  const [form, setForm] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-    countryCode: "+94",
-    phoneLocal: "",
-    age: "",
-    gender: "",
+    const saved = localStorage.getItem("register_step1");
+    if (saved) {
+      return JSON.parse(saved);
+    }
+
+    return {
+      fullName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      countryCode: "+94",
+      phoneLocal: "",
+      age: "",
+      gender: "",
+    };
   });
   
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
-  useEffect(() => {
-    if (localStorage.getItem("registration_complete")) {
-      router.replace("/dashboard");
-    }
-    const saved = localStorage.getItem("register_step1");
-    if (saved) {
-      setForm(JSON.parse(saved));
-    }
-  }, [router]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -205,6 +215,15 @@ export default function Step1() {
             Continue to Health Info →
           </button>
         </form>
+
+        <div className="mt-8 border-t border-gray-100 pt-6 text-center">
+          <p className="text-sm font-medium text-gray-500">
+            Already have an account?
+            <Link href="/login" className="ml-2 font-black text-[#03c7fe] transition-colors hover:text-[#02a8d9]">
+              Log in
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

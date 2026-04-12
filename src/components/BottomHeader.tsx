@@ -157,7 +157,7 @@ export default function BottomHeader() {
             <div className="hidden h-8 w-[1px] bg-gray-200 lg:block"></div>
 
             {/* Profile Icon */}
-            <Link href="/dashboard/profile" className="text-2xl text-black hover:text-[#03c7fe] transition-colors">
+            <Link href="/login" className="text-2xl text-black hover:text-[#03c7fe] transition-colors">
               <FiUser strokeWidth={2} />
             </Link>
 

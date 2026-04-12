@@ -16,12 +16,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    if (user) router.push("/dashboard");
-  }, [user, router]);
+    if (!authLoading && user) router.replace("/dashboard");
+  }, [authLoading, user, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,8 +30,9 @@ export default function LoginPage() {
       await signInWithEmailAndPassword(auth, email, password);
       toast.success("Welcome back!");
       router.push("/dashboard");
-    } catch (err: any) {
-      toast.error(err.message || "Invalid credentials");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Invalid credentials";
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -39,6 +40,14 @@ export default function LoginPage() {
 
   const inputClass = "w-full rounded-xl border border-[#cfeef7] bg-[#fbfdff] p-3 pl-10 text-sm outline-none transition-all focus:border-[#03c7fe] focus:ring-2 focus:ring-[#03c7fe]/20 placeholder:text-gray-300";
   const labelClass = "text-sm font-bold text-[#111] mb-1.5 block";
+
+  if (authLoading) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#f2fbff] px-4 py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-[#03c7fe]" />
+      </main>
+    );
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#f2fbff] px-4 py-12">
