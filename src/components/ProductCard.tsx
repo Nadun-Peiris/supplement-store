@@ -58,7 +58,13 @@ export default function ProductCard({
 
   return (
     <>
-      <div className="group relative flex w-full flex-col overflow-hidden rounded-[24px] border border-[#ececec] bg-white transition-all duration-300 ease-in-out hover:border-[#d4d4d4] hover:bg-[#F8F8F8] h-[520px] max-[992px]:h-[480px] max-sm:h-auto max-sm:rounded-[20px]">
+      <div
+        className={`group relative flex w-full flex-col overflow-hidden rounded-[24px] border transition-all duration-300 ease-in-out h-[520px] max-[992px]:h-[480px] max-sm:h-auto max-sm:rounded-[20px] ${
+          isOutOfStock
+            ? "border-[#d8d8d8] bg-[#f1f1f1] grayscale"
+            : "border-[#ececec] bg-white hover:border-[#d4d4d4] hover:bg-[#F8F8F8]"
+        }`}
+      >
         
         {/* CLICKABLE PRODUCT AREA */}
         <Link href={`/product/${slug}`} className="relative flex flex-1 flex-col p-[1.8rem] max-[992px]:p-6 max-sm:p-5">
@@ -99,7 +105,11 @@ export default function ProductCard({
             {/* ICON-ONLY QUICK VIEW BUTTON */}
             <button
               onClick={openQuickView}
-              className="flex h-9 w-9 items-center justify-center rounded-full border border-[#cfeef7] bg-[#f0fbff] text-[#03c7fe] transition-all duration-300 hover:bg-[#03c7fe] hover:text-white hover:border-[#03c7fe] hover:scale-110 shadow-sm"
+              className={`flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-300 shadow-sm ${
+                isOutOfStock
+                  ? "border-gray-300 bg-gray-200 text-gray-500"
+                  : "border-[#cfeef7] bg-[#f0fbff] text-[#03c7fe] hover:bg-[#03c7fe] hover:text-white hover:border-[#03c7fe] hover:scale-110"
+              }`}
               title="Quick View"
             >
               <Maximize2 size={16} />
@@ -110,7 +120,9 @@ export default function ProductCard({
         {/* ORIGINAL ADD TO CART BUTTON */}
         <button
           disabled={isOutOfStock}
-          className="absolute -bottom-[70px] left-0 w-full rounded-b-[24px] border-none bg-[#15D1F5] p-[0.8rem] text-center text-[0.9rem] font-bold text-white opacity-0 transition-all duration-300 ease-in-out group-hover:bottom-0 group-hover:opacity-100 max-sm:static max-sm:my-4 max-sm:mx-5 max-sm:w-[calc(100%-2.5rem)] max-sm:rounded-[16px] max-sm:opacity-100"
+          className={`absolute -bottom-[70px] left-0 w-full rounded-b-[24px] border-none p-[0.8rem] text-center text-[0.9rem] font-bold text-white opacity-0 transition-all duration-300 ease-in-out group-hover:bottom-0 group-hover:opacity-100 max-sm:static max-sm:my-4 max-sm:mx-5 max-sm:w-[calc(100%-2.5rem)] max-sm:rounded-[16px] max-sm:opacity-100 ${
+            isOutOfStock ? "bg-gray-400" : "bg-[#15D1F5]"
+          }`}
           onClick={handleAddToCart}
         >
           {isOutOfStock ? "OUT OF STOCK" : "ADD TO CART"}
