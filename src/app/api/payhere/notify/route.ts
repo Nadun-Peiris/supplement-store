@@ -325,42 +325,51 @@ export async function POST(req: Request) {
       );
     };
 
-    const finalizeCheckoutOrder = async () => {
-      if (!checkoutOrderDoc) return null;
+    const finalizeOrderById = async (targetOrderId: string) => {
+      const targetOrderDoc = (await Order.findById(targetOrderId).select(
+        "user orderType items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId paymentStatus fulfillmentStatus subscriptionId"
+      )) as CheckoutRecord | null;
 
-      if (checkoutOrderDoc.paymentStatus === "paid") {
-        return Order.findById(order_id);
+      if (!targetOrderDoc) return null;
+
+      if (targetOrderDoc.paymentStatus === "paid") {
+        return Order.findById(targetOrderId);
       }
 
       const finalizedOrder = await Order.findOneAndUpdate(
-        { _id: order_id, paymentStatus: "pending" },
+        { _id: targetOrderId, paymentStatus: "pending" },
         {
           $set: {
             orderType: subscription_id
               ? "subscription"
-              : checkoutOrderDoc.orderType === "subscription"
+              : targetOrderDoc.orderType === "subscription"
               ? "subscription"
               : "normal",
             subscriptionId:
-              subscription_id ?? checkoutOrderDoc.subscriptionId ?? null,
+              subscription_id ?? targetOrderDoc.subscriptionId ?? null,
             paymentStatus: "paid",
             paymentReference: payment_id,
             fulfillmentStatus:
-              checkoutOrderDoc.fulfillmentStatus ?? "unfulfilled",
+              targetOrderDoc.fulfillmentStatus ?? "unfulfilled",
           },
         },
         { new: true }
       );
 
       if (!finalizedOrder) {
-        return Order.findById(order_id);
+        return Order.findById(targetOrderId);
       }
 
       await decrementStockForItems(finalizedOrder.items);
-      await clearCartForCheckout(checkoutOrderDoc);
+      await clearCartForCheckout(targetOrderDoc);
       await sendOrderConfirmationEmail(finalizedOrder);
 
       return finalizedOrder;
+    };
+
+    const finalizeCheckoutOrder = async () => {
+      if (!checkoutOrderDoc) return null;
+      return finalizeOrderById(order_id);
     };
 
     const markCheckoutFailed = async () => {
@@ -400,9 +409,21 @@ export async function POST(req: Request) {
         );
       }
 
-      const createdOrder = await finalizeCheckoutOrder();
+      const isSubscriptionAuthorization =
+        Boolean(subscription_id) || checkoutOrderDoc.orderType === "subscription";
 
-      if (subscription_id && createdOrder) {
+      if (isSubscriptionAuthorization) {
+        if (!subscription_id) {
+          processingNotes.push(
+            "AUTHORIZATION_SUCCESS did not include a subscription_id for a subscription checkout."
+          );
+          await finalizeWebhookEvent("error");
+          return NextResponse.json(
+            { error: "Missing subscription id for subscription checkout" },
+            { status: 400 }
+          );
+        }
+
         const existing = await Subscription.findOne({
           subscriptionId: subscription_id,
         }).select("_id recurrence");
@@ -412,14 +433,15 @@ export async function POST(req: Request) {
 
         const payload = {
           user: checkoutOrderDoc.user ?? null,
-          orderId: createdOrder._id,
+          orderId: order_id,
           subscriptionId: subscription_id,
           items: checkoutOrderDoc.items ?? [],
           status: "active",
+          lastPaymentDate: null,
           nextBillingDate: resolvedNextBillingDate,
           recurrence: recurrenceValue,
           totalInstallmentsPaid:
-            (await countSuccessfulSubscriptionPayments(subscription_id)) || 1,
+            await countSuccessfulSubscriptionPayments(subscription_id),
         };
 
         if (existing) {
@@ -428,22 +450,16 @@ export async function POST(req: Request) {
             { $set: payload }
           );
           await linkOrderToSubscription({
-            orderId: String(createdOrder._id),
+            orderId: order_id,
             subscriptionDocId: String(existing._id),
             subscriptionId: subscription_id,
           });
         } else {
           const createdSubscription = await Subscription.create(payload);
           await linkOrderToSubscription({
-            orderId: String(createdOrder._id),
+            orderId: order_id,
             subscriptionDocId: String(createdSubscription._id),
             subscriptionId: subscription_id,
-          });
-          await sendSubscriptionConfirmationEmail({
-            order: createdOrder,
-            subscriptionId: subscription_id,
-            recurrence: recurrenceValue,
-            nextBillingDate: resolvedNextBillingDate,
           });
         }
 
@@ -455,8 +471,11 @@ export async function POST(req: Request) {
         });
 
         processingNotes.push(
-          `Subscription upserted for AUTHORIZATION_SUCCESS (${subscription_id}).`
+          `Subscription provisioned for AUTHORIZATION_SUCCESS (${subscription_id}); awaiting recurring installment webhook to finalize the order.`
         );
+      } else {
+        await finalizeCheckoutOrder();
+        processingNotes.push("Finalized non-subscription order on AUTHORIZATION_SUCCESS.");
       }
     }
 
@@ -490,8 +509,17 @@ export async function POST(req: Request) {
         );
       }
 
-      await finalizeCheckoutOrder();
-      processingNotes.push("Handled success callback without message_type.");
+      const isSubscriptionCallback =
+        Boolean(subscription_id) || checkoutOrderDoc.orderType === "subscription";
+
+      if (isSubscriptionCallback) {
+        processingNotes.push(
+          "Ignored success callback without message_type for subscription checkout; waiting for recurring installment webhook."
+        );
+      } else {
+        await finalizeCheckoutOrder();
+        processingNotes.push("Handled success callback without message_type.");
+      }
     }
 
     if (!message_type && status_code !== PAYHERE_SUCCESS_STATUS) {
@@ -511,13 +539,17 @@ export async function POST(req: Request) {
         _id?: Types.ObjectId;
         recurrence?: string | null;
         status?: string | null;
+        lastPaymentDate?: Date | null;
+        nextBillingDate?: Date | null;
         orderId?: {
+          _id?: Types.ObjectId;
           user?: IOrder["user"];
           items?: IOrder["items"];
           subtotal?: number;
           shippingCost?: number;
           total?: number;
           billingDetails?: IOrder["billingDetails"];
+          paymentStatus?: IOrder["paymentStatus"];
         } | null;
       };
 
@@ -562,6 +594,39 @@ export async function POST(req: Request) {
         if (!baseOrder.billingDetails) {
           console.warn("Recurring order skipped: missing base order billingDetails");
         } else {
+          const isInitialInstallment =
+            baseOrder.paymentStatus !== "paid" && Boolean(baseOrder._id);
+
+          if (isInitialInstallment && baseOrder._id) {
+            const finalizedInitialOrder = await finalizeOrderById(
+              String(baseOrder._id)
+            );
+
+            if (finalizedInitialOrder) {
+              await Subscription.updateOne(
+                { subscriptionId: subscription_id },
+                {
+                  status: "active",
+                  lastPaymentDate: latestPaymentDate,
+                  nextBillingDate: resolvedNextBillingDate,
+                  recurrence: recurrenceValue,
+                  totalInstallmentsPaid:
+                    await countSuccessfulSubscriptionPayments(subscription_id),
+                }
+              );
+
+              await sendSubscriptionConfirmationEmail({
+                order: finalizedInitialOrder,
+                subscriptionId: subscription_id ?? "",
+                recurrence: recurrenceValue,
+                nextBillingDate: resolvedNextBillingDate,
+              });
+
+              processingNotes.push(
+                `Finalized initial subscription order ${String(finalizedInitialOrder._id)} from RECURRING_INSTALLMENT_SUCCESS for subscription ${subscription_id}.`
+              );
+            }
+          } else {
           const existingRecurringOrder = await Order.findOne({
             orderType: "subscription",
             subscriptionId: subscription_id,
@@ -584,6 +649,7 @@ export async function POST(req: Request) {
               { subscriptionId: subscription_id },
               {
                 status: "active",
+                lastPaymentDate: latestPaymentDate,
                 nextBillingDate: resolvedNextBillingDate,
                 recurrence: recurrenceValue,
                 totalInstallmentsPaid:
@@ -619,10 +685,12 @@ export async function POST(req: Request) {
             await Subscription.updateOne(
               { subscriptionId: subscription_id },
               {
+                lastPaymentDate: latestPaymentDate,
                 totalInstallmentsPaid:
                   await countSuccessfulSubscriptionPayments(subscription_id),
               }
             );
+          }
           }
         }
       } else {
@@ -636,6 +704,7 @@ export async function POST(req: Request) {
           { subscriptionId: subscription_id },
           {
             status: "active",
+            lastPaymentDate: latestPaymentDate,
             nextBillingDate: resolvedNextBillingDate,
             recurrence: recurrenceValue,
             totalInstallmentsPaid:
