@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FaEye, FaEyeSlash, FaLock, FaEnvelope } from "react-icons/fa";
 import { ArrowRight, Loader2 } from "lucide-react"; // Import ArrowRight and Loader2
@@ -18,10 +18,12 @@ export default function LoginPage() {
   
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next") || "/dashboard";
 
   useEffect(() => {
-    if (!authLoading && user) router.replace("/dashboard");
-  }, [authLoading, user, router]);
+    if (!authLoading && user) router.replace(nextPath);
+  }, [authLoading, nextPath, router, user]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +31,7 @@ export default function LoginPage() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast.success("Welcome back!");
-      router.push("/dashboard");
+      router.push(nextPath);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Invalid credentials";
       toast.error(message);
