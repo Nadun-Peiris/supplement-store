@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FaEye, FaEyeSlash, FaLock, FaEnvelope } from "react-icons/fa";
 import { ArrowRight, Loader2 } from "lucide-react"; // Import ArrowRight and Loader2
@@ -15,11 +15,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  
+  const [nextPath, setNextPath] = useState("/dashboard");
+
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const nextPath = searchParams.get("next") || "/dashboard";
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const nextValue =
+      new URLSearchParams(window.location.search).get("next") || "/dashboard";
+
+    setNextPath(nextValue);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && user) router.replace(nextPath);

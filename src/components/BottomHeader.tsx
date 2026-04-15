@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { FiSearch, FiUser, FiShoppingBag, FiMenu, FiX } from "react-icons/fi";
@@ -28,11 +28,11 @@ export default function BottomHeader() {
   const { count } = useCart();
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    setSearchTerm(searchParams.get("search") || "");
-  }, [searchParams]);
+    if (typeof window === "undefined") return;
+    setSearchTerm(new URLSearchParams(window.location.search).get("search") || "");
+  }, [pathname]);
 
   useEffect(() => {
     async function loadFeatured() {
