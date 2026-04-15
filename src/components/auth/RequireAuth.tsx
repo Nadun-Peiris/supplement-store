@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
 export default function RequireAuth({
@@ -12,16 +12,17 @@ export default function RequireAuth({
 }) {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     if (loading || user) return;
 
-    const query = searchParams.toString();
-    const nextPath = query ? `${pathname}?${query}` : pathname;
+    const nextPath =
+      typeof window === "undefined"
+        ? "/dashboard"
+        : `${window.location.pathname}${window.location.search}`;
+
     router.replace(`/login?next=${encodeURIComponent(nextPath)}`);
-  }, [loading, pathname, router, searchParams, user]);
+  }, [loading, router, user]);
 
   if (loading || !user) {
     return (
