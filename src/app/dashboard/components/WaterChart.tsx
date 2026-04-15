@@ -3,29 +3,38 @@
 import { useEffect, useState } from "react";
 import "./WaterChart.css";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-import { auth } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 
 export default function WaterChart() {
   const [waterData, setWaterData] = useState<any[]>([]);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadWater() {
+      if (loading || !user) return;
+
       try {
-        const token = await auth.currentUser?.getIdToken();
+        const token = await user.getIdToken();
 
         const res = await fetch("/api/dashboard/water-history", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         const data = await res.json();
-        setWaterData(data.history || []);
+        if (!cancelled) setWaterData(data.history || []);
       } catch (err) {
         console.error("Failed to load water history", err);
       }
     }
 
     loadWater();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, user]);
 
   return (
     <div className="dashboard-card water-chart-card">

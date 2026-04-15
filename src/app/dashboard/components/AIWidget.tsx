@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import "./AIWidget.css";
-import { auth } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 
 type Tip = {
   title: string;
@@ -63,23 +63,30 @@ function buildTips(health: any): Tip[] {
 export default function AIWidget() {
   const [tips, setTips] = useState<Tip[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
+      if (authLoading) return;
+
       try {
-        const token = await auth.currentUser?.getIdToken();
-        if (!token) {
-          setTips(fallbackTips);
+        if (!user) {
+          if (!cancelled) {
+            setTips(fallbackTips);
+            setLoading(false);
+          }
           return;
         }
+
+        const token = await user.getIdToken();
         const res = await fetch("/api/dashboard/health", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         if (res.status === 401) {
-          setTips(fallbackTips);
+          if (!cancelled) setTips(fallbackTips);
           return;
         }
 
@@ -103,7 +110,7 @@ export default function AIWidget() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authLoading, user]);
 
   return (
     <div className="dashboard-card ai-widget">

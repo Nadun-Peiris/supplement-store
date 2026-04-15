@@ -2,39 +2,55 @@
 
 import { useEffect, useState } from "react";
 import "./SubscriptionSection.css";
-import { auth } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 
 export default function SubscriptionSection() {
   const [subscription, setSubscription] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadSubscription() {
+      if (authLoading) return;
+
+      if (!user) {
+        setSubscription(null);
+        setLoading(false);
+        return;
+      }
+
       try {
-        const token = await auth.currentUser?.getIdToken();
+        setLoading(true);
+        const token = await user.getIdToken();
         const res = await fetch("/api/dashboard/subscription", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         const data = await res.json();
-        setSubscription(data.subscription || null);
+        if (!cancelled) setSubscription(data.subscription || null);
       } catch (err) {
         console.error("Failed to load subscription", err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     loadSubscription();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user]);
 
   async function cancelSubscription() {
-    if (!subscription?.id) return;
+    if (!subscription?.id || !user) return;
 
     try {
       setCancelLoading(true);
-      const token = await auth.currentUser?.getIdToken();
+      const token = await user.getIdToken();
 
       const res = await fetch("/api/dashboard/subscription/cancel", {
         method: "POST",

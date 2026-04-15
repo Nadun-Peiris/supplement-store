@@ -2,11 +2,12 @@
 
 import { useEffect, useState } from "react";
 import "./OrdersSection.css";
-import { auth } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 
 export default function OrdersSection() {
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
 
   const formatLabel = (value?: string) => {
     if (!value) return "--";
@@ -20,25 +21,40 @@ export default function OrdersSection() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadOrders() {
+      if (authLoading) return;
+
+      if (!user) {
+        setOrders([]);
+        setLoading(false);
+        return;
+      }
+
       try {
-        const token = await auth.currentUser?.getIdToken();
+        setLoading(true);
+        const token = await user.getIdToken();
 
         const res = await fetch("/api/dashboard/orders", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         const data = await res.json();
-        setOrders(data.orders || []);
+        if (!cancelled) setOrders(data.orders || []);
       } catch (err) {
         console.error("Orders load failed:", err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
 
     loadOrders();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user]);
 
   if (loading) {
     return (

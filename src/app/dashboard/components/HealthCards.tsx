@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import "./HealthCards.css";
-import { auth } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 import { FiActivity, FiDroplet } from "react-icons/fi";
 import { PiScalesLight } from "react-icons/pi";
 
 export default function HealthCards() {
   const [health, setHealth] = useState<any>(null);
+  const { user, loading } = useAuth();
 
   const formatLabel = (value?: string) => {
     if (!value) return "N/A";
@@ -21,32 +22,41 @@ export default function HealthCards() {
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadHealth() {
+      if (loading) return;
+
+      if (!user) {
+        setHealth(null);
+        return;
+      }
+
       try {
-        const token = await auth.currentUser?.getIdToken();
-        if (!token) {
-          setHealth(null);
-          return;
-        }
+        const token = await user.getIdToken();
 
         const res = await fetch("/api/dashboard/health", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         if (res.status === 401) {
-          setHealth(null);
+          if (!cancelled) setHealth(null);
           return;
         }
 
         const data = await res.json();
-        setHealth(data.health);
+        if (!cancelled) setHealth(data.health);
       } catch (err) {
         console.error("Failed to load health data", err);
       }
     }
 
     loadHealth();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, user]);
 
   if (!health) {
     return <div className="health-grid">Loading...</div>;

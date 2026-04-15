@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { auth } from "@/lib/firebase";
-import { useRouter } from "next/navigation";
-import { Loader2, LayoutDashboard } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
 
 import UserSummary from "./components/UserSummary";
 import HealthCards from "./components/HealthCards";
@@ -14,28 +12,7 @@ import SubscriptionSection from "./components/SubscriptionSection";
 import AIWidget from "./components/AIWidget";
 
 export default function Dashboard() {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const unsub = auth.onAuthStateChanged(async (firebaseUser) => {
-      if (!firebaseUser) {
-        router.push("/login");
-        return;
-      }
-
-      setUser({
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        name: firebaseUser.displayName || "Guest User",
-      });
-
-      setLoading(false);
-    });
-
-    return () => unsub();
-  }, [router]);
+  const { loading } = useAuth();
 
   if (loading) {
     return (

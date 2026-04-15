@@ -3,29 +3,38 @@
 import { useEffect, useState } from "react";
 import "./WeightChart.css";
 import { LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { auth } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 
 export default function WeightChart() {
   const [weightData, setWeightData] = useState<any[]>([]);
+  const { user, loading } = useAuth();
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadWeight() {
+      if (loading || !user) return;
+
       try {
-        const token = await auth.currentUser?.getIdToken();
+        const token = await user.getIdToken();
 
         const res = await fetch("/api/dashboard/weight-history", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         const data = await res.json();
-        setWeightData(data.history || []);
+        if (!cancelled) setWeightData(data.history || []);
       } catch (err) {
         console.error("Failed to load weight history", err);
       }
     }
 
     loadWeight();
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [loading, user]);
 
   return (
     <div className="dashboard-card weight-chart-card">

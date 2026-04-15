@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import "./UserSummary.css";
-import { auth } from "@/lib/firebase";
+import { useAuth } from "@/context/AuthContext";
 
 const UserSummarySkeleton = () => {
   return (
@@ -36,6 +36,7 @@ const UserSummarySkeleton = () => {
 export default function UserSummary() {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
 
   const formatText = (value?: string) => {
     if (!value) return "Not set";
@@ -45,7 +46,11 @@ export default function UserSummary() {
   };
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(async (user) => {
+    let cancelled = false;
+
+    async function loadProfile() {
+      if (authLoading) return;
+
       if (!user) {
         setProfile(null);
         setLoading(false);
@@ -60,16 +65,20 @@ export default function UserSummary() {
         });
 
         const data = await res.json();
-        setProfile(data.user);
+        if (!cancelled) setProfile(data.user);
       } catch (err) {
         console.error("Failed to load profile", err);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
-    });
+    }
 
-    return () => unsubscribe();
-  }, []);
+    loadProfile();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authLoading, user]);
 
   if (loading) return <UserSummarySkeleton />;
   if (!profile) return null;
