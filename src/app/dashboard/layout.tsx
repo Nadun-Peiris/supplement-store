@@ -1,7 +1,6 @@
 "use client";
 
 import Sidebar from "./components/Sidebar";
-import "../globals.css";
 import RequireAuth from "@/components/auth/RequireAuth";
 
 export default function DashboardLayout({
@@ -11,18 +10,25 @@ export default function DashboardLayout({
 }) {
   return (
     <RequireAuth>
-      <div className="flex min-h-screen bg-[#fdfdfd]">
-        {/* The Sidebar is hidden on mobile inside its own component,
-          so we just let it take its space here on large screens.
-        */}
+      {/* 1. h-screen overflow-hidden: Prevents the whole window from scrolling 
+         2. w-full: Takes full browser width
+      */}
+      <div className="flex h-screen w-full overflow-hidden bg-[#fdfdfd]">
+        
+        {/* Sidebar maintains its width defined inside its component */}
         <Sidebar />
 
-        {/* MAIN CONTENT AREA
-          - min-w-0: Prevents flex children from overflowing their container
-          - flex-1: Takes up the remaining horizontal space
+        {/* 1. flex-1: Takes up 100% of the space NOT occupied by the sidebar
+           2. overflow-y-auto: Allows the main area to scroll independently
         */}
-        <main className="flex-1 min-w-0 overflow-y-auto px-4 py-6 md:px-8 md:py-8 lg:max-h-[calc(100vh-120px)]">
-          <div className="mx-auto max-w-[1400px]">{children}</div>
+        <main className="flex-1 h-full overflow-y-auto">
+          {/* Inner container: 
+             - w-full: no max-width constraints 
+             - lg:px-12: generous breathing room on sides
+          */}
+          <div className="w-full px-4 py-8 md:px-10 lg:px-12 pb-24">
+            {children}
+          </div>
         </main>
       </div>
     </RequireAuth>

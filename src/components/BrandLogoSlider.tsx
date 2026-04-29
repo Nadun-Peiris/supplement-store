@@ -50,7 +50,7 @@ export default function BrandLogoSlider() {
   }, []);
 
   return (
-    <section className="w-full bg-white px-5 py-10 sm:px-8 sm:py-12">
+    <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-16">
       <h2 className="mb-8 text-2xl font-bold text-[#111] md:text-[2rem]">
         POPULAR <span className="font-black text-[#15D1F5]">BRANDS</span>
       </h2>

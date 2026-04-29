@@ -23,10 +23,15 @@ export default function LoginPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const nextValue =
-      new URLSearchParams(window.location.search).get("next") || "/dashboard";
+    const searchParams = new URLSearchParams(window.location.search);
+    const nextValue = searchParams.get("next") || "/dashboard";
+    const emailValue = searchParams.get("email");
 
     setNextPath(nextValue);
+
+    if (emailValue) {
+      setEmail(emailValue);
+    }
   }, []);
 
   useEffect(() => {
@@ -50,6 +55,9 @@ export default function LoginPage() {
 
   const inputClass = "w-full rounded-xl border border-[#cfeef7] bg-[#fbfdff] p-3 pl-10 text-sm outline-none transition-all focus:border-[#03c7fe] focus:ring-2 focus:ring-[#03c7fe]/20 placeholder:text-gray-300";
   const labelClass = "text-sm font-bold text-[#111] mb-1.5 block";
+  const forgotPasswordHref = email
+    ? `/forgot-password?email=${encodeURIComponent(email)}`
+    : "/forgot-password";
 
   if (authLoading) {
     return (
@@ -94,8 +102,10 @@ export default function LoginPage() {
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className={labelClass}>Password</label>
-              {/* FIXED: Removed size={12} to fix TypeScript error */}
-              <Link href="/forgot-password" className="text-xs font-bold text-[#03c7fe] hover:text-[#02a8d9] transition-colors">
+              <Link
+                href={forgotPasswordHref}
+                className="text-xs font-bold text-[#03c7fe] transition-colors hover:text-[#02a8d9]"
+              >
                 Forgot Password?
               </Link>
             </div>

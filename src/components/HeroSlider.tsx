@@ -67,7 +67,9 @@ export default function HeroSlider({
   const currentSlide = slides[current];
 
   return (
-    <div className={`w-full px-3 py-10 md:px-6 ${className}`.trim()}>
+    <div
+      className={`w-full overflow-hidden px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-16 ${className}`.trim()}
+    >
       <div className="relative mx-auto h-[600px] w-full max-w-[110rem] overflow-hidden rounded-[40px] bg-black text-white shadow-2xl md:h-[750px]">
         <AnimatePresence mode="wait">
           <motion.div
