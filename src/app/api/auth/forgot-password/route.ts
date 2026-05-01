@@ -24,7 +24,7 @@ export async function POST(req: Request) {
 
       const sent = await sendEmail({
         to: normalizedEmail,
-        subject: "Reset your Supplement Store password",
+        subject: "Reset your Supplement Lanka password",
         html: getSupplementLankaEmailHtml({
           eyebrow: "Account security",
           title: "Reset your password",

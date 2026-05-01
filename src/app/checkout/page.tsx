@@ -42,7 +42,42 @@ interface UserProfileResponse {
   };
 }
 
+interface ProductResponse {
+  product?: {
+    _id: string;
+    name: string;
+    price: number;
+    discountPrice?: number;
+    image?: string;
+  } | null;
+}
+
 const BUY_NOW_STORAGE_KEY = "checkout-buy-now-item";
+
+const getStoredBuyNowItem = () => {
+  try {
+    return sessionStorage.getItem(BUY_NOW_STORAGE_KEY);
+  } catch (error) {
+    console.warn("Unable to read buy now item", error);
+    return null;
+  }
+};
+
+const setStoredBuyNowItem = (item: CheckoutCartItem) => {
+  try {
+    sessionStorage.setItem(BUY_NOW_STORAGE_KEY, JSON.stringify(item));
+  } catch (error) {
+    console.warn("Unable to persist buy now item", error);
+  }
+};
+
+const removeStoredBuyNowItem = () => {
+  try {
+    sessionStorage.removeItem(BUY_NOW_STORAGE_KEY);
+  } catch (error) {
+    console.warn("Unable to clear buy now item", error);
+  }
+};
 
 export default function CheckoutPage() {
   const getInitial = (name: string) =>
@@ -75,6 +110,11 @@ export default function CheckoutPage() {
   const searchParams = useSearchParams();
   const checkoutMode = searchParams.get("mode");
   const isBuyNowMode = checkoutMode === "buy-now";
+  const buyNowProductId = searchParams.get("productId");
+  const buyNowQuantity = Math.max(
+    1,
+    Number(searchParams.get("quantity")) || 1
+  );
   
   // ---------------------------
   // Load cart + user details
@@ -116,6 +156,75 @@ export default function CheckoutPage() {
       setCartLoading(false);
     }
   }, [getCartHeaders]);
+
+  const loadBuyNowItem = useCallback(async () => {
+    try {
+      setCartLoading(true);
+      const savedItem = getStoredBuyNowItem();
+
+      if (savedItem) {
+        const parsedItem = JSON.parse(savedItem) as CheckoutCartItem;
+        const isStoredItemValid =
+          parsedItem?.productId &&
+          Number(parsedItem.price) > 0 &&
+          Number(parsedItem.quantity) > 0 &&
+          (!buyNowProductId || parsedItem.productId === buyNowProductId);
+
+        if (isStoredItemValid) {
+          setCartItems([
+            {
+              ...parsedItem,
+              quantity: Math.max(1, Number(parsedItem.quantity) || 1),
+            },
+          ]);
+          return;
+        }
+      }
+
+      if (!buyNowProductId) {
+        setCartItems([]);
+        return;
+      }
+
+      const res = await fetch(
+        `/api/products/${encodeURIComponent(buyNowProductId)}`
+      );
+
+      if (!res.ok) throw new Error("Failed to load buy now product");
+
+      const data = (await res.json()) as ProductResponse;
+      const product = data.product;
+
+      if (!product?._id || !product.name || !product.price) {
+        throw new Error("Invalid buy now product");
+      }
+
+      const effectivePrice =
+        typeof product.discountPrice === "number" &&
+        product.discountPrice < product.price
+          ? product.discountPrice
+          : product.price;
+
+      const buyNowItem: CheckoutCartItem = {
+        productId: product._id,
+        name: product.name,
+        price: effectivePrice,
+        originalPrice:
+          effectivePrice < product.price ? product.price : undefined,
+        quantity: buyNowQuantity,
+        image: product.image,
+      };
+
+      setStoredBuyNowItem(buyNowItem);
+      setCartItems([buyNowItem]);
+    } catch (err) {
+      console.error("Buy now item load failed", err);
+      removeStoredBuyNowItem();
+      setCartItems([]);
+    } finally {
+      setCartLoading(false);
+    }
+  }, [buyNowProductId, buyNowQuantity]);
 
   // Load billing for logged-in user
   useEffect(() => {
@@ -159,30 +268,7 @@ export default function CheckoutPage() {
       }
 
       if (isBuyNowMode) {
-        const savedItem = sessionStorage.getItem(BUY_NOW_STORAGE_KEY);
-
-        if (!savedItem) {
-          setCartItems([]);
-          setCartLoading(false);
-          return;
-        }
-
-        try {
-          const parsedItem = JSON.parse(savedItem) as CheckoutCartItem;
-
-          if (!parsedItem?.productId || !parsedItem?.price || !parsedItem?.quantity) {
-            throw new Error("Invalid buy now item");
-          }
-
-          setCartItems([parsedItem]);
-        } catch (err) {
-          console.error("Invalid buy now payload", err);
-          sessionStorage.removeItem(BUY_NOW_STORAGE_KEY);
-          setCartItems([]);
-        } finally {
-          setCartLoading(false);
-        }
-
+        loadBuyNowItem();
         return;
       }
 
@@ -190,7 +276,7 @@ export default function CheckoutPage() {
     });
 
     return () => unsubscribe();
-  }, [fetchCartItems, isBuyNowMode]);
+  }, [fetchCartItems, isBuyNowMode, loadBuyNowItem]);
 
   // ---------------------------
   // Update billing form
@@ -262,6 +348,7 @@ export default function CheckoutPage() {
         total,
         shippingMethod: "standard_shipping",
         purchaseType,
+        checkoutMode: isBuyNowMode ? "buy-now" : "cart",
         billingDetails: billing,
       }),
     });
@@ -384,7 +471,7 @@ export default function CheckoutPage() {
       try {
         await handlePayHerePayment();
         if (isBuyNowMode) {
-          sessionStorage.removeItem(BUY_NOW_STORAGE_KEY);
+          removeStoredBuyNowItem();
         }
       } catch (error) {
         console.error("PayHere payment failed:", error);
@@ -401,7 +488,7 @@ export default function CheckoutPage() {
         // then redirects to PayHere with recurring billing fields.
         const order = await createPayHereOrder();
         if (isBuyNowMode) {
-          sessionStorage.removeItem(BUY_NOW_STORAGE_KEY);
+          removeStoredBuyNowItem();
         }
         await redirectToPayHereSubscription(order._id, order.total);
       } catch (error) {
@@ -524,7 +611,7 @@ export default function CheckoutPage() {
             <button
               type="button"
               onClick={() => {
-                sessionStorage.removeItem(BUY_NOW_STORAGE_KEY);
+                removeStoredBuyNowItem();
                 router.push("/cart");
               }}
               className="mb-5 text-sm font-semibold text-[#03C7FE] transition-colors hover:text-[#02a8d9]"

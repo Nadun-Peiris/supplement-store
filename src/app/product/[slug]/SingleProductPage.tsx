@@ -75,8 +75,17 @@ export default function SingleProductPage({ product }: { product: ProductDTO }) 
       image: product.image,
     };
 
-    sessionStorage.setItem(BUY_NOW_STORAGE_KEY, JSON.stringify(buyNowItem));
-    router.push("/checkout?mode=buy-now");
+    try {
+      sessionStorage.setItem(BUY_NOW_STORAGE_KEY, JSON.stringify(buyNowItem));
+    } catch (error) {
+      console.warn("Unable to persist buy now item", error);
+    }
+
+    router.push(
+      `/checkout?mode=buy-now&productId=${encodeURIComponent(
+        product._id
+      )}&quantity=${qty}`
+    );
   };
 
   // Check what data we actually have to selectively render tabs

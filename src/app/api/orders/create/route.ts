@@ -11,8 +11,14 @@ export async function POST(req: Request) {
     await connectDB();
 
     const body = await req.json();
-    const { items, billingDetails, subtotal, shippingCost, total, purchaseType } =
-      body;
+    const {
+      items,
+      billingDetails,
+      shippingCost,
+      purchaseType,
+      checkoutMode,
+    } = body;
+    const isBuyNowCheckout = checkoutMode === "buy-now";
 
     if (!items || !items.length) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
@@ -71,7 +77,9 @@ export async function POST(req: Request) {
 
     let userObjectId: string | null = null;
     let cartOwnerUserId: string | null = null;
-    const cartOwnerGuestId: string | null = guestId || null;
+    const cartOwnerGuestId: string | null = isBuyNowCheckout
+      ? null
+      : guestId || null;
 
     if (authHeader?.startsWith("Bearer ")) {
       const token = authHeader.split(" ")[1];
@@ -85,7 +93,7 @@ export async function POST(req: Request) {
 
           if (user) {
             userObjectId = String(user._id);
-            cartOwnerUserId = user.firebaseId;
+            cartOwnerUserId = isBuyNowCheckout ? null : user.firebaseId;
           }
         } catch {
           // continue as guest
