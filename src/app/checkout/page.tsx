@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -79,7 +79,18 @@ const removeStoredBuyNowItem = () => {
   }
 };
 
-export default function CheckoutPage() {
+function CheckoutFallback() {
+  return (
+    <div className="w-full bg-white px-6 py-12 text-[#111] md:px-12 lg:px-20 lg:py-16 xl:px-28 2xl:px-40">
+      <h1 className="mb-10 text-center text-[2.5rem] font-black tracking-wide md:mb-16 md:text-[3.5rem]">
+        CHECKOUT
+      </h1>
+      <div className="mx-auto h-40 max-w-4xl animate-pulse rounded-2xl bg-gray-100" />
+    </div>
+  );
+}
+
+function CheckoutContent() {
   const getInitial = (name: string) =>
     name?.trim()?.charAt(0)?.toUpperCase() || "?";
   const payHereCheckoutUrl =
@@ -761,5 +772,13 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<CheckoutFallback />}>
+      <CheckoutContent />
+    </Suspense>
   );
 }
