@@ -1,5 +1,8 @@
 import type { IOrder } from "@/models/Order";
-import { getSupplementLankaEmailHtml } from "@/lib/mail/emailTemplate";
+import {
+  getOrderStatusTone,
+  renderOrderStatusEmail,
+} from "@/lib/mail/emailTemplate";
 
 type OrderConfirmationInput = Pick<
   IOrder,
@@ -18,9 +21,6 @@ type OrderConfirmationInput = Pick<
   trackingNumber?: string | null;
   actionUrl?: string;
 };
-
-const formatCurrency = (amount: number) =>
-  `LKR ${Number(amount || 0).toLocaleString("en-LK")}`;
 
 const formatDate = (date?: Date | string | null) => {
   if (!date) return "Today";
@@ -50,7 +50,9 @@ export function getOrderConfirmationHtml(order: OrderConfirmationInput) {
     order.billingDetails?.lastName ?? ""
   }`.trim();
 
-  return getSupplementLankaEmailHtml({
+  const statusLabel = formatLabel(order.fulfillmentStatus || "unfulfilled");
+
+  return renderOrderStatusEmail({
     eyebrow: isSubscriptionOrder ? "Subscription order" : "Order confirmed",
     title: isSubscriptionOrder
       ? "Your subscription order is confirmed"
@@ -58,10 +60,10 @@ export function getOrderConfirmationHtml(order: OrderConfirmationInput) {
     lead: isSubscriptionOrder
       ? "Your payment has been confirmed and we are now processing your subscription order."
       : "Your payment has been confirmed and we are now processing your order.",
-    actionLabel: "View Order",
-    actionUrl: order.actionUrl || "#",
-    details: [
-      { label: "Order", value: `#${orderCode}` },
+    orderCode,
+    statusLabel,
+    statusTone: getOrderStatusTone(order.fulfillmentStatus || "fulfilled"),
+    detailItems: [
       { label: "Customer", value: customerName || "Customer" },
       { label: "Payment", value: order.paymentMethod || "PayHere" },
       { label: "Date", value: formatDate(order.createdAt) },
@@ -69,16 +71,16 @@ export function getOrderConfirmationHtml(order: OrderConfirmationInput) {
         ? [{ label: "Subscription", value: `#${order.subscriptionId}` }]
         : []),
     ],
-    statusLabel: formatLabel(order.fulfillmentStatus || "unfulfilled"),
-    waybillNumber: order.trackingNumber || undefined,
-    summaryItems: order.items.map((item) => ({
+    trackingNumber: order.trackingNumber || undefined,
+    items: order.items.map((item) => ({
       name: item.name,
-      quantity: String(item.quantity),
-      total: formatCurrency(item.lineTotal ?? item.price * item.quantity),
+      quantity: item.quantity,
+      price: item.price,
+      lineTotal: item.lineTotal ?? item.price * item.quantity,
     })),
-    subtotal: formatCurrency(order.subtotal),
-    shipping: formatCurrency(order.shippingCost),
-    grandTotal: formatCurrency(order.total),
+    subtotal: order.subtotal,
+    shippingCost: order.shippingCost,
+    total: order.total,
     footerNote: "We will notify you when your order is shipped. If you have any questions, simply reply to this email.",
   });
 }

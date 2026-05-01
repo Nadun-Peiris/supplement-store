@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminAuth } from "@/lib/firebaseAdmin";
 import { sendEmail } from "@/lib/mail/nodemailer";
-import { getSupplementLankaEmailHtml } from "@/lib/mail/emailTemplate";
+import { renderPasswordResetEmail } from "@/lib/mail/emailTemplate";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -25,31 +25,7 @@ export async function POST(req: Request) {
       const sent = await sendEmail({
         to: normalizedEmail,
         subject: "Reset your Supplement Lanka password",
-        html: getSupplementLankaEmailHtml({
-          eyebrow: "Account security",
-          title: "Reset your password",
-          lead: "We received a request to reset the password for your Supplement Lanka account.",
-          actionLabel: "Reset Password",
-          actionUrl: resetLink,
-          details: [
-            { label: "Account", value: normalizedEmail },
-            { label: "Request", value: "Password reset" },
-            { label: "Status", value: "Link generated" },
-            {
-              label: "Date",
-              value: new Date().toLocaleDateString("en-LK", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              }),
-            },
-          ],
-          statusLabel: "Security email",
-          waybillLabel: "Reset Link",
-          waybillNumber: resetLink,
-          footerNote:
-            "If you did not request a password reset, you can ignore this email.",
-        }),
+        html: renderPasswordResetEmail({ resetLink }),
       });
 
       if (!sent) {

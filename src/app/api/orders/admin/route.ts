@@ -3,7 +3,11 @@ import Order from "@/models/Order";
 import User from "@/models/User";
 import { NextResponse } from "next/server";
 import { sendEmail } from "@/lib/mail/nodemailer";
-import { getSupplementLankaEmailHtml } from "@/lib/mail/emailTemplate";
+import {
+  getOrderStatusSubject,
+  getOrderStatusTone,
+  renderOrderStatusEmail,
+} from "@/lib/mail/emailTemplate";
 
 // 🔍 GET ORDERS (existing)
 export async function GET(req: Request) {
@@ -81,8 +85,6 @@ export async function PATCH(req: Request) {
         const customerName = `${order.billingDetails?.firstName ?? ""} ${
           order.billingDetails?.lastName ?? ""
         }`.trim();
-        const formatCurrency = (amount: number) =>
-          `LKR ${Number(amount || 0).toLocaleString("en-LK")}`;
         const formatLabel = (value: string) =>
           value
             .replace(/[-_]/g, " ")
@@ -90,22 +92,25 @@ export async function PATCH(req: Request) {
             .filter(Boolean)
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
             .join(" ");
+        const orderCode = String(order._id).toUpperCase().slice(-8);
+        const statusLabel = formatLabel(status);
 
         try {
           await sendEmail({
             to: recipientEmail,
-            subject: message,
-            html: getSupplementLankaEmailHtml({
+            subject: getOrderStatusSubject({
+              orderCode,
+              status,
+              isSubscriptionOrder: order.orderType === "subscription",
+            }),
+            html: renderOrderStatusEmail({
               eyebrow: "Order update",
               title: message,
               lead: "There has been an update to your Supplement Lanka order.",
-              actionLabel: "View Order",
-              actionUrl: "#",
-              details: [
-                {
-                  label: "Order",
-                  value: `#${String(order._id).toUpperCase().slice(-8)}`,
-                },
+              orderCode,
+              statusLabel,
+              statusTone: getOrderStatusTone(status),
+              detailItems: [
                 { label: "Customer", value: customerName || "Customer" },
                 { label: "Payment", value: "PayHere" },
                 {
@@ -117,18 +122,16 @@ export async function PATCH(req: Request) {
                   }),
                 },
               ],
-              statusLabel: formatLabel(status),
-              waybillNumber: order.trackingNumber || undefined,
-              summaryItems: order.items.map((item) => ({
+              trackingNumber: order.trackingNumber || undefined,
+              items: order.items.map((item) => ({
                 name: item.name,
-                quantity: String(item.quantity),
-                total: formatCurrency(
-                  item.lineTotal ?? item.price * item.quantity
-                ),
+                quantity: item.quantity,
+                price: item.price,
+                lineTotal: item.lineTotal ?? item.price * item.quantity,
               })),
-              subtotal: formatCurrency(order.subtotal),
-              shipping: formatCurrency(order.shippingCost),
-              grandTotal: formatCurrency(order.total),
+              subtotal: order.subtotal,
+              shippingCost: order.shippingCost,
+              total: order.total,
               footerNote: "Thank you for shopping with us. If you have any questions, simply reply to this email.",
             }),
           });

@@ -1,5 +1,5 @@
 import type { IOrder } from "@/models/Order";
-import { getSupplementLankaEmailHtml } from "@/lib/mail/emailTemplate";
+import { renderOrderStatusEmail } from "@/lib/mail/emailTemplate";
 
 type SubscriptionConfirmationInput = Pick<
   IOrder,
@@ -14,11 +14,7 @@ type SubscriptionConfirmationInput = Pick<
   subscriptionId: string;
   recurrence: string;
   nextBillingDate: Date;
-  actionUrl?: string;
 };
-
-const formatCurrency = (amount: number) =>
-  `LKR ${Number(amount || 0).toLocaleString("en-LK")}`;
 
 const formatDate = (date?: Date | string | null) => {
   if (!date) return "Today";
@@ -41,38 +37,35 @@ export function getSubscriptionConfirmationHtml({
   subscriptionId,
   recurrence,
   nextBillingDate,
-  actionUrl,
 }: SubscriptionConfirmationInput) {
   const customerName = `${billingDetails?.firstName ?? ""} ${
     billingDetails?.lastName ?? ""
   }`.trim();
 
-  return getSupplementLankaEmailHtml({
+  return renderOrderStatusEmail({
     eyebrow: "Subscription active",
     title: "Your subscription is now active",
     lead: "We have received your first payment and will continue processing this order on your selected billing cycle.",
-    actionLabel: "View Subscription",
-    actionUrl: actionUrl || "#",
-    details: [
-      { label: "Order", value: `#${String(_id).toUpperCase().slice(-8)}` },
+    orderCode: String(_id).toUpperCase().slice(-8),
+    statusLabel: "Active",
+    statusTone: "success",
+    detailItems: [
       { label: "Customer", value: customerName || "Customer" },
       { label: "Payment", value: "PayHere" },
       { label: "Date", value: formatDate(createdAt) },
       { label: "Subscription", value: `#${subscriptionId}` },
       { label: "Billing Cycle", value: recurrence },
+      { label: "Next Billing Date", value: formatDate(nextBillingDate) },
     ],
-    statusLabel: "Active",
-    waybillLabel: "Next Billing Date",
-    waybillNumber: formatDate(nextBillingDate),
-    summaryItems: items.map((item) => ({
+    items: items.map((item) => ({
       name: item.name,
-      quantity: String(item.quantity),
-      total: formatCurrency(item.lineTotal ?? item.price * item.quantity),
+      quantity: item.quantity,
+      price: item.price,
+      lineTotal: item.lineTotal ?? item.price * item.quantity,
     })),
-    subtotal: formatCurrency(subtotal),
-    shipping: formatCurrency(shippingCost),
-    grandTotal: formatCurrency(total),
-    grandTotalLabel: "First Payment Total",
+    subtotal,
+    shippingCost,
+    total,
     footerNote: "We will email you again when future subscription payments are processed. If you have any questions, simply reply to this email.",
   });
 }
