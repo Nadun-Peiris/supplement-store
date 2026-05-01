@@ -1,7 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import { useCallback, useEffect, useState } from "react";
 import { auth } from "@/lib/firebase";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface CheckoutCartItem {
   productId: string;
@@ -40,6 +42,8 @@ interface UserProfileResponse {
   };
 }
 
+const BUY_NOW_STORAGE_KEY = "checkout-buy-now-item";
+
 export default function CheckoutPage() {
   const getInitial = (name: string) =>
     name?.trim()?.charAt(0)?.toUpperCase() || "?";
@@ -67,6 +71,10 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(false);
   const [cartItems, setCartItems] = useState<CheckoutCartItem[]>([]);
   const [cartLoading, setCartLoading] = useState(true);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const checkoutMode = searchParams.get("mode");
+  const isBuyNowMode = checkoutMode === "buy-now";
   
   // ---------------------------
   // Load cart + user details
@@ -150,11 +158,39 @@ export default function CheckoutPage() {
         }
       }
 
+      if (isBuyNowMode) {
+        const savedItem = sessionStorage.getItem(BUY_NOW_STORAGE_KEY);
+
+        if (!savedItem) {
+          setCartItems([]);
+          setCartLoading(false);
+          return;
+        }
+
+        try {
+          const parsedItem = JSON.parse(savedItem) as CheckoutCartItem;
+
+          if (!parsedItem?.productId || !parsedItem?.price || !parsedItem?.quantity) {
+            throw new Error("Invalid buy now item");
+          }
+
+          setCartItems([parsedItem]);
+        } catch (err) {
+          console.error("Invalid buy now payload", err);
+          sessionStorage.removeItem(BUY_NOW_STORAGE_KEY);
+          setCartItems([]);
+        } finally {
+          setCartLoading(false);
+        }
+
+        return;
+      }
+
       fetchCartItems();
     });
 
     return () => unsubscribe();
-  }, [fetchCartItems]);
+  }, [fetchCartItems, isBuyNowMode]);
 
   // ---------------------------
   // Update billing form
@@ -339,13 +375,17 @@ export default function CheckoutPage() {
   // ---------------------------
   const placeOrder = async () => {
     if (!agreeTerms) return alert("Please agree to the terms.");
-    if (cartItems.length === 0) return alert("Cart empty!");
+    if (cartItems.length === 0)
+      return alert(isBuyNowMode ? "Buy it now item missing." : "Cart empty!");
 
     setLoading(true);
 
     if (purchaseType === "one_time") {
       try {
         await handlePayHerePayment();
+        if (isBuyNowMode) {
+          sessionStorage.removeItem(BUY_NOW_STORAGE_KEY);
+        }
       } catch (error) {
         console.error("PayHere payment failed:", error);
         alert("Card payment failed.");
@@ -360,6 +400,9 @@ export default function CheckoutPage() {
         // Subscription checkout still starts by creating a pending order locally,
         // then redirects to PayHere with recurring billing fields.
         const order = await createPayHereOrder();
+        if (isBuyNowMode) {
+          sessionStorage.removeItem(BUY_NOW_STORAGE_KEY);
+        }
         await redirectToPayHereSubscription(order._id, order.total);
       } catch (error) {
         console.error("Subscription payment failed:", error);
@@ -387,7 +430,7 @@ export default function CheckoutPage() {
       
       {/* HEADER SECTION (Optional, to match cart) */}
       <h1 className="mb-10 text-center text-[2.5rem] font-black tracking-wide text-[#111] md:mb-16 md:text-[3.5rem]">
-        CHECKOUT
+        {isBuyNowMode ? "BUY IT NOW" : "CHECKOUT"}
       </h1>
 
       {/* FULL WIDTH GRID LAYOUT */}
@@ -477,6 +520,19 @@ export default function CheckoutPage() {
         <div className="h-fit w-full rounded-2xl border border-gray-100 bg-white p-7 shadow-sm xl:p-9">
           <h2 className="mb-6 text-xl font-black text-[#111] xl:text-2xl">YOUR ORDER</h2>
 
+          {isBuyNowMode && !cartLoading && cartItems.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                sessionStorage.removeItem(BUY_NOW_STORAGE_KEY);
+                router.push("/cart");
+              }}
+              className="mb-5 text-sm font-semibold text-[#03C7FE] transition-colors hover:text-[#02a8d9]"
+            >
+              Switch to cart checkout
+            </button>
+          ) : null}
+
           {/* ITEM LIST */}
           <div className="flex flex-col mb-6">
             {cartLoading ? (
@@ -499,10 +555,11 @@ export default function CheckoutPage() {
                   <div className="flex items-center gap-4">
                     <div className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-[#f8f8f8] text-sm font-bold text-gray-500 uppercase">
                       {item.image ? (
-                        <img
+                        <Image
                           src={item.image}
                           alt={item.name}
-                          loading="lazy"
+                          width={48}
+                          height={48}
                           className="h-full w-full object-cover mix-blend-multiply"
                         />
                       ) : (

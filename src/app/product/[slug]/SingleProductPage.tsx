@@ -9,6 +9,9 @@ import { useCart } from "@/context/CartContext";
 import type { ProductDTO } from "@/types/product";
 import { ChevronRight, Minus, Plus, ShieldCheck, CheckCircle2, FileText } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+
+const BUY_NOW_STORAGE_KEY = "checkout-buy-now-item";
 
 export default function SingleProductPage({ product }: { product: ProductDTO }) {
   const servingInfo = product.details?.servingInfo;
@@ -43,6 +46,7 @@ export default function SingleProductPage({ product }: { product: ProductDTO }) 
   const currency = product.currency || "LKR";
 
   const { addToCart } = useCart();
+  const router = useRouter();
 
   const increaseQty = () => setQty((q) => (stock > 0 ? Math.min(q + 1, stock) : 1));
   const decreaseQty = () => setQty((q) => (q > 1 ? q - 1 : 1));
@@ -57,6 +61,22 @@ export default function SingleProductPage({ product }: { product: ProductDTO }) 
       quantity: qty,
     });
     toast.success("Added to cart!");
+  };
+
+  const handleBuyNow = () => {
+    if (isOutOfStock) return;
+
+    const buyNowItem = {
+      productId: product._id,
+      name: product.name,
+      price: displayPrice,
+      originalPrice: hasDiscount ? product.price : undefined,
+      quantity: qty,
+      image: product.image,
+    };
+
+    sessionStorage.setItem(BUY_NOW_STORAGE_KEY, JSON.stringify(buyNowItem));
+    router.push("/checkout?mode=buy-now");
   };
 
   // Check what data we actually have to selectively render tabs
@@ -193,7 +213,7 @@ export default function SingleProductPage({ product }: { product: ProductDTO }) 
               <button onClick={handleAddToCart} disabled={isOutOfStock} className="flex h-14 w-full items-center justify-center rounded-full border-2 border-black bg-black text-sm font-bold tracking-wide text-white transition-all duration-300 hover:border-[#03C7FE] hover:bg-gray-900 disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed">
                 ADD TO CART
               </button>
-              <button disabled={isOutOfStock} className="flex h-14 w-full items-center justify-center rounded-full border-2 border-gray-900 bg-white text-sm font-bold tracking-wide text-gray-900 transition-all duration-300 hover:border-[#03C7FE] hover:bg-gray-900 hover:text-white disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
+              <button onClick={handleBuyNow} disabled={isOutOfStock} className="flex h-14 w-full items-center justify-center rounded-full border-2 border-gray-900 bg-white text-sm font-bold tracking-wide text-gray-900 transition-all duration-300 hover:border-[#03C7FE] hover:bg-gray-900 hover:text-white disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed">
                 BUY IT NOW
               </button>
             </div>

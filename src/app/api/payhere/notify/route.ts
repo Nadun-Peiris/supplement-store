@@ -251,7 +251,11 @@ export async function POST(req: Request) {
             shippingCost: Number(order.shippingCost) || 0,
             total: Number(order.total) || 0,
             orderType: order.orderType,
+            billingDetails: order.billingDetails,
+            createdAt: order.createdAt,
             subscriptionId: order.subscriptionId ?? null,
+            fulfillmentStatus: order.fulfillmentStatus,
+            trackingNumber: order.trackingNumber ?? null,
           }),
         });
       } catch (emailError) {
@@ -283,6 +287,8 @@ export async function POST(req: Request) {
             subtotal: Number(order.subtotal) || 0,
             shippingCost: Number(order.shippingCost) || 0,
             total: Number(order.total) || 0,
+            billingDetails: order.billingDetails,
+            createdAt: order.createdAt,
             subscriptionId,
             recurrence,
             nextBillingDate,
