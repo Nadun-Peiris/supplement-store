@@ -1,4 +1,4 @@
-import ShopPage from "./[category]/ShopPage";
+import ShopPage from "./ShopPage";
 import { getFilteredProducts } from "@/lib/products";
 import { buildBrandFilter, combineFilters, parseListParam } from "@/lib/productFilters";
 
@@ -22,7 +22,8 @@ export default async function ShopIndexPage({ searchParams }: ShopIndexPageProps
 
   return (
     <ShopPage
-      categorySlug=""
+      pageTitle="Shop"
+      initialCategoryFilters={[]}
       initialBrandFilters={brandFilters}
       initialSearchTerm={searchTerm}
       initialProducts={data.products}

@@ -33,7 +33,6 @@ export default function ProductCarousel({ category }: { category: string }) {
           params.append("category", categorySlug);
         }
 
-        // ✅ FIXED: RELATIVE FETCH ONLY (works on Vercel)
         const res = await fetch(`/api/products/filter?${params.toString()}`, {
           cache: "no-store",
         });
@@ -55,27 +54,35 @@ export default function ProductCarousel({ category }: { category: string }) {
   /* --------------------- LOADING SKELETON --------------------- */
   if (loading)
     return (
-      <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-12">
-        <div className="mb-6 flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
-          <h2 className="text-[2rem] font-bold text-[#111] md:text-[2.4rem] xl:text-[4rem]">
+      <section className="w-full bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-12">
+        <div className="mb-6 flex flex-row items-center justify-between gap-3">
+          <h2 className="text-[2rem] font-bold text-[#111] md:text-[2.4rem] xl:text-[4rem] leading-none">
             {category.toUpperCase()}
           </h2>
-          <div className="h-10 w-[100px] animate-pulse rounded-full bg-neutral-200 md:w-[120px]" />
+          <div className="h-10 w-[90px] shrink-0 animate-pulse rounded-full bg-neutral-200 md:w-[120px]" />
         </div>
 
-        <div className="relative mx-auto">
-          <div className="grid grid-flow-col auto-cols-[85%] gap-6 overflow-hidden md:auto-cols-[70%] xl:auto-cols-[calc(25%-1.125rem)] pointer-events-none">
-            {[1, 2, 3, 4].map((i) => (
-              <div className="flex w-full flex-col gap-3" key={i}>
-                <div className="aspect-[3/4] w-full animate-pulse rounded-[12px] bg-neutral-200" />
-                <div className="flex flex-col items-center gap-2 px-2">
-                  <div className="h-[14px] w-[80%] animate-pulse rounded-[6px] bg-neutral-200" />
-                  <div className="h-[14px] w-[60%] animate-pulse rounded-[6px] bg-neutral-200" />
-                  <div className="h-[14px] w-[40%] animate-pulse rounded-[6px] bg-neutral-200" />
+        <div className="flex gap-3 overflow-hidden md:gap-5">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="shrink-0 w-[75vw] md:w-[40vw] lg:w-[28vw] xl:w-[calc(25%-18px)]"
+            >
+              <div className="rounded-[20px] border border-neutral-100 bg-white p-3 shadow-sm">
+                <div className="mb-3 flex flex-col gap-1">
+                  <div className="h-4 w-[70%] animate-pulse rounded bg-neutral-200" />
+                  <div className="h-3 w-[45%] animate-pulse rounded bg-neutral-200" />
+                </div>
+                <div className="aspect-[4/5] w-full animate-pulse rounded-[14px] bg-neutral-200" />
+                <div className="mt-3 flex flex-col gap-2">
+                  <div className="h-3 w-[80%] animate-pulse rounded bg-neutral-200" />
+                  <div className="h-3 w-[60%] animate-pulse rounded bg-neutral-200" />
+                  <div className="h-5 w-[50%] animate-pulse rounded bg-neutral-200" />
+                  <div className="mt-1 h-10 w-full animate-pulse rounded-[10px] bg-neutral-200" />
                 </div>
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
       </section>
     );
@@ -83,7 +90,7 @@ export default function ProductCarousel({ category }: { category: string }) {
   /* --------------------- EMPTY --------------------- */
   if (!products.length)
     return (
-      <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-12">
+      <section className="w-full bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-12">
         <h2 className="text-[2rem] font-bold text-[#111] md:text-[2.4rem] xl:text-[4rem]">
           {category.toUpperCase()}
         </h2>
@@ -93,24 +100,39 @@ export default function ProductCarousel({ category }: { category: string }) {
 
   /* --------------------- LOADED --------------------- */
   return (
-    <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-12">
-      <div className="mb-6 flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
+    <section className="w-full bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-12">
+      {/* Header: heading left, View All button right — always row */}
+      <div className="mb-6 flex flex-row items-center justify-between gap-3">
         <h2 className="text-[2rem] font-bold text-[#111] md:text-[2.4rem] xl:text-[4rem] leading-none">
           {category.toUpperCase()}
         </h2>
 
         <Link
           href={viewAllHref}
-          className="inline-flex h-10 w-full items-center justify-center gap-2 rounded-full border border-[#525252] bg-[#262626] px-5 text-[0.9rem] font-semibold text-white no-underline transition-all duration-300 ease-in-out hover:border-[#15d1f5] hover:bg-[#111] hover:text-white md:w-auto"
+          className="inline-flex shrink-0 h-10 items-center justify-center gap-2 rounded-full border border-[#525252] bg-[#262626] px-4 md:px-5 text-[0.8rem] md:text-[0.9rem] font-semibold text-white no-underline transition-all duration-300 ease-in-out hover:border-[#15d1f5] hover:bg-[#111] hover:text-white"
         >
           View All <FaArrowRight />
         </Link>
       </div>
 
-      <div className="relative mx-auto">
-        <div className="grid grid-flow-col auto-cols-[85%] gap-6 overflow-x-auto scroll-smooth pr-6 md:pr-2 snap-x snap-proximity md:auto-cols-[70%] xl:auto-cols-[calc(25%-1.125rem)] [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+      {/*
+        -mr-4 / -mr-6 / -mr-16 extends the scroll container flush to the section edge
+        so the peeking card isn't cut off by the section's padding.
+        pr-4 / pr-6 / pr-16 on the inner flex restores the right padding after the last card.
+
+        Card widths:
+          Mobile  → w-[75vw]              = 1 full card + ~0.33 of next card peeking
+          Tablet  → w-[40vw]              = ~2.33 cards
+          LG      → w-[28vw]              = ~3.33 cards
+          XL      → calc(25% - 18px)      = 4 cards
+      */}
+      <div className="overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] -mr-4 md:-mr-6 xl:-mr-16">
+        <div className="flex gap-3 md:gap-5 pr-4 md:pr-6 xl:pr-16">
           {products.map((p) => (
-            <div key={p._id} className="snap-center">
+            <div
+              key={p._id}
+              className="shrink-0 w-[75vw] md:w-[40vw] lg:w-[28vw] xl:w-[calc(25%-18px)]"
+            >
               <ProductCard
                 id={p._id}
                 name={p.name}

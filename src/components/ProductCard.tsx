@@ -96,7 +96,7 @@ export default function ProductCard({
           </div>
 
           {/* PRICE + ICON-ONLY QUICK VIEW BUTTON */}
-          <div className="mt-auto flex items-center justify-between pt-4 transition-transform duration-300 ease-in-out group-hover:-translate-y-[25px] max-sm:flex-col max-sm:items-start max-sm:gap-2 max-sm:group-hover:translate-y-0">
+          <div className="mt-auto flex items-center justify-between pt-4 transition-transform duration-300 ease-in-out group-hover:-translate-y-[25px] max-sm:group-hover:translate-y-0">
             <div className="flex flex-col">
               <p className="text-[1.18rem] font-bold text-[#111]">
                 LKR {effectivePrice.toLocaleString("en-LK", { minimumFractionDigits: 2 })}

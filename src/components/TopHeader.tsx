@@ -21,15 +21,15 @@ export default function TopHeader() {
 
   return (
     <header className="w-full bg-[#03c7fe] text-black">
-      <div className="mx-auto flex max-w-[110rem] items-center justify-between px-6 py-4 md:px-12">
+      <div className="mx-auto flex max-w-[110rem] items-center justify-between px-4 py-3 md:px-12 md:py-4">
         
         {/* Left Side: Brand Name */}
-        <div className="hidden flex-1 text-[11px] font-bold uppercase tracking-[0.15em] md:block opacity-90">
+        <div className="hidden flex-1 text-[11px] font-bold uppercase tracking-[0.15em] opacity-90 md:block">
           Supplement Lanka PVT LTD
         </div>
 
         {/* Center: Vertical Slide Slider */}
-        <div className="relative flex flex-[2] items-center justify-center overflow-hidden h-5">
+        <div className="relative flex h-5 flex-[2] items-center justify-center overflow-hidden">
           {announcements.map((text, i) => {
             const isActive = i === index;
             const isPrevious = i === (index - 1 + announcements.length) % announcements.length;
@@ -37,7 +37,7 @@ export default function TopHeader() {
             return (
               <span
                 key={i}
-                className={`absolute text-center text-[12px] font-bold uppercase tracking-tight transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] ${
+                className={`absolute w-full text-center text-[10px] sm:text-[12px] font-bold uppercase tracking-tight transition-all duration-700 ease-[cubic-bezier(0.4,0,0.2,1)] ${
                   isActive 
                     ? "translate-y-0 opacity-100" 
                     : isPrevious 
@@ -52,7 +52,7 @@ export default function TopHeader() {
         </div>
 
         {/* Right Side: Location */}
-        <div className="hidden flex-1 text-right text-[11px] font-bold uppercase tracking-[0.15em] md:block opacity-90">
+        <div className="hidden flex-1 text-right text-[11px] font-bold uppercase tracking-[0.15em] opacity-90 md:block">
           Colombo, Sri Lanka
         </div>
       </div>

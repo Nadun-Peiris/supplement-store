@@ -1,10 +1,5 @@
-import ShopPage from "./ShopPage";
-import {
-  buildBrandFilter,
-  buildCategoryFilter,
-  buildPriceFilter,
-  combineFilters,
-} from "@/lib/productFilters";
+import ShopPage from "../ShopPage";
+import { buildCategoryFilter, combineFilters } from "@/lib/productFilters";
 import { getFilteredProducts } from "@/lib/products";
 
 type ShopCategoryPageProps = {
@@ -18,13 +13,11 @@ export default async function ShopCategoryPage({
 }: ShopCategoryPageProps) {
   const { category } = await params;
   const { search } = await searchParams;
-  const categorySlug = category;
+  const categorySlug = decodeURIComponent(category);
   const searchTerm = Array.isArray(search) ? search[0] ?? "" : search ?? "";
 
   const filter = combineFilters(
-    buildCategoryFilter(categorySlug ? [categorySlug] : []),
-    buildBrandFilter([]),
-    buildPriceFilter(undefined, undefined)
+    buildCategoryFilter(categorySlug ? [categorySlug] : [])
   );
   const data = await getFilteredProducts(filter, {
     search: searchTerm,
@@ -35,7 +28,8 @@ export default async function ShopCategoryPage({
 
   return (
     <ShopPage
-      categorySlug={categorySlug}
+      pageTitle={categorySlug}
+      initialCategoryFilters={[categorySlug]}
       initialBrandFilters={[]}
       initialSearchTerm={searchTerm}
       initialProducts={Array.isArray(data.products) ? data.products : []}
