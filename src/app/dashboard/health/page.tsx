@@ -4,13 +4,12 @@ import { useEffect, useState, useCallback } from "react";
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Legend,
+  ResponsiveContainer,
 } from "recharts";
 import {
   Activity, Droplets, Moon, Scale,
-  Dumbbell, Pill, Plus, Save, Ruler,
-  TrendingUp, CheckCircle2, AlertCircle,
-  Trash2, Settings2, CalendarDays
+  Dumbbell, Plus, Save, CheckCircle2, AlertCircle,
+  Trash2, CalendarDays
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 
@@ -24,6 +23,8 @@ interface ScheduledSupplement {
   daysOfWeek?: number[]; 
   startDate: string; 
 }
+
+type SupplementFrequency = ScheduledSupplement["frequency"];
 
 interface SupplementEntry {
   masterId: string;
@@ -132,8 +133,11 @@ export default function HealthTrackingPage() {
       const savedSchedule = localStorage.getItem(`schedule_${user.uid}`);
       const currentSchedule: ScheduledSupplement[] = savedSchedule ? JSON.parse(savedSchedule) : [];
       setMasterSchedule(currentSchedule);
+      const token = await user.getIdToken();
 
-      const res  = await fetch(`/api/health?userId=${user.uid}&days=30`);
+      const res  = await fetch(`/api/health?days=30`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       const data = await res.json();
       const fetchedLogs: DayLog[] = data.logs || [];
       setLogs(fetchedLogs);
@@ -175,7 +179,7 @@ export default function HealthTrackingPage() {
     } finally {
       setLoading(false);
     }
-  }, [user?.uid, shouldShowToday]);
+  }, [shouldShowToday, user]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
 
@@ -184,8 +188,8 @@ export default function HealthTrackingPage() {
     setSaving(true);
     setError("");
     try {
+      const token = await user.getIdToken();
       const payload = {
-        userId:      user.uid,
         date:        today(),
         weight:      form.weight      ? parseFloat(form.weight)      : undefined,
         height:      form.height      ? parseFloat(form.height)      : undefined,
@@ -208,7 +212,10 @@ export default function HealthTrackingPage() {
 
       const res = await fetch("/api/health", {
         method:  "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body:    JSON.stringify(payload),
       });
 
@@ -375,7 +382,7 @@ export default function HealthTrackingPage() {
           <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
              <div className="flex items-center justify-between mb-5">
               <h3 className="flex items-center gap-2 text-base font-semibold text-gray-900">
-                <CheckCircle2 size={18} className="text-emerald-500" /> Today's Supplements
+                <CheckCircle2 size={18} className="text-emerald-500" /> Today&apos;s Supplements
               </h3>
               <p className="text-xs text-gray-400 font-medium px-2.5 py-1 bg-gray-50 rounded-md">Auto-populated</p>
              </div>
@@ -583,7 +590,13 @@ export default function HealthTrackingPage() {
                 <label className="mb-1.5 block text-xs font-medium text-gray-500">Frequency</label>
                 <select
                   value={newSupplement.frequency}
-                  onChange={(e) => setNewSupplement({ ...newSupplement, frequency: e.target.value as any, daysOfWeek: [] })}
+                  onChange={(e) =>
+                    setNewSupplement({
+                      ...newSupplement,
+                      frequency: e.target.value as SupplementFrequency,
+                      daysOfWeek: [],
+                    })
+                  }
                   className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm outline-none focus:border-gray-900 focus:bg-white appearance-none"
                 >
                   <option value="Daily">Daily</option>

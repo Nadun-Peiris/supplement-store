@@ -1,7 +1,5 @@
 import * as admin from "firebase-admin";
 
-let app: admin.app.App | null = null;
-
 export function adminAuth() {
   // If already initialized → reuse
   if (admin.apps.length > 0) {
@@ -22,7 +20,7 @@ export function adminAuth() {
     throw new Error("Invalid FIREBASE_ADMIN_KEY JSON");
   }
 
-  app = admin.initializeApp({
+  admin.initializeApp({
     credential: admin.credential.cert(parsedKey),
   });
 

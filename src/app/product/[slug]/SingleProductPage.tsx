@@ -53,14 +53,20 @@ export default function SingleProductPage({ product }: { product: ProductDTO }) 
 
   const handleAddToCart = async () => {
     if (isOutOfStock) return;
-    await addToCart({
-      productId: product._id,
-      name: product.name,
-      price: displayPrice,
-      image: product.image,
-      quantity: qty,
-    });
-    toast.success("Added to cart!");
+    try {
+      await addToCart({
+        productId: product._id,
+        name: product.name,
+        price: displayPrice,
+        image: product.image,
+        quantity: qty,
+      });
+      toast.success("Added to cart!");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not add item to cart"
+      );
+    }
   };
 
   const handleBuyNow = () => {
@@ -68,6 +74,7 @@ export default function SingleProductPage({ product }: { product: ProductDTO }) 
 
     const buyNowItem = {
       productId: product._id,
+      slug: product.slug,
       name: product.name,
       price: displayPrice,
       originalPrice: hasDiscount ? product.price : undefined,
@@ -82,8 +89,8 @@ export default function SingleProductPage({ product }: { product: ProductDTO }) 
     }
 
     router.push(
-      `/checkout?mode=buy-now&productId=${encodeURIComponent(
-        product._id
+      `/checkout?mode=buy-now&slug=${encodeURIComponent(
+        product.slug
       )}&quantity=${qty}`
     );
   };

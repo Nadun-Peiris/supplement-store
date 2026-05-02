@@ -31,4 +31,7 @@ const CartSchema = new Schema<ICart>(
   { timestamps: true }
 );
 
+CartSchema.index({ userId: 1 }, { unique: true, sparse: true });
+CartSchema.index({ guestId: 1 }, { unique: true, sparse: true });
+
 export default mongoose.models.Cart || mongoose.model<ICart>("Cart", CartSchema);

@@ -5,29 +5,27 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { FaEye, FaEyeSlash, FaChevronDown } from "react-icons/fa";
 import { HEALTH_OPTIONS } from "@/lib/constants";
+import { setRegisterSecrets } from "@/lib/registerDraft";
+
+type Step1Draft = {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  countryCode: string;
+  phoneLocal: string;
+  age: string;
+  gender: string;
+};
+
+type PersistedStep1Draft = Omit<Step1Draft, "password" | "confirmPassword"> & {
+  phone?: string;
+};
 
 export default function Step1() {
   const router = useRouter();
   const [form, setForm] = useState(() => {
-    if (typeof window === "undefined") {
-      return {
-        fullName: "",
-        email: "",
-        password: "",
-        confirmPassword: "",
-        countryCode: "+94",
-        phoneLocal: "",
-        age: "",
-        gender: "",
-      };
-    }
-
-    const saved = localStorage.getItem("register_step1");
-    if (saved) {
-      return JSON.parse(saved);
-    }
-
-    return {
+    const emptyState: Step1Draft = {
       fullName: "",
       email: "",
       password: "",
@@ -37,6 +35,26 @@ export default function Step1() {
       age: "",
       gender: "",
     };
+
+    if (typeof window === "undefined") {
+      return emptyState;
+    }
+
+    const saved = localStorage.getItem("register_step1");
+    if (saved) {
+      const parsed = JSON.parse(saved) as PersistedStep1Draft;
+      return {
+        ...emptyState,
+        fullName: parsed.fullName || "",
+        email: parsed.email || "",
+        countryCode: parsed.countryCode || "+94",
+        phoneLocal: parsed.phoneLocal || "",
+        age: parsed.age || "",
+        gender: parsed.gender || "",
+      };
+    }
+
+    return emptyState;
   });
   
   const [showPassword, setShowPassword] = useState(false);
@@ -61,7 +79,21 @@ export default function Step1() {
       return;
     }
 
-    localStorage.setItem("register_step1", JSON.stringify({ ...form, phone: trimmedPhone }));
+    const safeDraft: PersistedStep1Draft = {
+      fullName: form.fullName.trim(),
+      email: form.email.trim(),
+      countryCode: form.countryCode,
+      phoneLocal: digitsOnly,
+      age: form.age,
+      gender: form.gender,
+      phone: trimmedPhone,
+    };
+
+    setRegisterSecrets({
+      password: form.password,
+      confirmPassword: form.confirmPassword,
+    });
+    localStorage.setItem("register_step1", JSON.stringify(safeDraft));
     router.push("/register/health-info");
   };
 

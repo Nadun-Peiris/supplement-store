@@ -2,27 +2,22 @@ import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Cart from "@/models/Cart";
 import Product from "@/models/Product";
-import { adminAuth } from "@/lib/firebaseAdmin";
+import { isValidObjectId } from "mongoose";
+import { getBearerToken, getGuestIdHeader, verifyRequestToken } from "@/lib/requestAuth";
 
-// Normalize: ALWAYS use "guest-id"
 async function getCartOwner(req: Request) {
-  const authHeader = req.headers.get("authorization");
-  const token = authHeader?.split(" ")[1];
-  let userId: string | null = null;
-
-  // Logged-in user
+  const token = getBearerToken(req);
   if (token) {
-    try {
-      const decoded = await adminAuth().verifyIdToken(token);
-      userId = decoded.uid;
-    } catch {
-      console.error("Invalid Firebase token");
-    }
+    const decoded = await verifyRequestToken(req);
+    return { userId: decoded.uid, guestId: null };
   }
 
-  // Guest user
-  const guestId = req.headers.get("guest-id") || null;
-  return { userId, guestId };
+  const guestId = getGuestIdHeader(req);
+  if (!guestId) {
+    return { userId: null, guestId: null };
+  }
+
+  return { userId: null, guestId };
 }
 
 /* -----------------------------------------
@@ -32,18 +27,25 @@ export async function POST(req: Request) {
   try {
     await connectDB();
 
-    const { productId, name, price, image, quantity: rawQty = 1 } =
+    const { productId, name, image, quantity: rawQty = 1 } =
       await req.json();
     const { userId, guestId } = await getCartOwner(req);
 
-    if (!productId)
+    if (!userId && !guestId) {
       return NextResponse.json(
-        { error: "Missing productId" },
+        { error: "Missing cart owner." },
+        { status: 400 }
+      );
+    }
+
+    if (!productId || !isValidObjectId(productId))
+      return NextResponse.json(
+        { error: "Invalid productId" },
         { status: 400 }
       );
 
     const quantity = Math.max(1, Number(rawQty) || 1);
-    const product = await Product.findById(productId).select(
+    const product = await Product.findOne({ _id: productId, isActive: true }).select(
       "name price discountPrice image stock"
     );
 
@@ -73,7 +75,7 @@ export async function POST(req: Request) {
     const resolvedName = product.name || name || "";
     const resolvedImage = product.image || image || "";
 
-    const cartFilter = userId ? { userId } : { guestId };
+    const cartFilter = userId ? { userId } : { guestId: guestId! };
     let cart = await Cart.findOne(cartFilter);
 
     // Create new cart if none exists
@@ -97,7 +99,9 @@ export async function POST(req: Request) {
     }
 
     // Update existing product quantity
-    const index = cart.items.findIndex((i: any) => i.productId === productId);
+    const index = cart.items.findIndex(
+      (i: { productId: string }) => i.productId === productId
+    );
 
     if (index >= 0) {
       const nextQuantity = cart.items[index].quantity + quantity;
@@ -137,7 +141,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, cart });
   } catch (err) {
     console.error("CART POST ERROR:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    const status =
+      typeof err === "object" &&
+      err !== null &&
+      "status" in err &&
+      typeof err.status === "number"
+        ? err.status
+        : 500;
+    return NextResponse.json(
+      { error: status === 401 ? "Unauthorized" : "Server error" },
+      { status }
+    );
   }
 }
 
@@ -149,6 +163,9 @@ export async function GET(req: Request) {
     await connectDB();
 
     const { userId, guestId } = await getCartOwner(req);
+    if (!userId && !guestId) {
+      return NextResponse.json({ cart: { items: [] } });
+    }
 
     let cart = null;
 
@@ -163,7 +180,17 @@ export async function GET(req: Request) {
     return NextResponse.json({ cart: cart || { items: [] } });
   } catch (err) {
     console.error("CART GET ERROR:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    const status =
+      typeof err === "object" &&
+      err !== null &&
+      "status" in err &&
+      typeof err.status === "number"
+        ? err.status
+        : 500;
+    return NextResponse.json(
+      { error: status === 401 ? "Unauthorized" : "Server error" },
+      { status }
+    );
   }
 }
 
@@ -175,6 +202,12 @@ export async function DELETE(req: Request) {
     await connectDB();
 
     const { userId, guestId } = await getCartOwner(req);
+    if (!userId && !guestId) {
+      return NextResponse.json(
+        { error: "Missing cart owner." },
+        { status: 400 }
+      );
+    }
 
     let deleted = null;
 
@@ -189,6 +222,16 @@ export async function DELETE(req: Request) {
     return NextResponse.json({ success: true, message: "Cart cleared" });
   } catch (err) {
     console.error("CART DELETE ERROR:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    const status =
+      typeof err === "object" &&
+      err !== null &&
+      "status" in err &&
+      typeof err.status === "number"
+        ? err.status
+        : 500;
+    return NextResponse.json(
+      { error: status === 401 ? "Unauthorized" : "Server error" },
+      { status }
+    );
   }
 }

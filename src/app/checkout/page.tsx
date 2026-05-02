@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 interface CheckoutCartItem {
   productId: string;
+  slug?: string;
   name: string;
   price: number;
   originalPrice?: number;
@@ -121,7 +122,8 @@ function CheckoutContent() {
   const searchParams = useSearchParams();
   const checkoutMode = searchParams.get("mode");
   const isBuyNowMode = checkoutMode === "buy-now";
-  const buyNowProductId = searchParams.get("productId");
+  const buyNowProductSlug = searchParams.get("slug");
+  const legacyBuyNowProductId = searchParams.get("productId");
   const buyNowQuantity = Math.max(
     1,
     Number(searchParams.get("quantity")) || 1
@@ -179,7 +181,11 @@ function CheckoutContent() {
           parsedItem?.productId &&
           Number(parsedItem.price) > 0 &&
           Number(parsedItem.quantity) > 0 &&
-          (!buyNowProductId || parsedItem.productId === buyNowProductId);
+          ((buyNowProductSlug && parsedItem.slug === buyNowProductSlug) ||
+            (!buyNowProductSlug &&
+              legacyBuyNowProductId &&
+              parsedItem.productId === legacyBuyNowProductId) ||
+            (!buyNowProductSlug && !legacyBuyNowProductId));
 
         if (isStoredItemValid) {
           setCartItems([
@@ -192,13 +198,13 @@ function CheckoutContent() {
         }
       }
 
-      if (!buyNowProductId) {
+      if (!buyNowProductSlug) {
         setCartItems([]);
         return;
       }
 
       const res = await fetch(
-        `/api/products/${encodeURIComponent(buyNowProductId)}`
+        `/api/products/${encodeURIComponent(buyNowProductSlug)}`
       );
 
       if (!res.ok) throw new Error("Failed to load buy now product");
@@ -218,6 +224,7 @@ function CheckoutContent() {
 
       const buyNowItem: CheckoutCartItem = {
         productId: product._id,
+        slug: buyNowProductSlug,
         name: product.name,
         price: effectivePrice,
         originalPrice:
@@ -235,7 +242,7 @@ function CheckoutContent() {
     } finally {
       setCartLoading(false);
     }
-  }, [buyNowProductId, buyNowQuantity]);
+  }, [buyNowProductSlug, buyNowQuantity, legacyBuyNowProductId]);
 
   // Load billing for logged-in user
   useEffect(() => {
@@ -379,11 +386,13 @@ function CheckoutContent() {
 
   const handlePayHerePayment = async () => {
     const order = await createPayHereOrder();
+    const cartHeaders = await getCartHeaders();
 
     const hashRes = await fetch("/api/payhere/hash", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        ...cartHeaders,
       },
       body: JSON.stringify({
         orderId: order._id,
@@ -412,9 +421,13 @@ function CheckoutContent() {
       throw new Error("Missing NEXT_PUBLIC_PAYHERE_MERCHANT_ID");
     }
 
+    const cartHeaders = await getCartHeaders();
     const res = await fetch("/api/payhere/hash", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...cartHeaders,
+      },
       body: JSON.stringify({
         orderId,
         amount: totalAmount.toFixed(2),
@@ -472,6 +485,25 @@ function CheckoutContent() {
   // SUBMIT ORDER
   // ---------------------------
   const placeOrder = async () => {
+    const requiredBilling: Array<keyof BillingDetails> = [
+      "firstName",
+      "lastName",
+      "email",
+      "phone",
+      "street",
+      "city",
+      "country",
+      "postcode",
+    ];
+
+    if (requiredBilling.some((field) => !billing[field]?.trim())) {
+      return alert("Please complete all required billing details.");
+    }
+
+    if (purchaseType === "subscription" && !auth.currentUser) {
+      return alert("Please log in before starting a subscription.");
+    }
+
     if (!agreeTerms) return alert("Please agree to the terms.");
     if (cartItems.length === 0)
       return alert(isBuyNowMode ? "Buy it now item missing." : "Cart empty!");

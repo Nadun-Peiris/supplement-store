@@ -8,7 +8,7 @@ import FeaturesSection from "@/components/FeaturesSection";
 export default function HomePage() {
   return (
     <main>
-      <HeroSlider className="pt-4 md:pt-5" autoPlayMs={5000} />
+      <HeroSlider className="!pt-2 md:!pt-3 xl:!pt-4" autoPlayMs={5000} />
 
       <CategoryCarousel />
 

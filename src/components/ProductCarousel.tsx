@@ -55,7 +55,7 @@ export default function ProductCarousel({ category }: { category: string }) {
   /* --------------------- LOADING SKELETON --------------------- */
   if (loading)
     return (
-      <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-16">
+      <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-12">
         <div className="mb-6 flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
           <h2 className="text-[2rem] font-bold text-[#111] md:text-[2.4rem] xl:text-[4rem]">
             {category.toUpperCase()}
@@ -83,7 +83,7 @@ export default function ProductCarousel({ category }: { category: string }) {
   /* --------------------- EMPTY --------------------- */
   if (!products.length)
     return (
-      <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-16">
+      <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-12">
         <h2 className="text-[2rem] font-bold text-[#111] md:text-[2.4rem] xl:text-[4rem]">
           {category.toUpperCase()}
         </h2>
@@ -93,7 +93,7 @@ export default function ProductCarousel({ category }: { category: string }) {
 
   /* --------------------- LOADED --------------------- */
   return (
-    <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-16">
+    <section className="w-full overflow-hidden bg-white px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-12">
       <div className="mb-6 flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between">
         <h2 className="text-[2rem] font-bold text-[#111] md:text-[2.4rem] xl:text-[4rem] leading-none">
           {category.toUpperCase()}

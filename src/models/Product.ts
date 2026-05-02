@@ -8,54 +8,6 @@ import slugify from "slugify";
 const slugOptions = { lower: true, strict: true, trim: true };
 const toSlug = (value: string) => slugify(value, slugOptions);
 
-const ProductNutrientSchema = new Schema(
-  {
-    name: { type: String },
-    amount: { type: String },
-    dailyValue: { type: String },
-    indentLevel: { type: Number, default: 0 },
-    emphasized: { type: Boolean, default: false },
-  },
-  { _id: false }
-);
-
-const ProductServingInfoSchema = new Schema(
-  {
-    title: { type: String, default: "Nutrition Facts" },
-    servingSize: { type: String },
-    servingsPerContainer: { type: Number },
-    amountPerServingLabel: { type: String, default: "Amount Per Serving" },
-    dailyValueLabel: { type: String, default: "% Daily Value" },
-    footnote: { type: String },
-    ingredientsText: { type: String },
-    containsText: { type: String },
-    noticeText: { type: String },
-    nutrients: { type: [ProductNutrientSchema], default: [] },
-  },
-  { _id: false }
-);
-
-const ProductDetailsSchema = new Schema(
-  {
-    overview: { type: String },
-    ingredients: [{ type: String }],
-    benefits: [{ type: String }],
-    howToUse: [{ type: String }],
-    warnings: [{ type: String }],
-    additionalInfo: [{ type: String }],
-    servingInfo: { type: ProductServingInfoSchema, default: undefined },
-  },
-  { _id: false }
-);
-
-const ProductCoaSchema = new Schema(
-  {
-    certificateUrl: { type: String },
-    verified: { type: Boolean, default: false },
-  },
-  { _id: false }
-);
-
 const ProductSchema = new Schema(
   {
     name: { type: String, required: true },
@@ -92,10 +44,46 @@ const ProductSchema = new Schema(
     description: { type: String },
 
     // 🔥 NEW — Structured product content
-    details: { type: ProductDetailsSchema, default: undefined },
+    details: {
+      overview: { type: String },
+
+      ingredients: [{ type: String }],
+      benefits: [{ type: String }],
+      howToUse: [{ type: String }],
+      warnings: [{ type: String }],
+      additionalInfo: [{ type: String }],
+
+      servingInfo: {
+        servingSize: { type: String },
+        servingsPerContainer: { type: Number },
+
+        nutrients: [
+          {
+            name: { type: String },
+            amount: { type: String },
+            dailyValue: { type: String },
+            indentLevel: { type: Number, default: 0 },
+            emphasized: { type: Boolean, default: false },
+          },
+        ],
+        title: { type: String, default: "Nutrition Facts" },
+        amountPerServingLabel: {
+          type: String,
+          default: "Amount Per Serving",
+        },
+        dailyValueLabel: { type: String, default: "% Daily Value" },
+        footnote: { type: String },
+        ingredientsText: { type: String },
+        containsText: { type: String },
+        noticeText: { type: String },
+      },
+    },
 
     // 🔥 Authenticity (BIG for your project)
-    coa: { type: ProductCoaSchema, default: undefined },
+    coa: {
+      certificateUrl: { type: String },
+      verified: { type: Boolean, default: false },
+    },
 
     // ✅ Status & Inventory
     isActive: { type: Boolean, default: true },

@@ -1,36 +1,27 @@
 // src/app/api/dashboard/health/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebaseAdmin";
 import { connectDB } from "@/lib/mongoose";
-import User, { IUser } from "@/models/User";
+import { requireMongoUser } from "@/lib/requestAuth";
+
+type DashboardHealthUser = {
+  height?: number | null;
+  weight?: number | null;
+  bmi?: number | null;
+  goal?: string | null;
+  activity?: string | null;
+  conditions?: string | null;
+  diet?: string | null;
+  sleepHours?: number | null;
+  waterIntake?: number | null;
+};
 
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
-    const auth = adminAuth();
-
-    // Check Firebase auth header
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.split(" ")[1];
-
-    // Verify Firebase token
-    const decoded = await auth.verifyIdToken(token);
-
-    // Find user in MongoDB
-    const user = (await User.findOne({ firebaseId: decoded.uid }).lean()) as
-      | IUser
-      | null;
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "User not found" },
-        { status: 404 }
-      );
-    }
+    const user = (await requireMongoUser(
+      req,
+      "height weight bmi goal activity conditions diet sleepHours waterIntake"
+    )) as DashboardHealthUser;
 
     // Return only health tracking summary
     return NextResponse.json({
@@ -49,9 +40,16 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error("Health API error:", err);
+    const status =
+      typeof err === "object" &&
+      err !== null &&
+      "status" in err &&
+      typeof err.status === "number"
+        ? err.status
+        : 500;
     return NextResponse.json(
-      { error: "Failed to load health data" },
-      { status: 500 }
+      { error: status === 401 ? "Unauthorized" : "Failed to load health data" },
+      { status }
     );
   }
 }

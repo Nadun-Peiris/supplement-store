@@ -97,7 +97,7 @@ export default function CategoryCarousel() {
   );
 
   return (
-    <section className="w-full bg-white py-10 md:py-16">
+    <section className="w-full bg-white py-8 md:py-10 xl:py-12">
       <h2 className="ml-6 text-left text-[2.5rem] font-bold text-black md:ml-16 md:text-[4rem] leading-tight">
         <span className="text-[#03c7fe]">SHOP BY</span> CATEGORY
       </h2>

@@ -79,7 +79,7 @@ export default function PromoSection() {
 
   if (!loading && featured.length === 0) {
     return (
-      <section className="w-full overflow-hidden px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-16">
+      <section className="w-full overflow-hidden px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-12">
         <p className="px-6 py-8 text-center text-[#b3b3b3]">
           Featured categories will appear here once they are selected.
         </p>
@@ -88,7 +88,7 @@ export default function PromoSection() {
   }
 
   return (
-    <section className="w-full overflow-hidden px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-16">
+    <section className="w-full overflow-hidden px-4 py-8 md:px-6 md:py-10 xl:px-16 xl:py-12">
       <div className="grid grid-cols-[repeat(auto-fit,minmax(320px,1fr))] gap-8 overflow-visible max-[900px]:flex max-[900px]:justify-start max-[900px]:snap-x max-[900px]:snap-mandatory max-[900px]:overflow-x-auto max-[900px]:scroll-p-6 max-sm:gap-5 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {loading &&
           skeletons.map((_, idx) => (

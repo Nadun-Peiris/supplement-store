@@ -5,27 +5,49 @@ import { absoluteUrl } from "@/lib/absoluteUrl";
 import CartItem from "@/components/CartItem";
 import toast from "react-hot-toast";
 import { useCart } from "@/context/CartContext";
+import { auth } from "@/lib/firebase";
+
+type CartItemRecord = {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  originalPrice?: number;
+};
+
+type CartRecord = {
+  items: CartItemRecord[];
+};
 
 export default function CartPage() {
-  const [cart, setCart] = useState<any>(null);
+  const [cart, setCart] = useState<CartRecord>({ items: [] });
   const [loading, setLoading] = useState(true);
 
   const { refreshCart } = useCart();
 
   useEffect(() => {
     async function loadCart() {
-      let guestId = localStorage.getItem("guestId");
-      if (!guestId) {
-        guestId = crypto.randomUUID();
-        localStorage.setItem("guestId", guestId);
+      const headers: Record<string, string> = {};
+      const currentUser = auth.currentUser;
+
+      if (currentUser) {
+        headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
+      } else {
+        let guestId = localStorage.getItem("guestId");
+        if (!guestId) {
+          guestId = crypto.randomUUID();
+          localStorage.setItem("guestId", guestId);
+        }
+        headers["guest-id"] = guestId;
       }
 
       const res = await fetch(absoluteUrl("/api/cart"), {
-        headers: { "guest-id": guestId },
+        headers,
       });
 
       const data = await res.json();
-      setCart(data.cart || { items: [] });
+      setCart((data.cart as CartRecord) || { items: [] });
 
       refreshCart();
       setLoading(false);
@@ -37,21 +59,29 @@ export default function CartPage() {
   const updateQuantity = async (productId: string, qty: number) => {
     if (qty < 1) return;
 
-    let guestId = localStorage.getItem("guestId") as string;
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
+    } else {
+      let guestId = localStorage.getItem("guestId");
+      if (!guestId) {
+        guestId = crypto.randomUUID();
+        localStorage.setItem("guestId", guestId);
+      }
+      headers["guest-id"] = guestId;
+    }
 
     const res = await fetch(absoluteUrl("/api/cart/update"), {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "guest-id": guestId,
-      },
+      headers,
       body: JSON.stringify({ productId, quantity: qty }),
     });
 
     const data = await res.json();
 
     if (res.ok) {
-      setCart(data.cart);
+      setCart(data.cart as CartRecord);
       refreshCart();
     } else {
       toast.error(data.error);
@@ -59,21 +89,29 @@ export default function CartPage() {
   };
 
   const removeItem = async (productId: string) => {
-    let guestId = localStorage.getItem("guestId") as string;
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
+    } else {
+      let guestId = localStorage.getItem("guestId");
+      if (!guestId) {
+        guestId = crypto.randomUUID();
+        localStorage.setItem("guestId", guestId);
+      }
+      headers["guest-id"] = guestId;
+    }
 
     const res = await fetch(absoluteUrl("/api/cart/remove"), {
       method: "DELETE",
-      headers: {
-        "Content-Type": "application/json",
-        "guest-id": guestId,
-      },
+      headers,
       body: JSON.stringify({ productId }),
     });
 
     const data = await res.json();
 
     if (res.ok) {
-      setCart(data.cart);
+      setCart(data.cart as CartRecord);
       toast.success("Item removed");
       refreshCart();
     }
@@ -81,7 +119,7 @@ export default function CartPage() {
 
   const subtotal =
     cart?.items?.reduce(
-      (sum: number, item: any) => sum + item.price * item.quantity,
+      (sum: number, item: CartItemRecord) => sum + item.price * item.quantity,
       0
     ) || 0;
 
@@ -108,7 +146,7 @@ export default function CartPage() {
               <p className="text-xl font-medium text-gray-500">Your cart is empty.</p>
             </div>
           ) : (
-            cart.items.map((item: any) => (
+            cart.items.map((item) => (
               <CartItem
                 key={item.productId}
                 item={item}

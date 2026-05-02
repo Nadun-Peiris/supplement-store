@@ -3,36 +3,42 @@ import { connectDB } from "@/lib/mongoose";
 import FeaturedCategory from "@/models/FeaturedCategory";
 import Category from "@/models/Category";
 
+type PopulatedCategory = {
+  _id: string;
+  name?: string;
+  title?: string;
+  slug?: string;
+  image?: string;
+};
+
+type FeaturedCategoryRecord = {
+  _id: string;
+  index: number;
+  categoryId?: PopulatedCategory | null;
+};
+
 export async function GET() {
   try {
     await connectDB();
 
-    const items = await FeaturedCategory.find()
+    const items = (await FeaturedCategory.find()
       .sort({ index: 1 })
       .populate({
         path: "categoryId",
         model: Category,
-        // Added the new fields to the select string here
-        select: "name title slug image description itemCount tag backgroundImage",
+        select: "name title slug image",
       })
-      .lean();
+      .lean()) as unknown as FeaturedCategoryRecord[];
 
     const formatted = items
-      .filter((item: any) => item.categoryId)
-      .map((item: any) => {
-        const category = item.categoryId as {
-          _id: string;
-          name?: string;
-          title?: string;
-          slug?: string;
-          image?: string;
-          // Added typings for the new fields
-          description?: string;
-          itemCount?: number;
-          tag?: string;
-          backgroundImage?: string;
-        };
-
+      .filter(
+        (
+          item
+        ): item is FeaturedCategoryRecord & { categoryId: PopulatedCategory } =>
+          Boolean(item.categoryId)
+      )
+      .map((item) => {
+        const category = item.categoryId;
         const displayName =
           (category.name || category.title || "").trim() ||
           category.slug ||
@@ -47,11 +53,6 @@ export async function GET() {
             name: displayName,
             slug: category.slug,
             image: category.image,
-            // Passing the new fields to the frontend
-            description: category.description,
-            itemCount: category.itemCount,
-            tag: category.tag,
-            backgroundImage: category.backgroundImage,
           },
         };
       });

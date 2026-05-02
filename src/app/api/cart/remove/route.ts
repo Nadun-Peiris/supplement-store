@@ -1,20 +1,16 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Cart from "@/models/Cart";
-import { adminAuth } from "@/lib/firebaseAdmin";
+import { isValidObjectId } from "mongoose";
+import { getBearerToken, getGuestIdHeader, verifyRequestToken } from "@/lib/requestAuth";
 
 async function getOwner(req: Request) {
-  const authHeader = req.headers.get("authorization");
-  const token = authHeader?.split(" ")[1];
-
-  if (token) {
-    try {
-      const decoded = await adminAuth().verifyIdToken(token);
-      return { userId: decoded.uid, guestId: null };
-    } catch {}
+  if (getBearerToken(req)) {
+    const decoded = await verifyRequestToken(req);
+    return { userId: decoded.uid, guestId: null };
   }
 
-  return { userId: null, guestId: req.headers.get("guest-id") };
+  return { userId: null, guestId: getGuestIdHeader(req) };
 }
 
 export async function DELETE(req: Request) {
@@ -24,21 +20,41 @@ export async function DELETE(req: Request) {
     const { productId } = await req.json();
     const { userId, guestId } = await getOwner(req);
 
-    if (!productId)
-      return NextResponse.json({ error: "Missing productId" }, { status: 400 });
+    if (!userId && !guestId) {
+      return NextResponse.json(
+        { error: "Missing cart owner." },
+        { status: 400 }
+      );
+    }
 
-    const cart = await Cart.findOne(userId ? { userId } : { guestId });
+    if (!productId || !isValidObjectId(productId)) {
+      return NextResponse.json({ error: "Invalid productId" }, { status: 400 });
+    }
+
+    const cart = await Cart.findOne(userId ? { userId } : { guestId: guestId! });
 
     if (!cart)
       return NextResponse.json({ error: "Cart not found" }, { status: 404 });
 
-    cart.items = cart.items.filter((i: any) => i.productId !== productId);
+    cart.items = cart.items.filter(
+      (i: { productId: string }) => i.productId !== productId
+    );
 
     await cart.save();
 
     return NextResponse.json({ success: true, cart });
   } catch (err) {
     console.error("REMOVE CART ERROR:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    const status =
+      typeof err === "object" &&
+      err !== null &&
+      "status" in err &&
+      typeof err.status === "number"
+        ? err.status
+        : 500;
+    return NextResponse.json(
+      { error: status === 401 ? "Unauthorized" : "Server error" },
+      { status }
+    );
   }
 }

@@ -4,13 +4,60 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User, Activity, MapPin, CheckCircle2, ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
+import {
+  clearRegisterSecrets,
+  getRegisterSecrets,
+} from "@/lib/registerDraft";
+
+type StepOneDraft = {
+  fullName: string;
+  email: string;
+  phone: string;
+  age: string;
+  gender: string;
+};
+
+type StepTwoDraft = {
+  height: string;
+  weight: string;
+  goal: string;
+  activity: string;
+  diet: string;
+  bmi: string;
+};
+
+type BillingDraft = {
+  addressLine1: string;
+  addressLine2?: string;
+  city: string;
+  postalCode: string;
+  country: string;
+};
+
+const parseStoredDraft = <T,>(key: string): T | null => {
+  if (typeof window === "undefined") return null;
+
+  const value = localStorage.getItem(key);
+  if (!value) return null;
+
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return null;
+  }
+};
 
 export default function ReviewPage() {
   const router = useRouter();
-
-  const [step1, setStep1] = useState<any>(null);
-  const [step2, setStep2] = useState<any>(null);
-  const [billing, setBilling] = useState<any>(null);
+  const [step1] = useState<StepOneDraft | null>(() =>
+    parseStoredDraft<StepOneDraft>("register_step1")
+  );
+  const [step2] = useState<StepTwoDraft | null>(() =>
+    parseStoredDraft<StepTwoDraft>("register_step2")
+  );
+  const [billing] = useState<BillingDraft | null>(() =>
+    parseStoredDraft<BillingDraft>("register_billing")
+  );
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -22,25 +69,35 @@ export default function ReviewPage() {
     const s1 = localStorage.getItem("register_step1");
     const s2 = localStorage.getItem("register_step2");
     const b = localStorage.getItem("register_billing");
+    const secrets = getRegisterSecrets();
 
     // Redirect to Step 1 if data is missing
     if (!s1) return router.push("/register");
     if (!s2) return router.push("/register/health-info");
     if (!b) return router.push("/register/billing-details");
-
-    setStep1(JSON.parse(s1));
-    setStep2(JSON.parse(s2));
-    setBilling(JSON.parse(b));
-  }, [router]);
+    if (!secrets?.password) {
+      toast.error("Please re-enter your password to complete registration.");
+      return router.push("/register/basic-details");
+    }
+  }, [billing, router, step1, step2]);
 
   const handleSubmit = async () => {
     if (submitting) return;
     setSubmitting(true);
 
+    const secrets = getRegisterSecrets();
+    if (!secrets?.password) {
+      toast.error("Registration session expired. Please re-enter your password.");
+      setSubmitting(false);
+      router.push("/register/basic-details");
+      return;
+    }
+
     const payload = {
       ...step1,
       ...step2,
       ...billing,
+      password: secrets.password,
     };
 
     try {
@@ -63,10 +120,11 @@ export default function ReviewPage() {
       localStorage.removeItem("register_step1");
       localStorage.removeItem("register_step2");
       localStorage.removeItem("register_billing");
+      clearRegisterSecrets();
 
       toast.success("Account created successfully!");
       router.replace("/register/success");
-    } catch (err) {
+    } catch {
       toast.error("A network error occurred.");
       setSubmitting(false);
     }

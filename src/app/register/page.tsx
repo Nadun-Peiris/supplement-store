@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
+import { clearRegisterSecrets } from "@/lib/registerDraft";
 
 export default function RegisterIndexPage() {
   const router = useRouter();
@@ -12,6 +13,7 @@ export default function RegisterIndexPage() {
     localStorage.removeItem("register_step2");
     localStorage.removeItem("register_billing");
     localStorage.removeItem("registration_complete");
+    clearRegisterSecrets();
 
     router.replace("/register/basic-details");
   }, [router]);

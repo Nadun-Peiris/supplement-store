@@ -18,9 +18,7 @@ type ProductCardProps = {
 };
 
 export default function ProductCardAI({ product, onAdd }: ProductCardProps) {
-  const productHref = product.slug
-    ? `/product/${product.slug}`
-    : `/product/${product.id}`;
+  const productHref = product.slug ? `/product/${product.slug}` : "/shop";
   const hasDiscount =
     typeof product.discountPrice === "number" &&
     product.discountPrice < product.price;

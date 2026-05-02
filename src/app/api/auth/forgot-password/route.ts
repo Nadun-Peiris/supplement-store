@@ -4,9 +4,41 @@ import { sendEmail } from "@/lib/mail/nodemailer";
 import { renderPasswordResetEmail } from "@/lib/mail/emailTemplate";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const RATE_LIMIT_WINDOW_MS = 5 * 60_000;
+const RATE_LIMIT_MAX_REQUESTS = 5;
+const forgotPasswordRateLimit = new Map<string, { count: number; resetAt: number }>();
+
+const getClientIp = (req: Request) =>
+  req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+  req.headers.get("x-real-ip") ||
+  "unknown";
+
+const isRateLimited = (clientId: string) => {
+  const now = Date.now();
+  const entry = forgotPasswordRateLimit.get(clientId);
+
+  if (!entry || entry.resetAt <= now) {
+    forgotPasswordRateLimit.set(clientId, {
+      count: 1,
+      resetAt: now + RATE_LIMIT_WINDOW_MS,
+    });
+    return false;
+  }
+
+  entry.count += 1;
+  return entry.count > RATE_LIMIT_MAX_REQUESTS;
+};
 
 export async function POST(req: Request) {
   try {
+    const clientId = getClientIp(req);
+    if (isRateLimited(clientId)) {
+      return NextResponse.json(
+        { error: "Too many reset requests. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const { email } = await req.json();
 
     if (typeof email !== "string" || !EMAIL_REGEX.test(email.trim())) {

@@ -1,27 +1,14 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Subscription from "@/models/Subscription";
-import User from "@/models/User";
-import { getAuth } from "firebase-admin/auth";
-import "@/lib/firebaseAdmin"; 
+import { requireMongoUser } from "@/lib/requestAuth";
 
 export async function GET(req: Request) {
   try {
     await connectDB();
 
     // 1. Verify Firebase Token
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.split("Bearer ")[1];
-    const decodedToken = await getAuth().verifyIdToken(token);
-    const user = await User.findOne({ firebaseId: decodedToken.uid }).select("_id");
-
-    if (!user) {
-      return NextResponse.json({ subscriptions: [] });
-    }
+    const user = await requireMongoUser(req, "_id");
 
     // 2. Fetch the recurring Subscription documents for the authenticated user
     const subscriptions = await Subscription.find({ 
@@ -33,9 +20,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ subscriptions });
   } catch (error) {
     console.error("FETCH USER SUBSCRIPTIONS ERROR:", error);
+    const status =
+      typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      typeof error.status === "number"
+        ? error.status
+        : 500;
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
+      { error: status === 401 ? "Unauthorized" : "Internal Server Error" },
+      { status }
     );
   }
 }

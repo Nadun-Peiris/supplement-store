@@ -1,22 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getAuth } from "firebase-admin/auth";
-import "@/lib/firebaseAdmin";
 import { connectDB } from "@/lib/mongoose";
 import User, { type IUser } from "@/models/User";
+import { requireMongoUser } from "@/lib/requestAuth";
 
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
-
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decoded = await getAuth().verifyIdToken(token);
-
-    const user = await User.findOne({ firebaseId: decoded.uid }).lean<IUser>();
+    const authUser = await requireMongoUser(req, "_id");
+    const user = await User.findById(authUser._id).lean<IUser>();
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
@@ -42,9 +33,16 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ history });
   } catch (err) {
     console.error("Water history API error:", err);
+    const status =
+      typeof err === "object" &&
+      err !== null &&
+      "status" in err &&
+      typeof err.status === "number"
+        ? err.status
+        : 500;
     return NextResponse.json(
-      { error: "Failed to load water history" },
-      { status: 500 }
+      { error: status === 401 ? "Unauthorized" : "Failed to load water history" },
+      { status }
     );
   }
 }

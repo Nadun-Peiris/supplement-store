@@ -4,6 +4,7 @@ export interface IOrder extends Document {
   user?: mongoose.Types.ObjectId | null;
   guestUser?: mongoose.Types.ObjectId | null;
   subscription?: mongoose.Types.ObjectId | null;
+  // TODO: migrate to admin-compatible structure after PayHere/cart cleanup no longer depends on these fields.
   subscriptionId?: string | null;
   cartOwnerUserId?: string | null;
   cartOwnerGuestId?: string | null;
@@ -66,6 +67,8 @@ const OrderSchema = new Schema<IOrder>(
 
     guestUser: {
       type: Schema.Types.ObjectId,
+      // TODO: remove this ref if guest orders continue using cartOwnerGuestId only.
+      // No GuestUser model currently exists in either repo.
       ref: "GuestUser",
       default: null,
     },
@@ -76,16 +79,23 @@ const OrderSchema = new Schema<IOrder>(
       default: null,
     },
 
+    // Temporary ecommerce runtime field used by checkout success, dashboard,
+    // emails, and PayHere webhook flows until subscription linkage is fully
+    // migrated to admin-compatible refs only.
     subscriptionId: {
       type: String,
       default: null,
     },
 
+    // Temporary ecommerce runtime field used to clean up authenticated-user
+    // carts after PayHere confirmation without trusting the frontend.
     cartOwnerUserId: {
       type: String,
       default: null,
     },
 
+    // Temporary ecommerce runtime field used to clean up guest carts after
+    // PayHere confirmation until guest order ownership is migrated safely.
     cartOwnerGuestId: {
       type: String,
       default: null,

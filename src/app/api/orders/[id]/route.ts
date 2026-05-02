@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
+import User from "@/models/User";
+import {
+  getBearerToken,
+  getGuestIdHeader,
+  verifyRequestToken,
+} from "@/lib/requestAuth";
 
 export async function GET(
   req: NextRequest,
@@ -11,7 +17,24 @@ export async function GET(
   try {
     await connectDB();
 
-    const order = await Order.findById(id);
+    const token = getBearerToken(req);
+    const guestId = getGuestIdHeader(req);
+    let order = null;
+
+    if (token) {
+      const decoded = await verifyRequestToken(req);
+      const user = await User.findOne({ firebaseId: decoded.uid }).select("_id");
+
+      if (!user) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      order = await Order.findOne({ _id: id, user: user._id });
+    } else if (guestId) {
+      order = await Order.findOne({ _id: id, cartOwnerGuestId: guestId });
+    } else {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     if (!order) {
       return NextResponse.json(
@@ -23,9 +46,16 @@ export async function GET(
     return NextResponse.json({ order });
   } catch (err) {
     console.error("Order load error:", err);
+    const status =
+      typeof err === "object" &&
+      err !== null &&
+      "status" in err &&
+      typeof err.status === "number"
+        ? err.status
+        : 500;
     return NextResponse.json(
-      { error: "Failed to load order" },
-      { status: 500 }
+      { error: status === 401 ? "Unauthorized" : "Failed to load order" },
+      { status }
     );
   }
 }

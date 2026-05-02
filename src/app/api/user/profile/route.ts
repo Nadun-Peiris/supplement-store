@@ -1,20 +1,12 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import UserProfile from "@/models/User";
-import { adminAuth } from "@/lib/firebaseAdmin";
+import { requireMongoUser } from "@/lib/requestAuth";
 
 async function fetchProfile(req: Request) {
   await connectDB();
-
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
-  const token = authHeader.split(" ")[1];
-  const decoded = await adminAuth().verifyIdToken(token);
-
-  const profile = await UserProfile.findOne({ firebaseId: decoded.uid });
+  const authUser = await requireMongoUser(req, "_id");
+  const profile = await UserProfile.findById(authUser._id);
   if (!profile) {
     return NextResponse.json({ user: null }, { status: 200 });
   }
@@ -54,9 +46,16 @@ export async function GET(req: Request) {
     return await fetchProfile(req);
   } catch (err) {
     console.error("PROFILE GET ERROR", err);
+    const status =
+      typeof err === "object" &&
+      err !== null &&
+      "status" in err &&
+      typeof err.status === "number"
+        ? err.status
+        : 500;
     return NextResponse.json(
-      { error: "Failed to load profile" },
-      { status: 500 }
+      { error: status === 401 ? "Unauthorized" : "Failed to load profile" },
+      { status }
     );
   }
 }
@@ -66,9 +65,16 @@ export async function POST(req: Request) {
     return await fetchProfile(req);
   } catch (err) {
     console.error("PROFILE POST ERROR", err);
+    const status =
+      typeof err === "object" &&
+      err !== null &&
+      "status" in err &&
+      typeof err.status === "number"
+        ? err.status
+        : 500;
     return NextResponse.json(
-      { error: "Failed to load profile" },
-      { status: 500 }
+      { error: status === 401 ? "Unauthorized" : "Failed to load profile" },
+      { status }
     );
   }
 }

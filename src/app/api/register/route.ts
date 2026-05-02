@@ -3,6 +3,34 @@ import { connectDB } from "@/lib/mongoose";
 import User from "@/models/User";
 import { adminAuth } from "@/lib/firebaseAdmin";
 
+const GENDER_OPTIONS = new Set(["Male", "Female", "Other"]);
+const GOAL_OPTIONS = new Set([
+  "Weight Loss",
+  "Muscle Gain",
+  "Maintenance",
+  "Body Transformation",
+]);
+const ACTIVITY_OPTIONS = new Set([
+  "Sedentary",
+  "Light",
+  "Moderate",
+  "Active",
+  "Very Active",
+]);
+const DIET_OPTIONS = new Set([
+  "Standard",
+  "Vegetarian",
+  "Vegan",
+  "Keto",
+  "Paleo",
+]);
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const parseNumber = (value: unknown) => {
+  const num = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
 export async function POST(req: Request) {
   try {
     await connectDB();
@@ -34,16 +62,56 @@ export async function POST(req: Request) {
       }
     }
 
+    const normalizedEmail =
+      typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    const normalizedPhone =
+      typeof body.phone === "string" ? body.phone.trim() : "";
+
+    if (!EMAIL_REGEX.test(normalizedEmail)) {
+      return NextResponse.json(
+        { error: "A valid email address is required." },
+        { status: 400 }
+      );
+    }
+
+    if (!GENDER_OPTIONS.has(String(body.gender))) {
+      return NextResponse.json({ error: "Invalid gender value." }, { status: 400 });
+    }
+
+    if (!GOAL_OPTIONS.has(String(body.goal))) {
+      return NextResponse.json({ error: "Invalid goal value." }, { status: 400 });
+    }
+
+    if (!ACTIVITY_OPTIONS.has(String(body.activity))) {
+      return NextResponse.json(
+        { error: "Invalid activity value." },
+        { status: 400 }
+      );
+    }
+
+    if (body.diet !== undefined && body.diet !== "" && !DIET_OPTIONS.has(String(body.diet))) {
+      return NextResponse.json({ error: "Invalid diet value." }, { status: 400 });
+    }
+
+    const age = parseNumber(body.age);
+    const height = parseNumber(body.height);
+    const weight = parseNumber(body.weight);
+    const bmi =
+      body.bmi === undefined || body.bmi === null || body.bmi === ""
+        ? null
+        : parseNumber(body.bmi);
+
+    if (age === null || height === null || weight === null) {
+      return NextResponse.json(
+        { error: "Age, height, and weight must be valid numbers." },
+        { status: 400 }
+      );
+    }
+
     const {
       fullName,
-      email,
       password,
-      phone,
-      age,
       gender,
-      height,
-      weight,
-      bmi,
       goal,
       activity,
       conditions,
@@ -60,7 +128,7 @@ export async function POST(req: Request) {
     } = body;
 
     // Validate phone format
-    if (typeof phone !== "string" || !/^\+[1-9]\d{6,14}$/.test(phone.trim())) {
+    if (!/^\+[1-9]\d{6,14}$/.test(normalizedPhone)) {
       return NextResponse.json(
         { error: "phone must be a non-empty E.164 compliant string" },
         { status: 400 }
@@ -68,7 +136,7 @@ export async function POST(req: Request) {
     }
 
     // Prevent duplicate accounts
-    const existingEmail = await User.findOne({ email });
+    const existingEmail = await User.findOne({ email: normalizedEmail });
     if (existingEmail) {
       return NextResponse.json(
         { error: "Email is already registered." },
@@ -76,7 +144,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const existingPhone = await User.findOne({ phone });
+    const existingPhone = await User.findOne({ phone: normalizedPhone });
     if (existingPhone) {
       return NextResponse.json(
         { error: "Phone number is already registered." },
@@ -85,51 +153,65 @@ export async function POST(req: Request) {
     }
 
     // Create Firebase Auth User
-    const firebaseUser = await adminAuth().createUser({
-      email,
-      password,
-      displayName: fullName,
-      phoneNumber: phone.trim(),
-    });
+    let firebaseUserId: string | null = null;
 
-    // Save to MongoDB
-    const newUser = await User.create({
-      firebaseId: firebaseUser.uid,
-      role: "customer",
-      fullName,
-      email,
-      phone: phone.trim(),
-      age,
-      gender,
+    try {
+      const firebaseUser = await adminAuth().createUser({
+        email: normalizedEmail,
+        password,
+        displayName: fullName,
+        phoneNumber: normalizedPhone,
+      });
+      firebaseUserId = firebaseUser.uid;
 
-      height,
-      weight,
-      bmi,
-      goal,
-      activity,
-      conditions,
-      diet,
-      sleepHours,
-      waterIntake,
+      const newUser = await User.create({
+        firebaseId: firebaseUser.uid,
+        role: "customer",
+        fullName: String(fullName).trim(),
+        email: normalizedEmail,
+        phone: normalizedPhone,
+        age,
+        gender,
+        height,
+        weight,
+        bmi: bmi ?? undefined,
+        goal,
+        activity,
+        conditions,
+        diet,
+        sleepHours,
+        waterIntake,
+        addressLine1,
+        addressLine2,
+        city,
+        postalCode,
+        country,
+      });
 
-      // Billing
-      addressLine1,
-      addressLine2,
-      city,
-      postalCode,
-      country,
-    });
+      return NextResponse.json(
+        {
+          success: true,
+          userId: firebaseUser.uid,
+          mongoId: newUser._id,
+        },
+        { status: 200 }
+      );
+    } catch (error) {
+      if (firebaseUserId) {
+        try {
+          await adminAuth().deleteUser(firebaseUserId);
+        } catch (rollbackError) {
+          console.error("REGISTER ROLLBACK ERROR:", rollbackError);
+        }
+      }
 
-    return NextResponse.json(
-      {
-        success: true,
-        userId: firebaseUser.uid,
-        mongoId: newUser._id,
-      },
-      { status: 200 }
-    );
-  } catch (err: any) {
+      throw error;
+    }
+  } catch (err: unknown) {
     console.error("REGISTER ERROR:", err);
-    return NextResponse.json({ error: err.message }, { status: 400 });
+    return NextResponse.json(
+      { error: "Unable to create account." },
+      { status: 400 }
+    );
   }
 }

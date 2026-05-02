@@ -5,7 +5,7 @@ import { auth } from "@/lib/firebase";
 import { 
   Activity, Package, CreditCard, User, 
   Droplets, TrendingUp, Calendar, ArrowRight,
-  ChevronRight, Loader2, Zap, Weight, Star
+  ChevronRight, Loader2, Zap, Star
 } from "lucide-react";
 import Link from "next/link";
 
@@ -20,6 +20,24 @@ interface DashSummary {
   recentOrderId?: string;
   recentTotal?: number;
 }
+
+type DashboardSubscription = {
+  status?: string;
+  nextBillingDate?: string;
+};
+
+type DashboardOrder = {
+  _id?: string;
+  fulfillmentStatus?: string;
+  total?: number;
+};
+
+type DashboardHealthResponse = {
+  logs?: Array<{
+    weight?: string;
+    waterIntake?: number;
+  }>;
+};
 
 export default function DashboardLanding() {
   const [data, setData] = useState<DashSummary | null>(null);
@@ -38,22 +56,32 @@ export default function DashboardLanding() {
           fetch("/api/dashboard/profile", { headers: { Authorization: `Bearer ${token}` } }),
           fetch("/api/orders/user", { headers: { Authorization: `Bearer ${token}` } }),
           fetch("/api/subscriptions/user", { headers: { Authorization: `Bearer ${token}` } }),
-          fetch(`/api/health?userId=${user.uid}&days=1`)
+          fetch(`/api/health?days=1`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
         ]);
 
         const [prof, orders, subs, health] = await Promise.all([
           profRes.json(), orderRes.json(), subRes.json(), healthRes.json()
         ]);
 
+        const subscriptions = (subs.subscriptions as DashboardSubscription[]) || [];
+        const orderList = (orders.orders as DashboardOrder[]) || [];
+        const healthData = health as DashboardHealthResponse;
+
         setData({
           fullName: prof.user?.fullName || "User",
-          weight: health.logs?.[0]?.weight || prof.user?.weight || "--",
-          waterIntake: health.logs?.[0]?.waterIntake || 0,
-          activeSubCount: subs.subscriptions?.filter((s: any) => s.status === "active").length || 0,
-          nextBillingDate: subs.subscriptions?.find((s: any) => s.status === "active")?.nextBillingDate,
-          recentOrderStatus: orders.orders?.[0]?.fulfillmentStatus,
-          recentOrderId: orders.orders?.[0]?._id,
-          recentTotal: orders.orders?.[0]?.total
+          weight: healthData.logs?.[0]?.weight || prof.user?.weight || "--",
+          waterIntake: healthData.logs?.[0]?.waterIntake || 0,
+          activeSubCount:
+            subscriptions.filter((subscription) => subscription.status === "active")
+              .length || 0,
+          nextBillingDate: subscriptions.find(
+            (subscription) => subscription.status === "active"
+          )?.nextBillingDate,
+          recentOrderStatus: orderList[0]?.fulfillmentStatus,
+          recentOrderId: orderList[0]?._id,
+          recentTotal: orderList[0]?.total
         });
       } catch (err) {
         console.error("Dashboard Sync Error", err);

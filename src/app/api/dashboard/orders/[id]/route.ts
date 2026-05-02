@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebaseAdmin";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
 import Subscription from "@/models/Subscription";
-import User from "@/models/User";
+import { requireMongoUser } from "@/lib/requestAuth";
 
 // params is a Promise in Next.js App Router; unwrap it before use
 export async function GET(
@@ -14,16 +13,7 @@ export async function GET(
     await connectDB();
     const { id } = await params;
 
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decoded = await adminAuth().verifyIdToken(token);
-
-    const user = await User.findOne({ firebaseId: decoded.uid });
-    if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
+    const user = await requireMongoUser(req, "_id");
 
     const order = await Order.findOne({ _id: id, user: user._id }).lean();
     if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
@@ -46,6 +36,16 @@ export async function GET(
     });
   } catch (e) {
     console.error(e);
-    return NextResponse.json({ error: "Server Error" }, { status: 500 });
+    const status =
+      typeof e === "object" &&
+      e !== null &&
+      "status" in e &&
+      typeof e.status === "number"
+        ? e.status
+        : 500;
+    return NextResponse.json(
+      { error: status === 401 ? "Unauthorized" : "Server Error" },
+      { status }
+    );
   }
 }

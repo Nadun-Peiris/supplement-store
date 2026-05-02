@@ -26,7 +26,7 @@ export async function GET() {
     }
 
     const productBrands = await Product.find(
-      { brandName: { $exists: true, $ne: "" } },
+      { isActive: true, brandName: { $exists: true, $ne: "" } },
       { brandName: 1, brandSlug: 1 }
     ).lean();
 

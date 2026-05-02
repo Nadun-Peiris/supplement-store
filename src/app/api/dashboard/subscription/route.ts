@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebaseAdmin";
 import { connectDB } from "@/lib/mongoose";
 import User, { type IUser } from "@/models/User";
 import Subscription from "@/models/Subscription";
+import { requireMongoUser } from "@/lib/requestAuth";
 
 type DashboardSubscription = {
   id: string | null;
@@ -10,21 +10,14 @@ type DashboardSubscription = {
   status: "active" | "cancelled" | "completed" | null;
   active: boolean;
   nextBillingDate: Date | null;
-  cancelledAt: Date | null;
+  lastPaymentDate: Date | null;
 };
 
 export async function GET(req: NextRequest) {
   try {
     await connectDB();
-
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer "))
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const token = authHeader.split(" ")[1];
-    const decoded = await adminAuth().verifyIdToken(token);
-
-    const user = (await User.findOne({ firebaseId: decoded.uid }).lean()) as
+    const authUser = await requireMongoUser(req, "_id firebaseId");
+    const user = (await User.findById(authUser._id).lean()) as
       | (IUser & { _id: string })
       | null;
 
@@ -38,7 +31,7 @@ export async function GET(req: NextRequest) {
           status: user.subscription.status,
           active: user.subscription.active,
           nextBillingDate: user.subscription.nextBillingDate,
-          cancelledAt: user.subscription.cancelledAt,
+          lastPaymentDate: user.subscription.lastPaymentDate,
         }
       : null;
 
@@ -48,6 +41,7 @@ export async function GET(req: NextRequest) {
         subscriptionId?: string | null;
         status?: "active" | "cancelled" | "completed" | null;
         nextBillingDate?: Date | null;
+        lastPaymentDate?: Date | null;
       };
 
       const latest = (await Subscription.findOne({ user: user._id })
@@ -62,24 +56,9 @@ export async function GET(req: NextRequest) {
           active:
             latest.status === "active",
           nextBillingDate: latest.nextBillingDate ?? null,
-          cancelledAt: latest.status === "cancelled" ? new Date() : null,
+          lastPaymentDate: latest.lastPaymentDate ?? null,
         };
 
-        // Keep user doc in sync for future reads
-        await User.updateOne(
-          { _id: user._id },
-          {
-            $set: {
-              subscription: {
-                subscriptionId: subscription.subscriptionId,
-                status: subscription.status,
-                active: subscription.active,
-                nextBillingDate: subscription.nextBillingDate,
-                cancelledAt: subscription.cancelledAt,
-              },
-            },
-          }
-        );
       }
     }
 
@@ -88,9 +67,16 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error("Subscription API error:", err);
+    const status =
+      typeof err === "object" &&
+      err !== null &&
+      "status" in err &&
+      typeof err.status === "number"
+        ? err.status
+        : 500;
     return NextResponse.json(
-      { error: "Failed to load subscription" },
-      { status: 500 }
+      { error: status === 401 ? "Unauthorized" : "Failed to load subscription" },
+      { status }
     );
   }
 }

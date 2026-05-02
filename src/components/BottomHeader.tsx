@@ -51,7 +51,11 @@ export default function BottomHeader() {
     loadFeatured();
   }, []);
 
-  const checkIsActive = (href: string) => {
+  const checkIsActive = (href: string, exact = false) => {
+    if (exact) {
+      return pathname === href;
+    }
+
     return pathname === href || (href !== "/" && pathname?.startsWith(href));
   };
 
@@ -89,7 +93,7 @@ export default function BottomHeader() {
             <Link href="/" className="shrink-0 transition-transform hover:scale-105">
               <img 
                 src="/logoblack.png" 
-                alt="Supplement Store" 
+                alt="Supplement Lanka" 
                 className="h-10 w-auto md:h-14"
               /> 
             </Link>
@@ -109,7 +113,7 @@ export default function BottomHeader() {
                 <li>
                   <Link href="/shop" className="group relative flex items-center gap-1 py-2 text-[16px] font-extrabold text-black transition-colors hover:text-[#03c7fe]">
                     Shop
-                    <span className={`absolute -bottom-1 left-0 h-[2.5px] bg-[#03c7fe] transition-all duration-300 ${checkIsActive("/shop") ? "w-full" : "w-0 group-hover:w-full"}`} />
+                    <span className={`absolute -bottom-1 left-0 h-[2.5px] bg-[#03c7fe] transition-all duration-300 ${checkIsActive("/shop", true) ? "w-full" : "w-0 group-hover:w-full"}`} />
                   </Link>
                 </li>
                 
@@ -121,7 +125,7 @@ export default function BottomHeader() {
                   : navFeatured.map((item) => {
                       const label = item.category?.name.charAt(0).toUpperCase() + item.category?.name.slice(1).toLowerCase();
                       const itemHref = `/shop/${item.category.slug}`;
-                      const isActive = checkIsActive(itemHref);
+                      const isActive = checkIsActive(itemHref, true);
 
                       return (
                         <li key={item._id}>
@@ -198,20 +202,21 @@ export default function BottomHeader() {
           <nav>
             <ul className="flex flex-col gap-6 text-left">
               <li>
-                <Link href="/" onClick={() => setMenuOpen(false)} className="text-3xl font-extrabold text-black hover:text-[#03c7fe]">
+                <Link href="/" onClick={() => setMenuOpen(false)} className={`text-3xl font-extrabold hover:text-[#03c7fe] ${checkIsActive("/", true) ? "text-[#03c7fe]" : "text-black"}`}>
                   Home
                 </Link>
               </li>
               <li>
-                <Link href="/shop" onClick={() => setMenuOpen(false)} className="text-3xl font-extrabold text-[#03c7fe]">
+                <Link href="/shop" onClick={() => setMenuOpen(false)} className={`text-3xl font-extrabold hover:text-[#03c7fe] ${checkIsActive("/shop", true) ? "text-[#03c7fe]" : "text-black"}`}>
                   Shop All
                 </Link>
               </li>
               {navFeatured.map((item) => {
                 const label = item.category?.name.charAt(0).toUpperCase() + item.category?.name.slice(1).toLowerCase();
+                const itemHref = `/shop/${item.category.slug}`;
                 return (
                   <li key={item._id}>
-                    <Link href={`/shop/${item.category.slug}`} onClick={() => setMenuOpen(false)} className="text-3xl font-extrabold text-black hover:text-[#03c7fe]">
+                    <Link href={itemHref} onClick={() => setMenuOpen(false)} className={`text-3xl font-extrabold hover:text-[#03c7fe] ${checkIsActive(itemHref, true) ? "text-[#03c7fe]" : "text-black"}`}>
                       {label}
                     </Link>
                   </li>

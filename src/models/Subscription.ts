@@ -36,7 +36,7 @@ const SubscriptionSchema = new Schema(
 
     status: {
       type: String,
-      enum: ["active", "cancelled", "completed", "failed"],
+      enum: ["active", "cancelled", "completed"],
       default: "active",
     },
 
@@ -61,7 +61,7 @@ const SubscriptionSchema = new Schema(
 
     totalInstallmentsPaid: {
       type: Number,
-      default: 0,
+      default: 1,
     },
   },
   { timestamps: true }

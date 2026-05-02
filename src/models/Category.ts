@@ -1,25 +1,18 @@
-import mongoose, { Schema, Document } from "mongoose";
-import slugify from "slugify";
+import mongoose, { Schema, models } from "mongoose";
 
-export interface ICategory extends Document {
-  name: string;
-  slug: string;
-  image: string;
-}
+const CategorySchema = new Schema(
+  {
+    title: { type: String },
+    name: { type: String },
+    slug: { type: String, required: true },
+    image: { type: String, default: "" },
+  },
+  { timestamps: true }
+);
 
-const CategorySchema = new Schema<ICategory>({
-  name: { type: String, required: true },
-  slug: { type: String, unique: true },
-  image: { type: String, required: true },
+CategorySchema.virtual("displayName").get(function () {
+  return this.title || this.name || "";
 });
 
-// Auto-generate slug
-CategorySchema.pre("save", function (next) {
-  if (!this.slug || this.isModified("name")) {
-    this.slug = slugify(this.name, { lower: true, strict: true });
-  }
-  next();
-});
-
-export default mongoose.models.Category ||
-  mongoose.model<ICategory>("Category", CategorySchema);
+export default models.Category ||
+  mongoose.model("Category", CategorySchema);

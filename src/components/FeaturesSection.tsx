@@ -40,7 +40,7 @@ export default function FeaturesSection() {
   ];
 
   return (
-    <section className="flex w-full justify-center bg-white px-5 py-10 md:px-8 md:py-12 xl:px-16 xl:py-16">
+    <section className="flex w-full justify-center bg-white px-5 py-8 md:px-8 md:py-10 xl:px-16 xl:py-12">
       <div className="grid w-full grid-cols-1 items-start gap-7 rounded-[22px] border border-[#e6e6e6] bg-white px-7 py-9 text-center min-[900px]:grid-cols-4 min-[900px]:gap-10 md:px-8 md:py-12">
         {featureList.map(({ icon: Icon, title, description }) => (
           <div

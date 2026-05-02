@@ -7,7 +7,11 @@ export type ActivityLevel =
   | "Active"
   | "Very Active";
 
-export type Goal = "Weight Loss" | "Muscle Gain" | "Maintenance";
+export type Goal =
+  | "Weight Loss"
+  | "Muscle Gain"
+  | "Maintenance"
+  | "Body Transformation";
 
 export interface HealthInput {
   weight: number; // kg
@@ -88,6 +92,7 @@ export function calculateHealth(data: HealthInput): HealthResult {
       calorieNeeds += 300;
       break;
     case "Maintenance":
+    case "Body Transformation":
     default:
       break;
   }

@@ -51,9 +51,53 @@ type EnrichedAIProduct = {
   score: number;
 };
 
+type AIUserProfile = {
+  age?: number;
+  gender?: string;
+  height?: number;
+  weight?: number;
+  bmi?: number;
+  goal?: string;
+  activity?: string;
+  diet?: string;
+  conditions?: string;
+};
+
+const CHAT_RATE_LIMIT_WINDOW_MS = 60_000;
+const CHAT_RATE_LIMIT_MAX_REQUESTS = 12;
+const chatRateLimits = new Map<string, { count: number; resetAt: number }>();
+
+const getClientIp = (req: NextRequest) =>
+  req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+  req.headers.get("x-real-ip") ||
+  "unknown";
+
+const isRateLimited = (clientId: string) => {
+  const now = Date.now();
+  const current = chatRateLimits.get(clientId);
+
+  if (!current || current.resetAt <= now) {
+    chatRateLimits.set(clientId, {
+      count: 1,
+      resetAt: now + CHAT_RATE_LIMIT_WINDOW_MS,
+    });
+    return false;
+  }
+
+  current.count += 1;
+  return current.count > CHAT_RATE_LIMIT_MAX_REQUESTS;
+};
+
 export async function POST(req: NextRequest) {
   try {
-    await connectDB();
+    const clientId = getClientIp(req);
+
+    if (isRateLimited(clientId)) {
+      return NextResponse.json(
+        { error: "Too many chat requests. Please try again shortly." },
+        { status: 429 }
+      );
+    }
 
     // 🔥 Added 'history' to keep track of the survey questions
     const {
@@ -61,36 +105,87 @@ export async function POST(req: NextRequest) {
       history = [],
     }: { message?: string; history?: ChatHistoryEntry[] } = await req.json();
     
-    if (!message) {
+    if (!message || typeof message !== "string" || !message.trim()) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
     }
+
+    if (message.length > 1000) {
+      return NextResponse.json(
+        { error: "Message is too long" },
+        { status: 400 }
+      );
+    }
+
+    const safeHistory = Array.isArray(history)
+      ? history
+          .filter(
+            (entry) =>
+              (entry.role === "user" || entry.role === "ai") &&
+              typeof entry.content === "string"
+          )
+          .slice(-20)
+      : [];
+
+    await connectDB();
 
     // -----------------------
     // 🔐 LOAD USER PROFILE
     // -----------------------
-    let userProfile: Record<string, unknown> | null = null;
+    let userProfile: AIUserProfile | null = null;
     const authHeader = req.headers.get("authorization");
 
     if (authHeader?.startsWith("Bearer ")) {
       try {
         const token = authHeader.split(" ")[1];
         const decoded = await adminAuth().verifyIdToken(token);
-        const user = await User.findOne({ firebaseId: decoded.uid }).lean();
-        userProfile = user || null;
+        const user = await User.findOne({ firebaseId: decoded.uid })
+          .select("age gender height weight bmi goal activity diet conditions")
+          .lean<AIUserProfile | null>();
+        userProfile = user
+          ? {
+              age: user.age,
+              gender: user.gender,
+              height: user.height,
+              weight: user.weight,
+              bmi: user.bmi,
+              goal: user.goal,
+              activity: user.activity,
+              diet: user.diet,
+              conditions: user.conditions,
+            }
+          : null;
       } catch {
-        console.log("AI: User not logged in.");
+        userProfile = null;
       }
     }
 
     // -----------------------
     // 📦 LOAD & MINIFY PRODUCTS
     // -----------------------
+    const searchTerms = message
+      .toLowerCase()
+      .split(/[^a-z0-9]+/i)
+      .map((term) => term.trim())
+      .filter((term) => term.length >= 3)
+      .slice(0, 6);
+
     const rawProducts = await Product.find(
       { isActive: true, stock: { $gt: 0 } },
       "name price discountPrice category image slug details.benefits details.warnings details.servingInfo.nutrients coa.verified"
     ).lean<RawProduct[]>();
 
-    const minifiedProducts = rawProducts.map((p) => ({
+    const relevantProducts = rawProducts
+      .filter((product) => {
+        if (searchTerms.length === 0) return true;
+        const haystack = `${product.name} ${product.category}`.toLowerCase();
+        return searchTerms.some((term) => haystack.includes(term));
+      })
+      .slice(0, 30);
+
+    const promptProducts =
+      relevantProducts.length >= 8 ? relevantProducts : rawProducts.slice(0, 30);
+
+    const minifiedProducts = promptProducts.map((p) => ({
       id: p._id.toString(),
       name: p.name,
       cat: p.category,
@@ -119,7 +214,7 @@ export async function POST(req: NextRequest) {
     });
 
     // Format history for Gemini
-    const formattedHistory = history
+    const formattedHistory = safeHistory
       .map((msg) => `${msg.role === "user" ? "USER" : "AI"}: ${msg.content}`)
       .join("\n");
 

@@ -1,24 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { adminAuth } from "@/lib/firebaseAdmin";
 import { connectDB } from "@/lib/mongoose";
 import User from "@/models/User";
 import Subscription from "@/models/Subscription";
-
-const isTruthy = (value: string | undefined) =>
-  value === "true" || value === "1" || value === "yes";
+import { requireMongoUser } from "@/lib/requestAuth";
+import { cancelSubscriptionAndSync } from "@/lib/subscriptions/cancelSubscription";
 
 export async function POST(req: NextRequest) {
   try {
     await connectDB();
-
-    const authHeader = req.headers.get("authorization");
-    if (!authHeader?.startsWith("Bearer "))
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-
-    const token = authHeader.split(" ")[1];
-    const decoded = await adminAuth().verifyIdToken(token);
-
-    const user = await User.findOne({ firebaseId: decoded.uid });
+    const authUser = await requireMongoUser(req, "_id");
+    const user = await User.findById(authUser._id).select("_id subscription");
     const subscriptionId = user?.subscription?.subscriptionId;
 
     if (!user || !subscriptionId) {
@@ -44,84 +35,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, message: "Already cancelled" });
     }
 
-    const appId = process.env.PAYHERE_APP_ID;
-    const appSecret = process.env.PAYHERE_APP_SECRET;
-    const useSandbox = isTruthy(process.env.PAYHERE_SANDBOX);
-
-    if (!appId || !appSecret) {
-      console.error(
-        "Missing PayHere OAuth credentials for dashboard subscription cancel API"
-      );
-      return NextResponse.json(
-        {
-          error:
-            "Server is missing PAYHERE_APP_ID and PAYHERE_APP_SECRET required for PayHere subscription cancellation.",
-        },
-        { status: 500 }
-      );
-    }
-
-    const payHereBaseUrl = useSandbox
-      ? "https://sandbox.payhere.lk"
-      : "https://www.payhere.lk";
-    const base64Auth = Buffer.from(`${appId}:${appSecret}`).toString("base64");
-
-    const tokenRes = await fetch(`${payHereBaseUrl}/merchant/v1/oauth/token`, {
-      method: "POST",
-      headers: {
-        Authorization: `Basic ${base64Auth}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: "grant_type=client_credentials",
-    });
-
-    const tokenData = await tokenRes.json();
-    const accessToken = tokenData.access_token;
-
-    if (!accessToken) {
-      throw new Error(
-        `Failed to retrieve PayHere access token: ${tokenData?.msg ?? tokenData?.error ?? tokenRes.statusText}`
-      );
-    }
-
-    const cancelRes = await fetch(
-      `${payHereBaseUrl}/merchant/v1/subscription/cancel`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          subscription_id: subscription.subscriptionId,
-        }),
-      }
-    );
-
-    const cancelData = await cancelRes.json();
-
-    if (cancelData.status !== 1) {
-      console.error("PayHere API Cancellation Failed:", cancelData);
-      return NextResponse.json(
-        { error: "PayHere could not cancel the subscription" },
-        { status: 400 }
-      );
-    }
-
-    subscription.status = "cancelled";
-    await subscription.save();
-
-    user.subscription.active = false;
-    user.subscription.status = "cancelled";
-    user.subscription.cancelledAt = new Date();
-    user.subscription.nextBillingDate = null;
-    await user.save();
+    await cancelSubscriptionAndSync(subscription);
 
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Cancel Subscription Error:", err);
+    const message =
+      err instanceof Error && err.message === "PAYHERE_CANCEL_FAILED"
+        ? "PayHere could not cancel the subscription"
+        : err instanceof Error && err.message === "PAYHERE_OAUTH_MISSING"
+        ? "PayHere cancellation is not configured"
+        : "Failed to cancel subscription";
     return NextResponse.json(
-      { error: "Failed to cancel subscription" },
+      { error: message },
       { status: 500 }
     );
   }

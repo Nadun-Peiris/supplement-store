@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Subscription from "@/models/Subscription";
-import { getAuth } from "firebase-admin/auth";
-import "@/lib/firebaseAdmin";
+import { isValidObjectId } from "mongoose";
+import { requireMongoUser } from "@/lib/requestAuth";
 
 // GET a single subscription's details
 export async function GET(
@@ -13,17 +13,21 @@ export async function GET(
     await connectDB();
     const { subscriptionId } = await params;
 
-    // 1. Verify User (Security)
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!isValidObjectId(subscriptionId)) {
+      return NextResponse.json(
+        { error: "Subscription not found" },
+        { status: 404 }
+      );
     }
 
-    const token = authHeader.split("Bearer ")[1];
-    await getAuth().verifyIdToken(token); // Throws error if invalid
+    // 1. Verify User (Security)
+    const user = await requireMongoUser(req, "_id");
 
     // 2. Fetch the Subscription from MongoDB
-    const subscription = await Subscription.findById(subscriptionId).lean();
+    const subscription = await Subscription.findOne({
+      _id: subscriptionId,
+      user: user._id,
+    }).lean();
 
     if (!subscription) {
       return NextResponse.json(
@@ -35,9 +39,16 @@ export async function GET(
     return NextResponse.json({ subscription });
   } catch (error) {
     console.error("FETCH SINGLE SUBSCRIPTION ERROR:", error);
+    const status =
+      typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      typeof error.status === "number"
+        ? error.status
+        : 500;
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
+      { error: status === 401 ? "Unauthorized" : "Internal Server Error" },
+      { status }
     );
   }
 }

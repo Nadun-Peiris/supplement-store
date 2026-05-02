@@ -21,7 +21,7 @@ export interface IUser extends Document {
   height?: number;
   weight?: number;
   bmi?: number;
-  goal?: "Weight Loss" | "Muscle Gain" | "Maintenance";
+  goal?: "Weight Loss" | "Muscle Gain" | "Maintenance" | "Body Transformation";
   activity?: "Sedentary" | "Light" | "Moderate" | "Active" | "Very Active";
   conditions?: string;
   diet?: "Standard" | "Keto" | "Vegan" | "Vegetarian" | "Paleo";
@@ -39,7 +39,7 @@ export interface IUser extends Document {
     active: boolean;
     nextBillingDate: Date | null;
     status: "active" | "cancelled" | "completed" | null;
-    cancelledAt: Date | null;
+    lastPaymentDate: Date | null;
   };
 
   role: "customer" | "admin" | "superadmin";
@@ -55,7 +55,13 @@ const UserSchema = new Schema<IUser>(
   {
     firebaseId: { type: String, required: true, unique: true },
     fullName: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    email: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
     phone: { type: String, required: true, unique: true },
     age: { type: Number, required: true },
     
@@ -72,13 +78,11 @@ const UserSchema = new Schema<IUser>(
     bmi: Number,
     goal: { 
       type: String, 
-      enum: ["Weight Loss", "Muscle Gain", "Maintenance"],
-      default: "Maintenance"
+      enum: ["Weight Loss", "Muscle Gain", "Maintenance", "Body Transformation"],
     },
     activity: { 
       type: String, 
       enum: ["Sedentary", "Light", "Moderate", "Active", "Very Active"],
-      default: "Moderate"
     },
     diet: { 
       type: String, 
@@ -86,9 +90,9 @@ const UserSchema = new Schema<IUser>(
       default: "Standard"
     },
     
-    conditions: String,
-    sleepHours: Number,
-    waterIntake: Number,
+    conditions: { type: String, default: "" },
+    sleepHours: { type: Number },
+    waterIntake: { type: Number },
 
     // Step 3 - Billing
     addressLine1: { type: String, required: true },
@@ -106,7 +110,7 @@ const UserSchema = new Schema<IUser>(
         enum: ["active", "cancelled", "completed", null], 
         default: null 
       },
-      cancelledAt: { type: Date, default: null },
+      lastPaymentDate: { type: Date, default: null },
     },
 
     role: {
@@ -120,8 +124,6 @@ const UserSchema = new Schema<IUser>(
   { timestamps: true }
 );
 
-UserSchema.index({ email: 1 });
-UserSchema.index({ firebaseId: 1 });
 UserSchema.index({ role: 1 });
 
 const User: Model<IUser> =

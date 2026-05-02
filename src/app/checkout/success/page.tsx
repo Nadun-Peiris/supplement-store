@@ -3,6 +3,8 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Lottie from "lottie-react";
+import { auth } from "@/lib/firebase";
+import type { User } from "firebase/auth";
 
 interface Order {
   _id: string;
@@ -63,7 +65,30 @@ function CheckoutSuccessContent() {
 
     async function fetchOrder() {
       try {
-        const res = await fetch(`/api/orders/${orderId}`);
+        const headers: Record<string, string> = {};
+        const currentUser =
+          auth.currentUser ??
+          (await new Promise<User | null>((resolve) => {
+            const unsubscribe = auth.onAuthStateChanged((user) => {
+              unsubscribe();
+              resolve(user);
+            });
+            setTimeout(() => {
+              unsubscribe();
+              resolve(null);
+            }, 1500);
+          }));
+
+        if (currentUser) {
+          headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
+        } else {
+          const guestId = localStorage.getItem("guestId");
+          if (guestId) {
+            headers["guest-id"] = guestId;
+          }
+        }
+
+        const res = await fetch(`/api/orders/${orderId}`, { headers });
         const data = await res.json();
 
         if (cancelled) return;

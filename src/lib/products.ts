@@ -1,6 +1,6 @@
 import Product from "@/models/Product";
 import { connectDB } from "./mongoose";
-import { isValidObjectId, type FilterQuery, type SortOrder, Types } from "mongoose";
+import { type FilterQuery, type SortOrder, Types } from "mongoose";
 import type { ProductDTO } from "@/types/product";
 import type { ProductDocument } from "@/models/Product";
 import { normalizeSlug } from "./productFilters";
@@ -15,10 +15,17 @@ type ProductSortOption =
   | "name-desc"
   | "newest";
 
+const withActiveProducts = (
+  query: FilterQuery<ProductDocument> = {}
+): FilterQuery<ProductDocument> =>
+  Object.keys(query).length
+    ? { $and: [{ isActive: true }, query] }
+    : { isActive: true };
+
 export const normalizeProduct = (product: LeanProduct): ProductDTO => ({
   _id: product._id.toString(),
   name: product.name,
-  slug: product.slug ?? product._id.toString(),
+  slug: product.slug,
   category: product.category,
   categorySlug:
     product.categorySlug ??
@@ -84,8 +91,7 @@ export const normalizeProduct = (product: LeanProduct): ProductDTO => ({
 export const getProductBySlug = async (slug: string): Promise<ProductDTO | null> => {
   await connectDB();
 
-  const query = isValidObjectId(slug) ? { _id: slug } : { slug };
-  const product = await Product.findOne(query).lean<LeanProduct>();
+  const product = await Product.findOne({ slug, isActive: true }).lean<LeanProduct>();
 
   return product ? normalizeProduct(product) : null;
 };
@@ -96,7 +102,7 @@ export const getProducts = async (
 ): Promise<ProductDTO[]> => {
   await connectDB();
 
-  const products = await Product.find(query)
+  const products = await Product.find(withActiveProducts(query))
     .sort({ createdAt: -1 })
     .limit(limit ?? 0)
     .lean<LeanProduct[]>();
@@ -173,8 +179,8 @@ export const getFilteredProducts = async (
 
   if (!normalizedSearch) {
     const [totalProducts, products] = await Promise.all([
-      Product.countDocuments(query),
-      Product.find(query)
+      Product.countDocuments(withActiveProducts(query)),
+      Product.find(withActiveProducts(query))
         .sort(getSortQuery(sort))
         .skip((safePage - 1) * safeLimit)
         .limit(safeLimit)
@@ -191,7 +197,7 @@ export const getFilteredProducts = async (
     };
   }
 
-  const candidates = await Product.find(query)
+  const candidates = await Product.find(withActiveProducts(query))
     .sort({ createdAt: -1 })
     .lean<LeanProduct[]>();
 

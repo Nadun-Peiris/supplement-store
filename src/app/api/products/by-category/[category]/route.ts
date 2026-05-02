@@ -12,7 +12,11 @@ export async function GET(
 
     const { category } = await context.params;
     const categoryFilter = buildCategoryFilter([category]) ?? {};
-    const products = await Product.find(categoryFilter)
+    const products = await Product.find(
+      Object.keys(categoryFilter).length
+        ? { $and: [{ isActive: true }, categoryFilter] }
+        : { isActive: true }
+    )
       .sort({ createdAt: -1 })
       .lean();
 

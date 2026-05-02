@@ -1,7 +1,8 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { absoluteUrl } from "@/lib/absoluteUrl";
+import { auth } from "@/lib/firebase";
 
 interface CartItem {
   productId: string;
@@ -48,16 +49,29 @@ function getGuestId() {
 export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const [count, setCount] = useState(0);
 
+  const getCartHeaders = useCallback(async () => {
+    const headers: Record<string, string> = {};
+    const currentUser = auth.currentUser;
+
+    if (currentUser) {
+      headers.Authorization = `Bearer ${await currentUser.getIdToken()}`;
+    } else {
+      headers["guest-id"] = getGuestId();
+    }
+
+    return headers;
+  }, []);
+
   /* --------------------------------------------
       REFRESH CART
   --------------------------------------------- */
-  const refreshCart = async () => {
+  const refreshCart = useCallback(async () => {
     try {
-      const guestId = getGuestId();
+      const headers = await getCartHeaders();
 
       const res = await fetch(absoluteUrl("/api/cart"), {
         method: "GET",
-        headers: { "guest-id": guestId },
+        headers,
       });
 
       const data = await res.json();
@@ -67,7 +81,7 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (err) {
       console.error("Cart refresh failed:", err);
     }
-  };
+  }, [getCartHeaders]);
 
   /* --------------------------------------------
       ADD TO CART
@@ -79,13 +93,13 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
     image,
     quantity = 1,
   }: CartItemInput) => {
-    const guestId = getGuestId();
+    const headers = await getCartHeaders();
 
-    await fetch(absoluteUrl("/api/cart"), {
+    const res = await fetch(absoluteUrl("/api/cart"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "guest-id": guestId,
+        ...headers,
       },
       body: JSON.stringify({
         productId,
@@ -96,11 +110,17 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
       }),
     });
 
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.error || "Could not add item to cart");
+    }
+
     // Instant update
     setCount((prev) => prev + quantity);
 
     // Sync backend
-    refreshCart();
+    void refreshCart();
   };
 
   /* --------------------------------------------
@@ -109,44 +129,60 @@ export const CartProvider = ({ children }: { children: React.ReactNode }) => {
   const updateQuantity = async (productId: string, qty: number) => {
     if (qty < 1) return;
 
-    const guestId = getGuestId();
+    const headers = await getCartHeaders();
 
-    await fetch(absoluteUrl("/api/cart/update"), {
+    const res = await fetch(absoluteUrl("/api/cart/update"), {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "guest-id": guestId,
+        ...headers,
       },
       body: JSON.stringify({ productId, quantity: qty }),
     });
 
-    refreshCart();
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.error || "Could not update cart");
+    }
+
+    void refreshCart();
   };
 
   /* --------------------------------------------
       REMOVE ITEM
   --------------------------------------------- */
   const removeFromCart = async (productId: string) => {
-    const guestId = getGuestId();
+    const headers = await getCartHeaders();
 
-    await fetch(absoluteUrl("/api/cart/remove"), {
+    const res = await fetch(absoluteUrl("/api/cart/remove"), {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
-        "guest-id": guestId,
+        ...headers,
       },
       body: JSON.stringify({ productId }),
     });
 
-    refreshCart();
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      throw new Error(data.error || "Could not remove item from cart");
+    }
+
+    void refreshCart();
   };
 
   /* --------------------------------------------
       ON MOUNT
   --------------------------------------------- */
   useEffect(() => {
-    refreshCart();
-  }, []);
+    const timer = window.setTimeout(() => {
+      void refreshCart();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [refreshCart]);
 
   return (
     <CartContext.Provider

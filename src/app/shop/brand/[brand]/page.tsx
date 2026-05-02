@@ -19,7 +19,7 @@ export default async function ShopBrandPage({ params }: ShopBrandPageProps) {
 
   const page = 1;
   const limit = 9;
-  const filter = combineFilters(buildBrandFilter([brandSlug]));
+  const filter = combineFilters({ isActive: true }, buildBrandFilter([brandSlug]));
 
   const [totalProducts, products] = await Promise.all([
     Product.countDocuments(filter),

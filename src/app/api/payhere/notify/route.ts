@@ -1,5 +1,5 @@
 import CryptoJS from "crypto-js";
-import type { Types } from "mongoose";
+import mongoose, { type ClientSession, type Types } from "mongoose";
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import Order from "@/models/Order";
@@ -12,6 +12,7 @@ import Product from "@/models/Product";
 import { sendEmail } from "@/lib/mail/nodemailer";
 import { getOrderConfirmationHtml } from "@/lib/mail/orderConfirmation";
 import { getSubscriptionConfirmationHtml } from "@/lib/mail/subscriptionConfirmation";
+import { syncUserSubscriptionState } from "@/lib/subscriptions/syncUserSubscription";
 
 const PAYHERE_SUCCESS_STATUS = "2";
 const STORE_CURRENCY = "LKR";
@@ -48,38 +49,10 @@ type CheckoutRecord = {
   subscriptionId?: string | null;
 };
 
-const syncUserSubscriptionState = async ({
-  userId,
-  subscriptionId,
-  status,
-  nextBillingDate,
-  cancelledAt,
-}: {
-  userId: IOrder["user"] | null | undefined;
-  subscriptionId: string | null;
-  status: "active" | "cancelled" | "completed" | "failed";
-  nextBillingDate?: Date | null;
-  cancelledAt?: Date | null;
-}) => {
-  if (!userId) return;
-
-  await User.updateOne(
-    { _id: userId },
-    {
-      $set: {
-        "subscription.subscriptionId": subscriptionId,
-        "subscription.active": status === "active",
-        "subscription.status": ["active", "cancelled", "completed"].includes(
-          status
-        )
-          ? status
-          : null,
-        "subscription.nextBillingDate":
-          status === "active" ? nextBillingDate ?? null : null,
-        "subscription.cancelledAt":
-          status === "cancelled" ? cancelledAt ?? new Date() : null,
-      },
-    }
+const isTransactionUnsupported = (error: unknown) => {
+  const message = error instanceof Error ? error.message : "";
+  return /transaction|replica set|Transaction numbers are only allowed/i.test(
+    message
   );
 };
 
@@ -108,6 +81,7 @@ export async function POST(req: Request) {
     params.get("recurrence");
 
   const merchantSecret = process.env.PAYHERE_MERCHANT_SECRET!;
+  const expectedMerchantId = process.env.PAYHERE_MERCHANT_ID;
 
   const localMd5 = CryptoJS.MD5(
     merchant_id +
@@ -121,6 +95,31 @@ export async function POST(req: Request) {
     .toUpperCase();
 
   await connectDB();
+
+  if (!expectedMerchantId) {
+    return NextResponse.json(
+      { error: "PayHere merchant is not configured" },
+      { status: 500 }
+    );
+  }
+
+  if (expectedMerchantId && merchant_id !== expectedMerchantId) {
+    await PayHereWebhookEvent.create({
+      merchantId: merchant_id ?? null,
+      orderId: order_id ?? null,
+      paymentId: payment_id ?? null,
+      subscriptionId: subscription_id ?? null,
+      messageType: message_type ?? null,
+      statusCode: status_code ?? null,
+      amount: payhere_amount ?? null,
+      currency: payhere_currency ?? null,
+      signatureValid: false,
+      processingStatus: "rejected",
+      processingNotes: ["Rejected callback due to merchant ID mismatch."],
+      rawPayload,
+    });
+    return NextResponse.json({ error: "Invalid merchant" }, { status: 400 });
+  }
 
   const signatureValid = localMd5 === md5sig;
   const processingNotes: string[] = [];
@@ -171,6 +170,7 @@ export async function POST(req: Request) {
     const clearCartForCheckout = async (checkout: CheckoutRecord | null) => {
       if (!checkout) return;
 
+      // TODO: migrate to admin-compatible structure after checkout ownership is represented without order-only cart fields.
       let userCartId: string | null = checkout.cartOwnerUserId ?? null;
       const guestCartId = checkout.cartOwnerGuestId ?? null;
 
@@ -194,9 +194,10 @@ export async function POST(req: Request) {
             product: IOrder["items"][number]["product"];
             quantity: number;
           }[]
-        | undefined
+        | undefined,
+      session?: ClientSession
     ) => {
-      if (!items?.length) return;
+      if (!items?.length) return true;
 
       const stockAdjustments = new Map<string, number>();
 
@@ -221,7 +222,10 @@ export async function POST(req: Request) {
         })
       );
 
-      const result = await Product.bulkWrite(operations, { ordered: false });
+      const result = await Product.bulkWrite(operations, {
+        ordered: false,
+        ...(session ? { session } : {}),
+      });
       const matched = result.matchedCount ?? 0;
 
       if (matched < operations.length) {
@@ -230,7 +234,10 @@ export async function POST(req: Request) {
           matched,
           orderId: order_id,
         });
+        return false;
       }
+
+      return true;
     };
 
     const sendOrderConfirmationEmail = async (order: IOrder | null) => {
@@ -331,46 +338,112 @@ export async function POST(req: Request) {
       );
     };
 
+    const runWithOptionalTransaction = async <T>(
+      handler: (session: ClientSession | null) => Promise<T>
+    ) => {
+      const session = await mongoose.startSession();
+
+      try {
+        session.startTransaction();
+        const result = await handler(session);
+        await session.commitTransaction();
+        return result;
+      } catch (error) {
+        try {
+          await session.abortTransaction();
+        } catch {
+          // ignore abort errors
+        }
+
+        if (isTransactionUnsupported(error)) {
+          return handler(null);
+        }
+
+        throw error;
+      } finally {
+        await session.endSession();
+      }
+    };
+
     const finalizeOrderById = async (targetOrderId: string) => {
-      const targetOrderDoc = (await Order.findById(targetOrderId).select(
-        "user orderType items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId paymentStatus fulfillmentStatus subscriptionId"
-      )) as CheckoutRecord | null;
+      const result = await runWithOptionalTransaction(async (session) => {
+        const orderQuery = Order.findById(targetOrderId).select(
+          "user orderType items subtotal shippingCost total billingDetails cartOwnerUserId cartOwnerGuestId paymentStatus fulfillmentStatus subscriptionId"
+        );
 
-      if (!targetOrderDoc) return null;
+        if (session) {
+          orderQuery.session(session);
+        }
 
-      if (targetOrderDoc.paymentStatus === "paid") {
-        return Order.findById(targetOrderId);
-      }
+        const targetOrderDoc = (await orderQuery) as CheckoutRecord | null;
 
-      const finalizedOrder = await Order.findOneAndUpdate(
-        { _id: targetOrderId, paymentStatus: "pending" },
-        {
-          $set: {
-            orderType: subscription_id
-              ? "subscription"
-              : targetOrderDoc.orderType === "subscription"
-              ? "subscription"
-              : "normal",
-            subscriptionId:
-              subscription_id ?? targetOrderDoc.subscriptionId ?? null,
-            paymentStatus: "paid",
-            paymentReference: payment_id,
-            fulfillmentStatus:
-              targetOrderDoc.fulfillmentStatus ?? "unfulfilled",
+        if (!targetOrderDoc) return { kind: "missing" as const };
+        if (targetOrderDoc.paymentStatus === "paid") {
+          return { kind: "already-paid" as const };
+        }
+
+        const stockReserved = await decrementStockForItems(
+          targetOrderDoc.items,
+          session ?? undefined
+        );
+
+        if (!stockReserved) {
+          return { kind: "stock-failed" as const };
+        }
+
+        const updateQuery = Order.findOneAndUpdate(
+          { _id: targetOrderId, paymentStatus: "pending" },
+          {
+            $set: {
+              orderType: subscription_id
+                ? "subscription"
+                : targetOrderDoc.orderType === "subscription"
+                ? "subscription"
+                : "normal",
+              subscriptionId:
+                subscription_id ?? targetOrderDoc.subscriptionId ?? null,
+              paymentStatus: "paid",
+              paymentReference: payment_id,
+              fulfillmentStatus:
+                targetOrderDoc.fulfillmentStatus ?? "unfulfilled",
+            },
           },
-        },
-        { new: true }
-      );
+          { new: true, runValidators: true }
+        );
 
-      if (!finalizedOrder) {
+        if (session) {
+          updateQuery.session(session);
+        }
+
+        const finalizedOrder = await updateQuery;
+
+        if (!finalizedOrder) {
+          return { kind: "already-paid" as const };
+        }
+
+        return {
+          kind: "finalized" as const,
+          finalizedOrder,
+          checkoutRecord: targetOrderDoc,
+        };
+      });
+
+      if (result.kind === "missing") return null;
+      if (result.kind === "already-paid") {
         return Order.findById(targetOrderId);
       }
+      if (result.kind === "stock-failed") {
+        processingNotes.push(
+          `Stock decrement failed while finalizing order ${targetOrderId}.`
+        );
+        await markCheckoutFailed();
+        return null;
+      }
 
-      await decrementStockForItems(finalizedOrder.items);
-      await clearCartForCheckout(targetOrderDoc);
-      await sendOrderConfirmationEmail(finalizedOrder);
+      await clearCartForCheckout(result.checkoutRecord);
+      await sendOrderConfirmationEmail(result.finalizedOrder);
 
-      return finalizedOrder;
+      return result.finalizedOrder;
     };
 
     const finalizeCheckoutOrder = async () => {
@@ -472,12 +545,15 @@ export async function POST(req: Request) {
           });
         }
 
-        await syncUserSubscriptionState({
-          userId: checkoutOrderDoc.user ?? null,
-          subscriptionId: subscription_id,
-          status: "active",
-          nextBillingDate: resolvedNextBillingDate,
-        });
+        if (checkoutOrderDoc.user) {
+          await syncUserSubscriptionState({
+            userId: String(checkoutOrderDoc.user),
+            subscriptionId: subscription_id,
+            status: "active",
+            nextBillingDate: resolvedNextBillingDate,
+            lastPaymentDate: null,
+          });
+        }
 
         processingNotes.push(
           `Subscription provisioned for AUTHORIZATION_SUCCESS (${subscription_id}); awaiting recurring installment webhook to finalize the order.`
@@ -678,36 +754,63 @@ export async function POST(req: Request) {
               `Skipped duplicate recurring order for payment ${payment_id ?? "n/a"}.`
             );
           } else {
-            const recurringOrder = await Order.create({
-              user: baseOrder.user ?? null,
-              orderType: "subscription",
-              subscription: subscription._id,
-              subscriptionId: subscription_id,
-              items: baseOrder.items ?? [],
-              subtotal: baseOrder.subtotal ?? 0,
-              shippingCost: baseOrder.shippingCost ?? 0,
-              total: baseOrder.total ?? 0,
-              billingDetails: baseOrder.billingDetails,
-              paymentProvider: "payhere",
-              paymentStatus: "paid",
-              paymentReference: payment_id,
-              fulfillmentStatus: "unfulfilled",
-            });
+            const recurringOrderResult = await runWithOptionalTransaction(
+              async (session) => {
+                const stockReserved = await decrementStockForItems(
+                  baseOrder.items,
+                  session ?? undefined
+                );
 
-            await decrementStockForItems(recurringOrder.items);
-            await sendOrderConfirmationEmail(recurringOrder);
-            processingNotes.push(
-              `Created recurring order ${String(recurringOrder._id)} for subscription ${subscription_id}.`
-            );
+                if (!stockReserved) {
+                  return { kind: "stock-failed" as const };
+                }
 
-            await Subscription.updateOne(
-              { subscriptionId: subscription_id },
-              {
-                lastPaymentDate: latestPaymentDate,
-                totalInstallmentsPaid:
-                  await countSuccessfulSubscriptionPayments(subscription_id),
+                const [recurringOrder] = await Order.create(
+                  [
+                    {
+                      user: baseOrder.user ?? null,
+                      orderType: "subscription",
+                      subscription: subscription._id,
+                      subscriptionId: subscription_id,
+                      items: baseOrder.items ?? [],
+                      subtotal: baseOrder.subtotal ?? 0,
+                      shippingCost: baseOrder.shippingCost ?? 0,
+                      total: baseOrder.total ?? 0,
+                      billingDetails: baseOrder.billingDetails,
+                      paymentProvider: "payhere",
+                      paymentStatus: "paid",
+                      paymentReference: payment_id,
+                      fulfillmentStatus: "unfulfilled",
+                    },
+                  ],
+                  session ? { session } : undefined
+                );
+
+                return { kind: "created" as const, recurringOrder };
               }
             );
+
+            if (recurringOrderResult.kind === "created") {
+              await sendOrderConfirmationEmail(
+                recurringOrderResult.recurringOrder
+              );
+              processingNotes.push(
+                `Created recurring order ${String(recurringOrderResult.recurringOrder._id)} for subscription ${subscription_id}.`
+              );
+
+              await Subscription.updateOne(
+                { subscriptionId: subscription_id },
+                {
+                  lastPaymentDate: latestPaymentDate,
+                  totalInstallmentsPaid:
+                    await countSuccessfulSubscriptionPayments(subscription_id),
+                }
+              );
+            } else {
+              processingNotes.push(
+                `Skipped recurring order for subscription ${subscription_id} because stock could not be decremented safely.`
+              );
+            }
           }
           }
         }
@@ -730,12 +833,19 @@ export async function POST(req: Request) {
           }
         );
 
-        await syncUserSubscriptionState({
-          userId: subscription?.orderId?.user ?? null,
-          subscriptionId: subscription_id ?? null,
-          status: "active",
-          nextBillingDate: resolvedNextBillingDate,
-        });
+        const linkedUserId = subscription?.orderId?.user
+          ? String(subscription.orderId.user)
+          : null;
+
+        if (linkedUserId) {
+          await syncUserSubscriptionState({
+            userId: linkedUserId,
+            subscriptionId: subscription_id ?? null,
+            status: "active",
+            nextBillingDate: resolvedNextBillingDate,
+            lastPaymentDate: latestPaymentDate,
+          });
+        }
       }
     }
 
@@ -750,18 +860,9 @@ export async function POST(req: Request) {
 
     if (message_type === "RECURRING_INSTALLMENT_FAILED") {
       processingNotes.push("Handled RECURRING_INSTALLMENT_FAILED.");
-      const existingSubscription = await Subscription.findOne({
-        subscriptionId: subscription_id,
-      }).select("user subscriptionId");
-      await Subscription.updateOne(
-        { subscriptionId: subscription_id },
-        { status: "failed" }
+      processingNotes.push(
+        "Subscription status left unchanged because the admin model has no failed subscription state."
       );
-      await syncUserSubscriptionState({
-        userId: existingSubscription?.user ?? null,
-        subscriptionId: existingSubscription?.subscriptionId ?? null,
-        status: "failed",
-      });
     }
 
     if (message_type === "RECURRING_STOPPED") {
@@ -773,11 +874,13 @@ export async function POST(req: Request) {
         { subscriptionId: subscription_id },
         { status: "cancelled" }
       );
-      await syncUserSubscriptionState({
-        userId: existingSubscription?.user ?? null,
-        subscriptionId: existingSubscription?.subscriptionId ?? null,
-        status: "cancelled",
-      });
+      if (existingSubscription?.user) {
+        await syncUserSubscriptionState({
+          userId: String(existingSubscription.user),
+          subscriptionId: existingSubscription?.subscriptionId ?? null,
+          status: "cancelled",
+        });
+      }
     }
 
     if (message_type === "RECURRING_COMPLETE") {
@@ -789,11 +892,13 @@ export async function POST(req: Request) {
         { subscriptionId: subscription_id },
         { status: "completed" }
       );
-      await syncUserSubscriptionState({
-        userId: existingSubscription?.user ?? null,
-        subscriptionId: existingSubscription?.subscriptionId ?? null,
-        status: "completed",
-      });
+      if (existingSubscription?.user) {
+        await syncUserSubscriptionState({
+          userId: String(existingSubscription.user),
+          subscriptionId: existingSubscription?.subscriptionId ?? null,
+          status: "completed",
+        });
+      }
     }
 
     if (processingNotes.length === 0) {

@@ -45,9 +45,15 @@ export default function ProductCard({
       toast.error("This product is out of stock.");
       return;
     }
-    await addToCart({ productId: id, name, price: effectivePrice, image });
-    toast.success("Added to cart!");
-    if (showQuickView) setShowQuickView(false);
+    try {
+      await addToCart({ productId: id, name, price: effectivePrice, image });
+      toast.success("Added to cart!");
+      if (showQuickView) setShowQuickView(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Could not add item to cart"
+      );
+    }
   };
 
   const openQuickView = (e: MouseEvent<HTMLButtonElement>) => {

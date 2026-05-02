@@ -9,6 +9,7 @@ import Link from "next/link";
 import { FaEye, FaEyeSlash, FaLock, FaEnvelope } from "react-icons/fa";
 import { ArrowRight, Loader2 } from "lucide-react"; // Import ArrowRight and Loader2
 import toast from "react-hot-toast";
+import { sanitizeNextPath } from "@/lib/navigation";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -24,7 +25,7 @@ export default function LoginPage() {
     if (typeof window === "undefined") return;
 
     const searchParams = new URLSearchParams(window.location.search);
-    const nextValue = searchParams.get("next") || "/dashboard";
+    const nextValue = sanitizeNextPath(searchParams.get("next"));
     const emailValue = searchParams.get("email");
 
     setNextPath(nextValue);
@@ -42,7 +43,7 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      await signInWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
       toast.success("Welcome back!");
       router.push(nextPath);
     } catch (err: unknown) {

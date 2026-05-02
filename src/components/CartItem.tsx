@@ -3,7 +3,26 @@
 import Image from "next/image";
 import { Trash2 } from "lucide-react";
 
-export default function CartItem({ item, updateQuantity, removeItem }: any) {
+type CartItemData = {
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image: string;
+  originalPrice?: number;
+};
+
+type CartItemProps = {
+  item: CartItemData;
+  updateQuantity: (productId: string, quantity: number) => void | Promise<void>;
+  removeItem: (productId: string) => void | Promise<void>;
+};
+
+export default function CartItem({
+  item,
+  updateQuantity,
+  removeItem,
+}: CartItemProps) {
   return (
     <div className="group relative flex items-center gap-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm transition-all duration-300 hover:shadow-md max-[600px]:flex-col max-[600px]:items-start">
       

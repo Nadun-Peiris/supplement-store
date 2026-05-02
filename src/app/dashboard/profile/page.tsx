@@ -23,28 +23,27 @@ interface ProfileForm {
   country: string;
 }
 
+const EMPTY_PROFILE: ProfileForm = {
+  fullName: "",
+  email: "",
+  phone: "",
+  age: "",
+  gender: "",
+  height: "",
+  weight: "",
+  goal: "",
+  activity: "",
+  addressLine1: "",
+  addressLine2: "",
+  city: "",
+  postalCode: "",
+  country: "",
+};
+
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  const emptyProfile: ProfileForm = {
-    fullName: "",
-    email: "",
-    phone: "",
-    age: "",
-    gender: "",
-    height: "",
-    weight: "",
-    goal: "",
-    activity: "",
-    addressLine1: "",
-    addressLine2: "",
-    city: "",
-    postalCode: "",
-    country: "",
-  };
-
-  const [profile, setProfile] = useState<ProfileForm>(emptyProfile);
+  const [profile, setProfile] = useState<ProfileForm>(EMPTY_PROFILE);
 
   async function loadProfile(user: User) {
     try {
@@ -104,7 +103,7 @@ export default function ProfilePage() {
       } else {
         toast.error("Failed to save profile.");
       }
-    } catch (err) {
+    } catch {
       toast.error("An error occurred.");
     } finally {
       setSaving(false);
@@ -114,7 +113,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const unsub = auth.onAuthStateChanged((firebaseUser) => {
       if (!firebaseUser) {
-        setProfile(emptyProfile);
+        setProfile(EMPTY_PROFILE);
         setLoading(false);
         return;
       }
@@ -235,6 +234,7 @@ export default function ProfilePage() {
               <option>Weight Loss</option>
               <option>Muscle Gain</option>
               <option>Maintenance</option>
+              <option>Body Transformation</option>
             </select>
           </div>
 

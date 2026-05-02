@@ -1,26 +1,79 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FaChevronDown } from "react-icons/fa";
-import { Activity, Target, Utensils, ArrowLeft, Loader2 } from "lucide-react";
+import { Activity, ArrowLeft, Loader2 } from "lucide-react";
 import { HEALTH_OPTIONS } from "@/lib/constants"; // Import your fixed enums
+
+type HealthForm = {
+  height: string;
+  weight: string;
+  goal: string;
+  activity: string;
+  conditions: string;
+  diet: string;
+  sleepHours: string;
+  waterIntake: string;
+};
+
+const getStoredHealthForm = (): HealthForm => {
+  if (typeof window === "undefined") {
+    return {
+      height: "",
+      weight: "",
+      goal: "",
+      activity: "",
+      conditions: "",
+      diet: "",
+      sleepHours: "",
+      waterIntake: "",
+    };
+  }
+
+  const savedStep = localStorage.getItem("register_step2");
+  if (!savedStep) {
+    return {
+      height: "",
+      weight: "",
+      goal: "",
+      activity: "",
+      conditions: "",
+      diet: "",
+      sleepHours: "",
+      waterIntake: "",
+    };
+  }
+
+  try {
+    const parsed = JSON.parse(savedStep) as Partial<HealthForm>;
+    return {
+      height: parsed.height || "",
+      weight: parsed.weight || "",
+      goal: parsed.goal || "",
+      activity: parsed.activity || "",
+      conditions: parsed.conditions || "",
+      diet: parsed.diet || "",
+      sleepHours: parsed.sleepHours || "",
+      waterIntake: parsed.waterIntake || "",
+    };
+  } catch {
+    return {
+      height: "",
+      weight: "",
+      goal: "",
+      activity: "",
+      conditions: "",
+      diet: "",
+      sleepHours: "",
+      waterIntake: "",
+    };
+  }
+};
 
 export default function Step2() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-
-  const [form, setForm] = useState({
-    height: "",
-    weight: "",
-    bmi: "",
-    goal: "",
-    activity: "",
-    conditions: "",
-    diet: "",
-    sleepHours: "",
-    waterIntake: "",
-  });
+  const [form, setForm] = useState<HealthForm>(getStoredHealthForm);
 
   // Authorization and Data Loading
   useEffect(() => {
@@ -30,23 +83,17 @@ export default function Step2() {
       return;
     }
 
-    const savedS2 = localStorage.getItem("register_step2");
-    if (savedS2) {
-      setForm(JSON.parse(savedS2));
-    }
-    setLoading(false);
   }, [router]);
 
-  // Auto-calculate BMI
-  useEffect(() => {
-    if (form.height && form.weight) {
-      const h = Number(form.height) / 100;
-      const w = Number(form.weight);
-      if (h > 0) {
-        const bmiCalc = (w / (h * h)).toFixed(1);
-        setForm((prev) => ({ ...prev, bmi: bmiCalc }));
-      }
+  const calculatedBmi = useMemo(() => {
+    const heightMeters = Number(form.height) / 100;
+    const weight = Number(form.weight);
+
+    if (!heightMeters || heightMeters <= 0 || !weight || weight <= 0) {
+      return "";
     }
+
+    return (weight / (heightMeters * heightMeters)).toFixed(1);
   }, [form.height, form.weight]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -55,11 +102,17 @@ export default function Step2() {
 
   const handleNext = (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("register_step2", JSON.stringify(form));
+    localStorage.setItem(
+      "register_step2",
+      JSON.stringify({
+        ...form,
+        bmi: calculatedBmi,
+      })
+    );
     router.push("/register/billing-details"); // Updated to match your step order
   };
 
-  if (loading) {
+  if (typeof window === "undefined") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f2fbff]">
         <Loader2 className="h-8 w-8 animate-spin text-[#03c7fe]" />
@@ -117,8 +170,8 @@ export default function Step2() {
           {/* BMI (Read Only) */}
           <div className="rounded-xl bg-gray-50 p-3 border border-gray-100 flex justify-between items-center">
             <span className="text-sm font-bold text-gray-500">Calculated BMI:</span>
-            <span className={`text-lg font-black ${Number(form.bmi) > 25 ? 'text-orange-500' : 'text-[#03c7fe]'}`}>
-              {form.bmi || "--"}
+            <span className={`text-lg font-black ${Number(calculatedBmi) > 25 ? 'text-orange-500' : 'text-[#03c7fe]'}`}>
+              {calculatedBmi || "--"}
             </span>
           </div>
 

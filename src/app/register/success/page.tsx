@@ -5,30 +5,31 @@ import { useRouter } from "next/navigation";
 import Lottie from "lottie-react";
 import { PartyPopper, ArrowRight, Loader2 } from "lucide-react";
 
+type LottiePayload = Record<string, unknown>;
+
 export default function SuccessPage() {
   const router = useRouter();
-  const [animationData, setAnimationData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [animationData, setAnimationData] = useState<LottiePayload | null>(null);
+  const [isAuthorized] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      localStorage.getItem("registration_complete") === "1"
+  );
 
-  // 1. Guard the route
   useEffect(() => {
-    const flag = localStorage.getItem("registration_complete");
-    if (!flag) {
+    if (!isAuthorized) {
       router.replace("/register");
-    } else {
-      setLoading(false);
     }
-  }, [router]);
+  }, [isAuthorized, router]);
 
-  // 2. Load Lottie Animation
   useEffect(() => {
     fetch("/lottie/success.json")
       .then((res) => res.json())
-      .then((data) => setAnimationData(data))
+      .then((data: LottiePayload) => setAnimationData(data))
       .catch((err) => console.error("Failed to load success animation", err));
   }, []);
 
-  if (loading) {
+  if (!isAuthorized) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f2fbff]">
         <Loader2 className="h-8 w-8 animate-spin text-[#03c7fe]" />

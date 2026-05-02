@@ -1,19 +1,15 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import HealthLog from "@/models/HealthLog";
+import { verifyRequestToken } from "@/lib/requestAuth";
 
-// GET /api/health?userId=xxx&days=30
 export async function GET(req: Request) {
   try {
     await connectDB();
+    const decoded = await verifyRequestToken(req);
 
     const { searchParams } = new URL(req.url);
-    const userId = searchParams.get("userId");
     const days = parseInt(searchParams.get("days") || "30");
-
-    if (!userId) {
-      return NextResponse.json({ error: "Missing userId" }, { status: 400 });
-    }
 
     // Efficient date range query: Get logs from the last X days
     const startDate = new Date();
@@ -21,7 +17,7 @@ export async function GET(req: Request) {
     const startDateString = startDate.toISOString().split("T")[0];
 
     const logs = await HealthLog.find({
-      userId,
+      userId: decoded.uid,
       date: { $gte: startDateString }, // More efficient than $in: [array_of_dates]
     })
       .sort({ date: 1 })
@@ -30,24 +26,31 @@ export async function GET(req: Request) {
     return NextResponse.json({ logs });
   } catch (error) {
     console.error("Health log fetch error:", error);
+    const status =
+      typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      typeof error.status === "number"
+        ? error.status
+        : 500;
     return NextResponse.json(
-      { error: "Failed to fetch health logs" },
-      { status: 500 }
+      { error: status === 401 ? "Unauthorized" : "Failed to fetch health logs" },
+      { status }
     );
   }
 }
 
-// POST /api/health — create or update today's log
 export async function POST(req: Request) {
   try {
     await connectDB();
+    const decoded = await verifyRequestToken(req);
 
     const body = await req.json();
-    const { userId, date, ...data } = body;
+    const { date, ...data } = body;
 
-    if (!userId || !date) {
+    if (!date) {
       return NextResponse.json(
-        { error: "Missing userId or date" },
+        { error: "Missing date" },
         { status: 400 }
       );
     }
@@ -67,8 +70,8 @@ export async function POST(req: Request) {
     // 3. The Upsert: Using $set ensures we overwrite only the fields sent,
     // but because the frontend sends the full state, this handles supplements perfectly.
     const log = await HealthLog.findOneAndUpdate(
-      { userId, date },
-      { $set: { userId, date, ...data } },
+      { userId: decoded.uid, date },
+      { $set: { userId: decoded.uid, date, ...data } },
       { 
         upsert: true, 
         new: true, 
@@ -80,9 +83,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, log });
   } catch (error) {
     console.error("Health log save error:", error);
+    const status =
+      typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      typeof error.status === "number"
+        ? error.status
+        : 500;
     return NextResponse.json(
-      { error: "Failed to save health log" },
-      { status: 500 }
+      { error: status === 401 ? "Unauthorized" : "Failed to save health log" },
+      { status }
     );
   }
 }

@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { sanitizeNextPath } from "@/lib/navigation";
 
 export default function RequireAuth({
   children,
@@ -21,7 +22,9 @@ export default function RequireAuth({
         ? "/dashboard"
         : `${window.location.pathname}${window.location.search}`;
 
-    router.replace(`/login?next=${encodeURIComponent(nextPath)}`);
+    router.replace(
+      `/login?next=${encodeURIComponent(sanitizeNextPath(nextPath))}`
+    );
   }, [loading, router, user]);
 
   if (loading || !user) {

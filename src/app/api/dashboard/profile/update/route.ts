@@ -4,10 +4,26 @@ import "@/lib/firebaseAdmin";
 import { connectDB } from "@/lib/mongoose";
 import User from "@/models/User";
 
-const numberOrUndefined = (value: unknown) => {
-  if (value === null || value === undefined || value === "") return undefined;
+const GENDER_OPTIONS = new Set(["Male", "Female", "Other"]);
+const GOAL_OPTIONS = new Set([
+  "Weight Loss",
+  "Muscle Gain",
+  "Maintenance",
+  "Body Transformation",
+]);
+const ACTIVITY_OPTIONS = new Set([
+  "Sedentary",
+  "Light",
+  "Moderate",
+  "Active",
+  "Very Active",
+]);
+const PHONE_REGEX = /^[+\d][\d\s()-]{6,20}$/;
+
+const numberOrNull = (value: unknown) => {
+  if (value === null || value === undefined || value === "") return null;
   const num = Number(value);
-  return Number.isNaN(num) ? undefined : num;
+  return Number.isNaN(num) ? null : num;
 };
 
 export async function POST(req: NextRequest) {
@@ -29,37 +45,134 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const updates: Record<string, unknown> = {
-      fullName: body.fullName,
-      phone: body.phone,
-      gender: body.gender,
-      goal: body.goal,
-      activity: body.activity,
-      addressLine1: body.addressLine1,
-      addressLine2: body.addressLine2,
-      city: body.city,
-      postalCode: body.postalCode,
-      country: body.country,
-    };
+    if (
+      body.email !== undefined ||
+      body.role !== undefined ||
+      body.isBlocked !== undefined ||
+      body.firebaseId !== undefined ||
+      body.subscription !== undefined
+    ) {
+      return NextResponse.json(
+        { error: "Restricted fields cannot be changed here." },
+        { status: 400 }
+      );
+    }
 
-    const age = numberOrUndefined(body.age);
-    if (age !== undefined) updates.age = age;
+    const requiredStringFields = [
+      "fullName",
+      "phone",
+      "addressLine1",
+      "city",
+      "postalCode",
+      "country",
+    ] as const;
+    const setData: Record<string, unknown> = {};
+    const unsetData: Record<string, ""> = {};
 
-    const height = numberOrUndefined(body.height);
-    if (height !== undefined) updates.height = height;
+    for (const field of requiredStringFields) {
+      const value = body[field];
+      if (typeof value !== "string" || !value.trim()) {
+        return NextResponse.json(
+          { error: `${field} is required.` },
+          { status: 400 }
+        );
+      }
+      setData[field] = value.trim();
+    }
 
-    const weight = numberOrUndefined(body.weight);
-    if (weight !== undefined) updates.weight = weight;
+    if (!PHONE_REGEX.test(String(setData.phone))) {
+      return NextResponse.json(
+        { error: "Invalid phone number." },
+        { status: 400 }
+      );
+    }
 
-    Object.assign(user, updates);
-    await user.save();
+    if (typeof body.addressLine2 === "string") {
+      const trimmed = body.addressLine2.trim();
+      if (trimmed) {
+        setData.addressLine2 = trimmed;
+      } else {
+        unsetData.addressLine2 = "";
+      }
+    }
+
+    if (!GENDER_OPTIONS.has(String(body.gender))) {
+      return NextResponse.json({ error: "Invalid gender value." }, { status: 400 });
+    }
+    if (body.goal !== "" && body.goal !== undefined && !GOAL_OPTIONS.has(String(body.goal))) {
+      return NextResponse.json({ error: "Invalid goal value." }, { status: 400 });
+    }
+    if (
+      body.activity !== "" &&
+      body.activity !== undefined &&
+      !ACTIVITY_OPTIONS.has(String(body.activity))
+    ) {
+      return NextResponse.json(
+        { error: "Invalid activity value." },
+        { status: 400 }
+      );
+    }
+
+    setData.gender = body.gender;
+
+    if (typeof body.goal === "string") {
+      const trimmed = body.goal.trim();
+      if (trimmed) setData.goal = trimmed;
+      else unsetData.goal = "";
+    }
+
+    if (typeof body.activity === "string") {
+      const trimmed = body.activity.trim();
+      if (trimmed) setData.activity = trimmed;
+      else unsetData.activity = "";
+    }
+
+    const age = numberOrNull(body.age);
+    const height = numberOrNull(body.height);
+    const weight = numberOrNull(body.weight);
+
+    if (age === null) {
+      return NextResponse.json(
+        { error: "Age must be a valid number." },
+        { status: 400 }
+      );
+    }
+
+    setData.age = age;
+    if (height === null) unsetData.height = "";
+    else setData.height = height;
+
+    if (weight === null) unsetData.weight = "";
+    else setData.weight = weight;
+
+    if (height !== null && weight !== null && height > 0) {
+      setData.bmi = Number((weight / Math.pow(height / 100, 2)).toFixed(1));
+    } else {
+      unsetData.bmi = "";
+    }
+
+    await User.updateOne(
+      { _id: user._id },
+      {
+        ...(Object.keys(setData).length ? { $set: setData } : {}),
+        ...(Object.keys(unsetData).length ? { $unset: unsetData } : {}),
+      },
+      { runValidators: true }
+    );
 
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("Profile update error:", err);
+    const status =
+      typeof err === "object" &&
+      err !== null &&
+      "status" in err &&
+      typeof err.status === "number"
+        ? err.status
+        : 500;
     return NextResponse.json(
-      { error: "Failed to update profile" },
-      { status: 500 }
+      { error: status === 401 ? "Unauthorized" : "Failed to update profile" },
+      { status }
     );
   }
 }

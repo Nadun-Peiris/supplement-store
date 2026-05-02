@@ -4,18 +4,56 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, ArrowLeft, Loader2 } from "lucide-react";
 
+type BillingForm = {
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  postalCode: string;
+  country: string;
+};
+
+const getStoredBilling = (): BillingForm => {
+  if (typeof window === "undefined") {
+    return {
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      postalCode: "",
+      country: "Sri Lanka",
+    };
+  }
+
+  const savedBilling = localStorage.getItem("register_billing");
+  if (!savedBilling) {
+    return {
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      postalCode: "",
+      country: "Sri Lanka",
+    };
+  }
+
+  try {
+    return JSON.parse(savedBilling) as BillingForm;
+  } catch {
+    return {
+      addressLine1: "",
+      addressLine2: "",
+      city: "",
+      postalCode: "",
+      country: "Sri Lanka",
+    };
+  }
+};
+
 export default function BillingDetailsPage() {
   const router = useRouter();
+  const [form, setForm] = useState<BillingForm>(getStoredBilling);
 
-  const [step1, setStep1] = useState<any>(null);
-  const [step2, setStep2] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  // Load previous steps and check authorization
   useEffect(() => {
     const s1 = localStorage.getItem("register_step1");
     const s2 = localStorage.getItem("register_step2");
-    const savedBilling = localStorage.getItem("register_billing");
 
     if (!s1) {
       router.push("/register");
@@ -25,24 +63,7 @@ export default function BillingDetailsPage() {
       router.push("/register/health-info");
       return;
     }
-
-    setStep1(JSON.parse(s1));
-    setStep2(JSON.parse(s2));
-    
-    if (savedBilling) {
-      setForm(JSON.parse(savedBilling));
-    }
-    
-    setLoading(false);
   }, [router]);
-
-  const [form, setForm] = useState({
-    addressLine1: "",
-    addressLine2: "",
-    city: "",
-    postalCode: "",
-    country: "Sri Lanka",
-  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -60,7 +81,7 @@ export default function BillingDetailsPage() {
     router.push("/register/review");
   };
 
-  if (loading) {
+  if (typeof window === "undefined") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#f2fbff]">
         <Loader2 className="h-8 w-8 animate-spin text-[#03c7fe]" />
