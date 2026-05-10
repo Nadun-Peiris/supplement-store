@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
-import { FiSearch, FiUser, FiShoppingBag, FiMenu, FiX } from "react-icons/fi";
+import { FiSearch, FiUser, FiShoppingBag, FiMenu, FiX, FiChevronDown } from "react-icons/fi";
+import { LogOut } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { absoluteUrl } from "@/lib/absoluteUrl";
+import { dashboardMenu } from "@/app/dashboard/components/dashboardMenu";
 
 interface FeaturedCategory {
   _id: string;
@@ -21,17 +25,22 @@ interface FeaturedCategory {
 
 export default function BottomHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [featured, setFeatured] = useState<FeaturedCategory[]>([]);
   const [featuredLoading, setFeaturedLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   
   const { count } = useCart();
+  const { user, loading: authLoading, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
     setSearchTerm(new URLSearchParams(window.location.search).get("search") || "");
+    setUserMenuOpen(false);
   }, [pathname]);
 
   useEffect(() => {
@@ -50,6 +59,19 @@ export default function BottomHeader() {
     }
     loadFeatured();
   }, []);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!userMenuRef.current?.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    return () => document.removeEventListener("mousedown", handlePointerDown);
+  }, [userMenuOpen]);
 
   const checkIsActive = (href: string, exact = false) => {
     if (exact) {
@@ -73,6 +95,19 @@ export default function BottomHeader() {
 
     router.push(`/shop?search=${encodeURIComponent(query)}`);
     setMenuOpen(false);
+  };
+
+  const handleLogout = async () => {
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+
+    try {
+      setUserMenuOpen(false);
+      await logout();
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -109,9 +144,12 @@ export default function BottomHeader() {
                 - lg:h-20 = Desktop height (80px)
                 Increase these numbers (e.g., h-14, md:h-20, lg:h-24) to make it even bigger.
               */}
-              <img
+              <Image
                 src="/logoblack.png"
                 alt="Supplement Lanka"
+                width={320}
+                height={128}
+                priority
                 className="h-12 w-auto md:h-16 lg:h-20"
               />
             </Link>
@@ -173,11 +211,97 @@ export default function BottomHeader() {
             {/* Subtle Divider line */}
             <div className="hidden h-8 w-[1px] bg-gray-200 lg:block"></div>
 
-            {/* Profile Icon */}
-            <Link href="/login" className="text-black hover:text-[#03c7fe] transition-colors">
-              {/* 👇 CHANGE ICON SIZE HERE */}
-              <FiUser strokeWidth={2} className="text-[24px]" />
-            </Link>
+            {/* Profile Icon / User Menu */}
+            {authLoading ? (
+              <div className="h-10 w-10 animate-pulse rounded-full bg-gray-100" />
+            ) : user ? (
+              <div className="relative" ref={userMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setUserMenuOpen((open) => !open);
+                  }}
+                  className="flex items-center gap-1 rounded-full px-1 py-1 text-black transition-colors hover:text-[#03c7fe]"
+                  aria-haspopup="menu"
+                  aria-expanded={userMenuOpen}
+                  aria-label="Open account menu"
+                >
+                  <FiUser strokeWidth={2} className="text-[24px]" />
+                  <FiChevronDown
+                    className={`text-[16px] transition-transform duration-200 ${
+                      userMenuOpen ? "rotate-180" : ""
+                    }`}
+                  />
+                </button>
+
+                <div
+                  className={`absolute right-0 top-full z-[80] mt-4 w-[280px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)] transition-all duration-200 ${
+                    userMenuOpen
+                      ? "pointer-events-auto translate-y-0 opacity-100"
+                      : "pointer-events-none -translate-y-2 opacity-0"
+                  }`}
+                >
+                  <div className="border-b border-gray-100 bg-[#f8fdff] px-5 py-4">
+                    <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#03c7fe]">
+                      Signed In
+                    </p>
+                    <p className="mt-2 truncate text-sm font-bold text-[#111]">
+                      {user.displayName || user.email?.split("@")[0] || "Account"}
+                    </p>
+                    {user.email && (
+                      <p className="mt-1 truncate text-xs font-medium text-gray-500">
+                        {user.email}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="p-3">
+                    <nav className="flex flex-col gap-1">
+                      {dashboardMenu.map((item) => {
+                        const Icon = item.icon;
+                        const isActive =
+                          item.href === "/dashboard"
+                            ? pathname === "/dashboard"
+                            : pathname.startsWith(item.href);
+
+                        return (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            onClick={() => setUserMenuOpen(false)}
+                            className={`flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-bold transition-all ${
+                              isActive
+                                ? "bg-[#03c7fe] text-white shadow-[0_10px_20px_rgba(3,199,254,0.18)]"
+                                : "text-gray-600 hover:bg-[#f3faff] hover:text-[#03c7fe]"
+                            }`}
+                          >
+                            <Icon size={18} />
+                            {item.name}
+                          </Link>
+                        );
+                      })}
+                    </nav>
+
+                    <div className="mt-3 border-t border-gray-100 pt-3">
+                      <button
+                        type="button"
+                        onClick={handleLogout}
+                        disabled={isLoggingOut}
+                        className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-bold text-gray-600 transition-all hover:bg-[#fff5f5] hover:text-[#e74c3c] disabled:cursor-not-allowed disabled:opacity-70"
+                      >
+                        <LogOut size={18} />
+                        {isLoggingOut ? "Logging out..." : "Logout"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <Link href="/login" className="text-black hover:text-[#03c7fe] transition-colors">
+                <FiUser strokeWidth={2} className="text-[24px]" />
+              </Link>
+            )}
 
             {/* Shopping Bag - Blue Background */}
             <Link href="/cart" className="relative flex h-[52px] w-[52px] items-center justify-center rounded-full bg-[#03c7fe] text-black transition-transform hover:scale-105">

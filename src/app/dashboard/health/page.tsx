@@ -81,6 +81,118 @@ const getBMICategory = (bmi: number) => {
   return               { label: "Obese",         color: "text-red-600" };
 };
 
+function HealthStatSkeleton() {
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-[0_2px_10px_rgb(0,0,0,0.02)]">
+      <div className="mb-4 flex items-start justify-between">
+        <div className="h-3 w-16 animate-pulse rounded-full bg-gray-200" />
+        <div className="h-4 w-4 animate-pulse rounded-full bg-gray-100" />
+      </div>
+      <div className="h-8 w-20 animate-pulse rounded-full bg-gray-200" />
+      <div className="mt-2 h-3 w-12 animate-pulse rounded-full bg-gray-100" />
+    </div>
+  );
+}
+
+function HealthInputCardSkeleton({
+  titleWidth = "w-20",
+  columns = 2,
+  fullWidth = false,
+}: {
+  titleWidth?: string;
+  columns?: 1 | 2;
+  fullWidth?: boolean;
+}) {
+  return (
+    <div className={`${fullWidth ? "sm:col-span-2" : ""} rounded-2xl border border-gray-100 bg-white p-6 shadow-sm`}>
+      <div className={`mb-5 h-4 ${titleWidth} animate-pulse rounded-full bg-gray-200`} />
+      <div className={`grid gap-4 ${columns === 2 ? "grid-cols-2" : "grid-cols-1"}`}>
+        {Array.from({ length: columns }).map((_, idx) => (
+          <div key={idx}>
+            <div className="mb-2 h-3 w-20 animate-pulse rounded-full bg-gray-100" />
+            <div className="h-11 animate-pulse rounded-xl border border-gray-200 bg-gray-50" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function HealthPageSkeleton() {
+  return (
+    <div className="flex w-full flex-col gap-8 pb-12">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <div className="h-9 w-56 animate-pulse rounded-full bg-gray-200" />
+          <div className="mt-2 h-4 w-64 animate-pulse rounded-full bg-gray-100" />
+        </div>
+        <div className="h-11 w-28 animate-pulse rounded-xl bg-gray-900/10" />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, idx) => (
+          <HealthStatSkeleton key={idx} />
+        ))}
+      </div>
+
+      <div className="flex gap-2 overflow-x-auto border-b border-gray-100 pb-px">
+        {Array.from({ length: 5 }).map((_, idx) => (
+          <div
+            key={idx}
+            className={`h-11 animate-pulse rounded-t-xl bg-gray-100 ${
+              idx === 1 ? "w-40" : idx === 0 ? "w-28" : "w-24"
+            }`}
+          />
+        ))}
+      </div>
+
+      <div className="space-y-6">
+        <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <div className="h-5 w-44 animate-pulse rounded-full bg-gray-200" />
+            <div className="h-6 w-24 animate-pulse rounded-md bg-gray-100" />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, idx) => (
+              <div key={idx} className="rounded-xl border border-gray-100 bg-white p-4">
+                <div className="flex items-center gap-4">
+                  <div className="h-5 w-5 animate-pulse rounded-full bg-gray-200" />
+                  <div className="flex-1">
+                    <div className="h-4 w-24 animate-pulse rounded-full bg-gray-200" />
+                    <div className="mt-2 h-3 w-16 animate-pulse rounded-full bg-gray-100" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="grid gap-6 sm:grid-cols-2">
+          <HealthInputCardSkeleton titleWidth="w-16" columns={2} />
+          <HealthInputCardSkeleton titleWidth="w-24" columns={2} />
+          <div className="sm:col-span-2 rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="mb-5 h-4 w-20 animate-pulse rounded-full bg-gray-200" />
+            <div className="grid gap-6 sm:grid-cols-3">
+              <div className="sm:col-span-2">
+                <div className="mb-2 h-3 w-28 animate-pulse rounded-full bg-gray-100" />
+                <div className="flex flex-wrap gap-2">
+                  {Array.from({ length: 7 }).map((_, idx) => (
+                    <div key={idx} className="h-9 w-20 animate-pulse rounded-lg bg-gray-100" />
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="mb-2 h-3 w-24 animate-pulse rounded-full bg-gray-100" />
+                <div className="h-11 animate-pulse rounded-xl border border-gray-200 bg-gray-50" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export default function HealthTrackingPage() {
@@ -304,11 +416,7 @@ export default function HealthTrackingPage() {
   ];
 
   if (loading) {
-    return (
-      <div className="flex h-[50vh] items-center justify-center">
-        <p className="text-gray-400 font-medium tracking-wide">Loading dashboard...</p>
-      </div>
-    );
+    return <HealthPageSkeleton />;
   }
 
   return (

@@ -1,8 +1,9 @@
 "use client";
 
+import { Check, ChevronDown } from "lucide-react";
 import ProductCard from "@/components/ProductCard";
 import type { ProductDTO } from "@/types/product";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import FilterDrawer from "./components/FilterDrawer";
 import FilterSidebar, { type FilterOption } from "./components/FilterSidebar";
 
@@ -32,6 +33,14 @@ type ShopPageProps = {
 
 const PRODUCTS_PER_PAGE = 9;
 const DEFAULT_PRICE_RANGE = { min: 0, max: 100000 };
+const SORT_OPTIONS = [
+  { value: "default", label: "Default sorting" },
+  { value: "price-asc", label: "Price: Low to High" },
+  { value: "price-desc", label: "Price: High to Low" },
+  { value: "name-asc", label: "Name: A to Z" },
+  { value: "name-desc", label: "Name: Z to A" },
+  { value: "newest", label: "Newest First" },
+] as const;
 
 const slugifyText = (value: string) =>
   value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -287,6 +296,11 @@ export default function ShopPage({
     }));
   };
 
+  const handleSortChange = (value: string) => {
+    setSortOption(value);
+    setCurrentPage(1);
+  };
+
   return (
     <>
       <FilterDrawer
@@ -301,6 +315,20 @@ export default function ShopPage({
         onToggleBrand={toggleBrand}
         onPriceInputChange={handlePriceInputChange}
         onApplyPrice={applyPriceFilter}
+        sortControl={
+          <div>
+            <h3 className="mb-4 text-[0.85rem] font-black uppercase tracking-[0.1em] text-[#111]">
+              Sort Products
+            </h3>
+            <SortDropdown
+              value={sortOption}
+              onChange={handleSortChange}
+              buttonClassName="w-full rounded-[12px] border border-[#d4d7e1] bg-white px-4 py-3 text-[0.95rem] font-semibold text-[#111] hover:border-[#03c7fe]"
+              menuClassName="mt-2 w-full rounded-[16px] border border-[#dfe3ea] bg-white p-2 shadow-[0_18px_50px_rgba(17,17,17,0.14)]"
+            />
+            <hr className="mt-5 border-0 border-t border-[#ededed]" />
+          </div>
+        }
       />
 
       <div className="mb-6 w-full rounded-[25px] bg-[#f5f5f5] px-4 py-16 text-center md:mb-6 md:py-[4rem]">
@@ -335,23 +363,14 @@ export default function ShopPage({
               {loadingProducts && <span className="text-[#03c7fe]">Loading…</span>}
             </div>
 
-            <div className="flex items-center gap-4 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-start">
+            <div className="hidden items-center gap-4 md:flex">
               <span className="text-[1rem] font-semibold text-[#333]">Sort by:</span>
-              <select
+              <SortDropdown
                 value={sortOption}
-                onChange={(e) => {
-                  setSortOption(e.target.value);
-                  setCurrentPage(1);
-                }}
-                className="appearance-none rounded-full border border-[#d4d7e1] bg-white px-5 py-[0.65rem] pr-10 text-[0.95rem] font-semibold text-[#111] transition-colors duration-200 hover:border-[#03c7fe] focus:border-[#03c7fe] focus:outline-none max-[640px]:w-full"
-              >
-                <option value="default">Default sorting</option>
-                <option value="price-asc">Price: Low → High</option>
-                <option value="price-desc">Price: High → Low</option>
-                <option value="name-asc">Name: A → Z</option>
-                <option value="name-desc">Name: Z → A</option>
-                <option value="newest">Newest First</option>
-              </select>
+                onChange={handleSortChange}
+                buttonClassName="min-w-[250px] rounded-full border border-[#d4d7e1] bg-white px-5 py-[0.65rem] text-[0.95rem] font-semibold text-[#111] hover:border-[#03c7fe]"
+                menuClassName="right-0 mt-3 min-w-[250px] rounded-[20px] border border-[#dfe3ea] bg-white p-2 shadow-[0_18px_50px_rgba(17,17,17,0.14)]"
+              />
             </div>
           </div>
 
@@ -409,5 +428,104 @@ export default function ShopPage({
         </main>
       </div>
     </>
+  );
+}
+
+type SortDropdownProps = {
+  value: string;
+  onChange: (value: string) => void;
+  buttonClassName: string;
+  menuClassName: string;
+};
+
+function SortDropdown({
+  value,
+  onChange,
+  buttonClassName,
+  menuClassName,
+}: SortDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const listboxId = useId();
+  const activeLabel =
+    SORT_OPTIONS.find((option) => option.value === value)?.label ?? SORT_OPTIONS[0].label;
+
+  useEffect(() => {
+    if (!open) return;
+
+    const handlePointerDown = (event: MouseEvent) => {
+      if (!rootRef.current?.contains(event.target as Node)) {
+        setOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-controls={listboxId}
+        onClick={() => setOpen((current) => !current)}
+        className={`flex items-center justify-between gap-4 transition-colors duration-200 focus:border-[#03c7fe] focus:outline-none ${buttonClassName}`}
+      >
+        <span>{activeLabel}</span>
+        <ChevronDown
+          size={18}
+          className={`shrink-0 text-[#03c7fe] transition-transform duration-200 ${
+            open ? "rotate-180" : ""
+          }`}
+        />
+      </button>
+
+      {open ? (
+        <div
+          id={listboxId}
+          role="listbox"
+          aria-label="Sort products"
+          className={`absolute z-30 overflow-hidden ${menuClassName}`}
+        >
+          {SORT_OPTIONS.map((option) => {
+            const selected = option.value === value;
+
+            return (
+              <button
+                key={option.value}
+                type="button"
+                role="option"
+                aria-selected={selected}
+                onClick={() => {
+                  onChange(option.value);
+                  setOpen(false);
+                }}
+                className={`flex w-full items-center justify-between rounded-[14px] px-4 py-3 text-left text-[0.92rem] font-semibold transition-colors duration-150 ${
+                  selected
+                    ? "bg-[#111] text-white"
+                    : "text-[#1c1c1c] hover:bg-[#f3f8fb]"
+                }`}
+              >
+                <span>{option.label}</span>
+                <Check
+                  size={16}
+                  className={selected ? "opacity-100" : "opacity-0"}
+                />
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
   );
 }

@@ -2,20 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { User, Package, CreditCard, LayoutDashboard } from "lucide-react";
-import { BiHealth } from "react-icons/bi";
+import { dashboardMenu } from "./dashboardMenu";
 
 export default function MobileNav() {
   const pathname = usePathname();
-
-  // Shortened names slightly so they fit perfectly side-by-side on tiny phone screens
-  const menu = [
-    { name: "Home", href: "/dashboard", icon: <LayoutDashboard size={22} /> },
-    { name: "Health", href: "/dashboard/health", icon: <BiHealth size={22} /> },
-    { name: "Orders", href: "/dashboard/orders", icon: <Package size={22} /> },
-    { name: "Subscriptions", href: "/dashboard/subscription", icon: <CreditCard size={22} /> },
-    { name: "Profile", href: "/dashboard/profile", icon: <User size={22} /> },
-  ];
 
   return (
     <nav className="fixed bottom-0 left-0 z-[60] w-full rounded-t-[24px] bg-white border-t border-gray-100 shadow-[0_-10px_40px_rgba(0,0,0,0.08)] lg:hidden">
@@ -23,11 +13,12 @@ export default function MobileNav() {
         pb-safe ensures it respects the "home indicator" bar at the bottom of modern iPhones 
       */}
       <div className="flex items-center justify-around px-2 py-3 pb-safe-bottom sm:px-6">
-        {menu.map((item) => {
+        {dashboardMenu.map((item) => {
           const isActive =
             item.href === "/dashboard"
               ? pathname === "/dashboard"
               : pathname.startsWith(item.href);
+          const Icon = item.icon;
 
           return (
             <Link
@@ -42,14 +33,14 @@ export default function MobileNav() {
                     : "bg-transparent text-gray-400 hover:text-[#03c7fe] hover:bg-[#f0fbff]"
                 }`}
               >
-                {item.icon}
+                <Icon size={22} />
               </div>
               <span
                 className={`text-[10px] font-bold transition-colors ${
                   isActive ? "text-[#03c7fe]" : "text-gray-400"
                 }`}
               >
-                {item.name}
+                {item.mobileName || item.name}
               </span>
             </Link>
           );

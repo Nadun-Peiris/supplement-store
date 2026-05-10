@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
+import { type ReactNode, useEffect, useId, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { Filter, X } from "lucide-react";
 import {
@@ -8,22 +8,21 @@ import {
   type ShopFilterControlsProps,
 } from "./FilterSidebar";
 
+const subscribeToNothing = () => () => {};
+
 type FilterDrawerProps = ShopFilterControlsProps & {
   activeFilterCount: number;
+  sortControl?: ReactNode;
 };
 
 export default function FilterDrawer({
   activeFilterCount,
+  sortControl,
   ...filterProps
 }: FilterDrawerProps) {
   const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const mounted = useSyncExternalStore(subscribeToNothing, () => true, () => false);
   const drawerId = useId();
-
-  // Ensure portal only renders on the client to avoid SSR hydration mismatches
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // Lock body scroll when drawer is open
   useEffect(() => {
@@ -87,6 +86,7 @@ export default function FilterDrawer({
 
         {/* Drawer Body (Scrollable) */}
         <div className="flex-1 overflow-y-auto px-5 py-5">
+          {sortControl ? <div className="mb-6">{sortControl}</div> : null}
           <FilterPanelContent {...filterProps} />
         </div>
 

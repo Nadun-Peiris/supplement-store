@@ -3,10 +3,10 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { User, Package, CreditCard, LogOut, LayoutDashboard, Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 import { auth } from "@/lib/firebase";
 import toast from "react-hot-toast";
-import { BiHealth } from "react-icons/bi";
+import { dashboardMenu } from "./dashboardMenu";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -15,12 +15,6 @@ export default function Sidebar() {
   
   // 👇 State to control mobile drawer
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-
-  // 👇 Automatically close the mobile drawer when the route changes
-  useEffect(() => {
-    setIsMobileOpen(false);
-  }, [pathname]);
-
   // Prevent scrolling when mobile menu is open
   useEffect(() => {
     if (isMobileOpen) {
@@ -32,14 +26,6 @@ export default function Sidebar() {
       document.body.style.overflow = "unset";
     };
   }, [isMobileOpen]);
-
-  const menu = [
-    { name: "Overview", href: "/dashboard", icon: <LayoutDashboard size={20} /> },
-    { name: "Health", href: "/dashboard/health", icon: <BiHealth size={20} /> },
-    { name: "Profile", href: "/dashboard/profile", icon: <User size={20} /> },
-    { name: "Orders", href: "/dashboard/orders", icon: <Package size={20} /> },
-    { name: "Subscription", href: "/dashboard/subscription", icon: <CreditCard size={20} /> },
-  ];
 
   const handleLogout = async () => {
     if (isLoggingOut) return;
@@ -98,17 +84,19 @@ export default function Sidebar() {
 
         {/* NAVIGATION */}
         <nav className="flex flex-1 flex-col gap-2 overflow-y-auto overflow-x-hidden pb-4 scrollbar-hide">
-          {menu.map((item) => {
+          {dashboardMenu.map((item) => {
             // Logic to handle active state even on sub-pages (e.g., /dashboard/orders/[id])
             const isActive =
               item.href === "/dashboard"
                 ? pathname === "/dashboard"
                 : pathname.startsWith(item.href);
+            const Icon = item.icon;
 
             return (
               <Link
                 href={item.href}
                 key={item.name}
+                onClick={() => setIsMobileOpen(false)}
                 className={`group flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition-all duration-200 ${
                   isActive
                     ? "bg-[#03c7fe] text-white shadow-[0_10px_20px_rgba(3,199,254,0.2)]"
@@ -120,7 +108,7 @@ export default function Sidebar() {
                     isActive ? "scale-110" : "group-hover:scale-110"
                   }`}
                 >
-                  {item.icon}
+                  <Icon size={20} />
                 </span>
                 {item.name}
               </Link>

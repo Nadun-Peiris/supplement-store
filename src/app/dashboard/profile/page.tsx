@@ -40,6 +40,69 @@ const EMPTY_PROFILE: ProfileForm = {
   country: "",
 };
 
+function SkeletonField({ fullWidth = false }: { fullWidth?: boolean }) {
+  return (
+    <div className={`flex flex-col ${fullWidth ? "md:col-span-2" : ""}`}>
+      <div className="mb-2 h-3 w-24 animate-pulse rounded-full bg-gray-200" />
+      <div className="h-12 animate-pulse rounded-xl border border-gray-200 bg-white" />
+    </div>
+  );
+}
+
+function ProfileLoadingSkeleton() {
+  return (
+    <div className="flex flex-col gap-8 p-6 lg:p-8">
+      <div className="h-9 w-48 animate-pulse rounded-full bg-gray-200" />
+
+      <section className="rounded-2xl border border-gray-100 bg-[#f8f8f8] p-6 shadow-sm">
+        <div className="mb-6 flex items-center gap-3 border-b border-gray-200 pb-4">
+          <div className="h-10 w-10 animate-pulse rounded-xl bg-[#dff8ff]" />
+          <div className="h-6 w-48 animate-pulse rounded-full bg-gray-200" />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <SkeletonField />
+          <SkeletonField />
+          <SkeletonField />
+          <SkeletonField />
+          <SkeletonField fullWidth />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-gray-100 bg-[#f8f8f8] p-6 shadow-sm">
+        <div className="mb-6 flex items-center gap-3 border-b border-gray-200 pb-4">
+          <div className="h-10 w-10 animate-pulse rounded-xl bg-[#dff8ff]" />
+          <div className="h-6 w-44 animate-pulse rounded-full bg-gray-200" />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <SkeletonField />
+          <SkeletonField />
+          <SkeletonField />
+          <SkeletonField />
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-gray-100 bg-[#f8f8f8] p-6 shadow-sm">
+        <div className="mb-6 flex items-center gap-3 border-b border-gray-200 pb-4">
+          <div className="h-10 w-10 animate-pulse rounded-xl bg-[#dff8ff]" />
+          <div className="h-6 w-40 animate-pulse rounded-full bg-gray-200" />
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+          <SkeletonField fullWidth />
+          <SkeletonField fullWidth />
+          <SkeletonField />
+          <SkeletonField />
+          <SkeletonField fullWidth />
+        </div>
+      </section>
+
+      <div className="h-14 w-full animate-pulse rounded-xl bg-[#b8f0ff] md:w-48" />
+    </div>
+  );
+}
+
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -123,12 +186,7 @@ export default function ProfilePage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex h-[60vh] w-full flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-[#03c7fe]" />
-        <p className="text-sm font-medium text-gray-400">Loading profile...</p>
-      </div>
-    );
+    return <ProfileLoadingSkeleton />;
   }
 
   const inputClass = "w-full rounded-xl border border-gray-200 bg-white p-3 text-[14px] outline-none transition-all focus:border-[#03c7fe] focus:ring-1 focus:ring-[#03c7fe]";
