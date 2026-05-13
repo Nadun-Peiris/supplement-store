@@ -5,6 +5,7 @@ import Link from "next/link";
 import ProductCard from "./ProductCard";
 import { FaArrowRight } from "react-icons/fa";
 import type { ProductDTO } from "@/types/product";
+import { getShopCategoryHref } from "@/lib/shopRoutes";
 
 const toSlug = (value: string) =>
   value
@@ -18,7 +19,7 @@ export default function ProductCarousel({ category }: { category: string }) {
   const [loading, setLoading] = useState(true);
 
   const categorySlug = toSlug(category);
-  const viewAllHref = categorySlug ? `/shop/${categorySlug}` : "/shop";
+  const viewAllHref = getShopCategoryHref(categorySlug);
 
   useEffect(() => {
     async function load() {

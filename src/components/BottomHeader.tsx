@@ -11,6 +11,7 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { absoluteUrl } from "@/lib/absoluteUrl";
 import { dashboardMenu } from "@/app/dashboard/components/dashboardMenu";
+import { getShopCategoryHref } from "@/lib/shopRoutes";
 
 interface FeaturedCategory {
   _id: string;
@@ -82,6 +83,13 @@ export default function BottomHeader() {
 
   const navFeatured = featured.filter((item) => item.category && item.category.slug);
   const skeletons = Array.from({ length: 4 });
+  const categoryLinks = navFeatured.map((item) => ({
+    id: item._id,
+    label:
+      item.category.name.charAt(0).toUpperCase() +
+      item.category.name.slice(1).toLowerCase(),
+    href: getShopCategoryHref(item.category.slug),
+  }));
 
   const handleSearchSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -117,10 +125,10 @@ export default function BottomHeader() {
         Added relative z-[60] so the mobile menu drops behind it.
       */}
       <div className="relative z-[60] w-full rounded-t-[36px] bg-white px-6 pb-4 pt-6 md:px-12 md:pt-7">
-        <div className="mx-auto flex max-w-[110rem] items-center justify-between">
+        <div className="mx-auto flex max-w-[110rem] items-center justify-between gap-6">
           
           {/* LEFT SECTION: HAMBURGER (Mobile) + LOGO + NAVIGATION */}
-          <div className="flex items-center gap-4 lg:gap-12 xl:gap-20">
+          <div className="flex min-w-0 flex-1 items-center gap-4 lg:gap-10 xl:gap-12 2xl:gap-20">
             
             {/* Hamburger moved to the Left (Hidden on Desktop) */}
             <button 
@@ -155,8 +163,8 @@ export default function BottomHeader() {
             </Link>
 
             {/* DESKTOP NAV */}
-            <nav className="hidden lg:block">
-              <ul className="m-0 flex list-none items-center gap-x-8 p-0">
+            <nav className="hidden min-w-0 flex-1 xl:block">
+              <ul className="m-0 flex list-none items-center gap-x-6 overflow-x-auto whitespace-nowrap p-0 pb-1 pr-2 scrollbar-hide 2xl:gap-x-8">
                 <li>
                   <Link href="/" className="group relative flex items-center gap-1 py-2 text-[16px] font-extrabold text-black transition-colors hover:text-[#03c7fe]">
                     Home
@@ -173,15 +181,13 @@ export default function BottomHeader() {
                   ? skeletons.map((_, idx) => (
                       <li key={`skeleton-${idx}`} className="h-4 w-16 animate-pulse rounded bg-gray-100" />
                     ))
-                  : navFeatured.map((item) => {
-                      const label = item.category?.name.charAt(0).toUpperCase() + item.category?.name.slice(1).toLowerCase();
-                      const itemHref = `/shop/${item.category.slug}`;
-                      const isActive = checkIsActive(itemHref, true);
+                  : categoryLinks.map((item) => {
+                      const isActive = checkIsActive(item.href, true);
 
                       return (
-                        <li key={item._id}>
-                          <Link href={itemHref} className="group relative flex items-center gap-1 py-2 text-[16px] font-extrabold text-black transition-colors hover:text-[#03c7fe]">
-                            {label}
+                        <li key={item.id}>
+                          <Link href={item.href} className="group relative flex items-center gap-1 py-2 text-[16px] font-extrabold text-black transition-colors hover:text-[#03c7fe]">
+                            {item.label}
                             <span className={`absolute -bottom-1 left-0 h-[2.5px] bg-[#03c7fe] transition-all duration-300 ${isActive ? "w-full" : "w-0 group-hover:w-full"}`} />
                           </Link>
                         </li>
@@ -192,9 +198,12 @@ export default function BottomHeader() {
           </div>
 
           {/* RIGHT SECTION: ACTIONS */}
-          <div className="flex items-center gap-5 md:gap-7">
+          <div className="ml-auto flex shrink-0 items-center gap-4 sm:gap-5 lg:gap-6 xl:gap-7">
             {/* Search Input Area */}
-            <form className="hidden items-center gap-3 lg:flex" onSubmit={handleSearchSubmit}>
+            <form
+              className="hidden items-center gap-3 lg:flex"
+              onSubmit={handleSearchSubmit}
+            >
               <input
                 type="text"
                 value={searchTerm}
@@ -209,7 +218,7 @@ export default function BottomHeader() {
             </form>
 
             {/* Subtle Divider line */}
-            <div className="hidden h-8 w-[1px] bg-gray-200 lg:block"></div>
+            <div className="hidden h-8 w-[1px] bg-gray-200 2xl:block"></div>
 
             {/* Profile Icon / User Menu */}
             {authLoading ? (
@@ -316,6 +325,51 @@ export default function BottomHeader() {
           </div>
 
         </div>
+
+        <div className="mt-5 border-t border-gray-100 pt-4 xl:hidden">
+          <div className="-mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
+            <Link
+              href="/"
+              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
+                checkIsActive("/", true)
+                  ? "border-[#03c7fe] bg-[#03c7fe] text-white"
+                  : "border-gray-200 bg-white text-gray-700 hover:border-[#03c7fe] hover:text-[#03c7fe]"
+              }`}
+            >
+              Home
+            </Link>
+            <Link
+              href="/shop"
+              className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
+                checkIsActive("/shop", true)
+                  ? "border-[#03c7fe] bg-[#03c7fe] text-white"
+                  : "border-gray-200 bg-white text-gray-700 hover:border-[#03c7fe] hover:text-[#03c7fe]"
+              }`}
+            >
+              Shop
+            </Link>
+            {featuredLoading
+              ? skeletons.map((_, idx) => (
+                  <div
+                    key={`responsive-skeleton-${idx}`}
+                    className="h-10 w-24 shrink-0 animate-pulse rounded-full bg-gray-100"
+                  />
+                ))
+              : categoryLinks.map((item) => (
+                  <Link
+                    key={item.id}
+                    href={item.href}
+                    className={`shrink-0 rounded-full border px-4 py-2 text-sm font-bold transition-colors ${
+                      checkIsActive(item.href, true)
+                        ? "border-[#03c7fe] bg-[#03c7fe] text-white"
+                        : "border-gray-200 bg-white text-gray-700 hover:border-[#03c7fe] hover:text-[#03c7fe]"
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+          </div>
+        </div>
       </div>
 
       {/* 
@@ -362,18 +416,16 @@ export default function BottomHeader() {
                   Shop All
                 </Link>
               </li>
-              {navFeatured.map((item, idx) => {
-                const label = item.category?.name.charAt(0).toUpperCase() + item.category?.name.slice(1).toLowerCase();
-                const itemHref = `/shop/${item.category.slug}`;
+              {categoryLinks.map((item, idx) => {
                 return (
                   <li 
-                    key={item._id} 
+                    key={item.id} 
                     className={`transition-all duration-500 ${menuOpen ? "translate-x-0 opacity-100" : "-translate-x-4 opacity-0"}`}
                     style={{ transitionDelay: `${200 + (idx * 50)}ms` }}
                   >
                     {/* 👇 CHANGE MOBILE MENU TEXT SIZE HERE */}
-                    <Link href={itemHref} onClick={() => setMenuOpen(false)} className={`text-xl sm:text-2xl font-extrabold hover:text-[#03c7fe] ${checkIsActive(itemHref, true) ? "text-[#03c7fe]" : "text-black"}`}>
-                      {label}
+                    <Link href={item.href} onClick={() => setMenuOpen(false)} className={`text-xl sm:text-2xl font-extrabold hover:text-[#03c7fe] ${checkIsActive(item.href, true) ? "text-[#03c7fe]" : "text-black"}`}>
+                      {item.label}
                     </Link>
                   </li>
                 );

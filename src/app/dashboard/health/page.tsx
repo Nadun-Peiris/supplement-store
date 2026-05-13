@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import { HEALTH_OPTIONS } from "@/lib/constants";
 import {
   LineChart, Line, BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip,
@@ -54,6 +55,11 @@ interface DayLog {
   supplements: SupplementEntry[];
 }
 
+interface HealthApiResponse {
+  logs?: DayLog[];
+  activityLevel?: string | null;
+}
+
 interface FormState {
   weight: string;
   height: string;
@@ -63,6 +69,7 @@ interface FormState {
   chest: string;
   waist: string;
   hips: string;
+  activityLevel: string;
   workoutType: string;
   workoutDuration: string;
   workoutNotes: string;
@@ -73,6 +80,19 @@ const WORKOUT_TYPES = ["Gym", "Cardio", "Yoga", "Swimming", "Cycling", "Rest", "
 const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 const today = () => new Date().toISOString().split("T")[0];
+
+const hasLoggedWorkout = (workout?: WorkoutEntry) => {
+  if (!workout?.type) return false;
+  if (workout.type !== "Rest") return true;
+  return workout.duration > 0 || Boolean(workout.notes?.trim());
+};
+
+const formatLogDate = (value: string) =>
+  new Date(value).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
 
 const getBMICategory = (bmi: number) => {
   if (bmi < 18.5) return { label: "Underweight", color: "text-blue-600" };
@@ -220,6 +240,7 @@ export default function HealthTrackingPage() {
   const [form, setForm] = useState<FormState>({
     weight: "", height: "", waterIntake: "", sleepHours: "",
     bodyFat: "", chest: "", waist: "", hips: "",
+    activityLevel: "",
     workoutType: "", workoutDuration: "", workoutNotes: "",
     supplements: [],
   });
@@ -250,8 +271,9 @@ export default function HealthTrackingPage() {
       const res  = await fetch(`/api/health?days=30`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const data = await res.json();
+      const data: HealthApiResponse = await res.json();
       const fetchedLogs: DayLog[] = data.logs || [];
+      const activityLevel = data.activityLevel || "";
       setLogs(fetchedLogs);
 
       const todayLog = fetchedLogs.find((l) => l.date === today());
@@ -267,7 +289,13 @@ export default function HealthTrackingPage() {
         setSavedMetrics({
           vitals: !!todayLog.weight,
           recovery: !!(todayLog.waterIntake && todayLog.sleepHours),
-          activity: !!todayLog.workout?.type,
+          activity: !!(todayLog.workout?.type || activityLevel),
+        });
+      } else {
+        setSavedMetrics({
+          vitals: false,
+          recovery: false,
+          activity: !!activityLevel,
         });
       }
 
@@ -280,6 +308,7 @@ export default function HealthTrackingPage() {
         chest:           todayLog?.chest?.toString()            || "",
         waist:           todayLog?.waist?.toString()            || "",
         hips:            todayLog?.hips?.toString()             || "",
+        activityLevel,
         workoutType:     todayLog?.workout?.type                || "",
         workoutDuration: todayLog?.workout?.duration?.toString()|| "",
         workoutNotes:    todayLog?.workout?.notes               || "",
@@ -311,6 +340,7 @@ export default function HealthTrackingPage() {
         chest:       form.chest       ? parseFloat(form.chest)       : undefined,
         waist:       form.waist       ? parseFloat(form.waist)       : undefined,
         hips:        form.hips        ? parseFloat(form.hips)        : undefined,
+        activityLevel: form.activityLevel || undefined,
         workout:
           form.workoutType
             ? {
@@ -338,7 +368,7 @@ export default function HealthTrackingPage() {
       setSavedMetrics({
         vitals: !!form.weight,
         recovery: !!(form.waterIntake && form.sleepHours),
-        activity: !!form.workoutType,
+        activity: !!(form.workoutType || form.activityLevel),
       });
       
       setTimeout(() => setSaved(false), 3000);
@@ -403,6 +433,22 @@ export default function HealthTrackingPage() {
     sleep:  l.sleepHours  ?? null,
     bmi:    l.bmi         ?? null,
   }));
+  const activityEntries = [...logs]
+    .filter((log) => hasLoggedWorkout(log.workout))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const activityChartData = activityEntries
+    .slice()
+    .reverse()
+    .map((log) => ({
+      date: log.date.slice(5),
+      duration: log.workout?.duration ?? 0,
+      type: log.workout?.type || "Activity",
+    }));
+  const totalActivityMinutes = activityEntries.reduce(
+    (sum, log) => sum + (log.workout?.duration ?? 0),
+    0
+  );
+  const latestActivity = activityEntries[0];
 
   const latestBMI = [...logs].reverse().find((l) => l.bmi)?.bmi;
   const bmiCategory = latestBMI ? getBMICategory(latestBMI) : null;
@@ -410,6 +456,7 @@ export default function HealthTrackingPage() {
   const tabs = [
     { key: "log",         label: "Today's Log",      icon: Plus },
     { key: "schedule",    label: "Supplement Schedule",  icon: CalendarDays },
+    { key: "activity",    label: "Activity",         icon: Dumbbell },
     { key: "weight",      label: "Weight",           icon: Scale },
     { key: "water",       label: "Water",            icon: Droplets },
     { key: "sleep",       label: "Sleep",            icon: Moon },
@@ -618,7 +665,11 @@ export default function HealthTrackingPage() {
                    </div>
                    <div>
                      <p className="text-sm font-semibold text-emerald-900">Activity Logged</p>
-                     <p className="text-xs text-emerald-700/80 mt-0.5">{form.workoutType} {form.workoutDuration ? `• ${form.workoutDuration} mins` : ''}</p>
+                     <p className="text-xs text-emerald-700/80 mt-0.5">
+                       {form.activityLevel || "Activity level saved"}
+                       {form.workoutType ? ` • ${form.workoutType}` : ""}
+                       {form.workoutDuration ? ` • ${form.workoutDuration} mins` : ""}
+                     </p>
                    </div>
                 </div>
                 <button onClick={() => setSavedMetrics(s => ({ ...s, activity: false }))} className="text-xs font-semibold text-emerald-700 hover:text-emerald-900 transition-colors">Edit</button>
@@ -628,7 +679,32 @@ export default function HealthTrackingPage() {
                  <h3 className="mb-5 flex items-center gap-2 text-sm font-semibold text-gray-900">
                   <Dumbbell size={16} className="text-gray-400" /> Activity
                 </h3>
-                <div className="grid sm:grid-cols-3 gap-6">
+                <div className="grid gap-6 sm:grid-cols-2">
+                   <div>
+                     <label className="mb-1.5 block text-xs font-medium text-gray-500">Activity Level</label>
+                     <select
+                       value={form.activityLevel}
+                       onChange={(e) => setForm((f) => ({ ...f, activityLevel: e.target.value }))}
+                       className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm outline-none transition-colors focus:border-gray-900 focus:bg-white appearance-none"
+                     >
+                       <option value="">Select level</option>
+                       {HEALTH_OPTIONS.activityLevels.map((level) => (
+                         <option key={level} value={level}>
+                           {level}
+                         </option>
+                       ))}
+                     </select>
+                   </div>
+                   <div>
+                      <label className="mb-1.5 block text-xs font-medium text-gray-500">Duration (mins)</label>
+                      <input
+                        type="number"
+                        value={form.workoutDuration}
+                        onChange={(e) => setForm((f) => ({ ...f, workoutDuration: e.target.value }))}
+                        placeholder="0"
+                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm outline-none transition-colors focus:border-gray-900 focus:bg-white"
+                      />
+                   </div>
                    <div className="sm:col-span-2">
                      <label className="mb-2 block text-xs font-medium text-gray-500">Training Modality</label>
                      <div className="flex flex-wrap gap-2">
@@ -647,16 +723,6 @@ export default function HealthTrackingPage() {
                           </button>
                         ))}
                       </div>
-                   </div>
-                   <div>
-                      <label className="mb-1.5 block text-xs font-medium text-gray-500">Duration (mins)</label>
-                      <input
-                        type="number"
-                        value={form.workoutDuration}
-                        onChange={(e) => setForm((f) => ({ ...f, workoutDuration: e.target.value }))}
-                        placeholder="0"
-                        className="w-full rounded-xl border border-gray-200 bg-gray-50/50 px-4 py-2.5 text-sm outline-none transition-colors focus:border-gray-900 focus:bg-white"
-                      />
                    </div>
                 </div>
               </div>
@@ -788,6 +854,161 @@ export default function HealthTrackingPage() {
                       >
                         <Trash2 size={16} />
                       </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {activeTab === "activity" && (
+        <div className="space-y-6 animate-in fade-in">
+          <div className="grid gap-4 lg:grid-cols-[0.95fr_1.35fr]">
+            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+              <h3 className="text-base font-semibold text-gray-900">Activity Snapshot</h3>
+              <div className="mt-5 space-y-4">
+                <div className="rounded-xl border border-gray-100 bg-gray-50/70 p-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-gray-400">
+                    Current Activity Level
+                  </p>
+                  <p className="mt-3 text-2xl font-semibold tracking-tight text-gray-900">
+                    {form.activityLevel || "Not set"}
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-xl border border-gray-100 p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-gray-400">
+                      Sessions
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold text-gray-900">
+                      {activityEntries.length}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">Last 30 days</p>
+                  </div>
+                  <div className="rounded-xl border border-gray-100 p-4">
+                    <p className="text-xs font-medium uppercase tracking-[0.16em] text-gray-400">
+                      Minutes
+                    </p>
+                    <p className="mt-3 text-2xl font-semibold text-gray-900">
+                      {totalActivityMinutes}
+                    </p>
+                    <p className="mt-1 text-xs text-gray-500">Logged duration</p>
+                  </div>
+                </div>
+                <div className="rounded-xl border border-emerald-100 bg-emerald-50/60 p-4">
+                  <p className="text-xs font-medium uppercase tracking-[0.16em] text-emerald-700/70">
+                    Latest Session
+                  </p>
+                  {latestActivity?.workout ? (
+                    <>
+                      <p className="mt-3 text-lg font-semibold text-emerald-900">
+                        {latestActivity.workout.type}
+                        {latestActivity.workout.duration
+                          ? ` • ${latestActivity.workout.duration} mins`
+                          : ""}
+                      </p>
+                      <p className="mt-1 text-xs text-emerald-800/80">
+                        {formatLogDate(latestActivity.date)}
+                      </p>
+                    </>
+                  ) : (
+                    <p className="mt-3 text-sm text-emerald-900">
+                      No workout sessions logged yet.
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+              <h3 className="text-base font-semibold text-gray-900">Duration Trend</h3>
+              {activityChartData.length === 0 ? (
+                <p className="py-20 text-center text-sm text-gray-400">
+                  Log a workout from Today&apos;s Log to see activity trends here.
+                </p>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={activityChartData}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 11, fill: "#9ca3af" }}
+                      axisLine={false}
+                      tickLine={false}
+                      dy={10}
+                    />
+                    <YAxis
+                      tick={{ fontSize: 11, fill: "#9ca3af" }}
+                      axisLine={false}
+                      tickLine={false}
+                      dx={-10}
+                    />
+                    <Tooltip
+                      cursor={{ fill: "#f9fafb" }}
+                      contentStyle={{
+                        borderRadius: "12px",
+                        border: "none",
+                        boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
+                      }}
+                      formatter={(value) => [`${value} mins`, "Duration"]}
+                      labelFormatter={(label, payload) => {
+                        const entry = payload?.[0]?.payload as
+                          | { type?: string }
+                          | undefined;
+                        return entry?.type ? `${label} • ${entry.type}` : String(label);
+                      }}
+                    />
+                    <Bar dataKey="duration" fill="#059669" radius={[8, 8, 0, 0]} maxBarSize={42} />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-semibold text-gray-900">Recent Activity Log</h3>
+                <p className="mt-1 text-sm text-gray-500">
+                  Daily workout sessions captured from the health log.
+                </p>
+              </div>
+            </div>
+
+            {activityEntries.length === 0 ? (
+              <p className="py-16 text-center text-sm text-gray-400">
+                No activity sessions logged yet.
+              </p>
+            ) : (
+              <div className="mt-6 space-y-3">
+                {activityEntries.map((log) => (
+                  <div
+                    key={log.date}
+                    className="rounded-2xl border border-gray-100 p-4 transition-colors hover:border-gray-200"
+                  >
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                            {log.workout?.type}
+                          </span>
+                          <span className="text-sm font-medium text-gray-500">
+                            {formatLogDate(log.date)}
+                          </span>
+                        </div>
+                        {log.workout?.notes ? (
+                          <p className="mt-3 text-sm text-gray-600">{log.workout.notes}</p>
+                        ) : (
+                          <p className="mt-3 text-sm text-gray-400">
+                            No session notes recorded.
+                          </p>
+                        )}
+                      </div>
+                      <div className="rounded-xl bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-900">
+                        {log.workout?.duration ? `${log.workout.duration} mins` : "Duration not set"}
+                      </div>
                     </div>
                   </div>
                 ))}

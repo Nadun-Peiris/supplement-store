@@ -1,7 +1,16 @@
 import { NextResponse } from "next/server";
 import { connectDB } from "@/lib/mongoose";
 import HealthLog from "@/models/HealthLog";
+import User from "@/models/User";
 import { verifyRequestToken } from "@/lib/requestAuth";
+
+const ACTIVITY_OPTIONS = new Set([
+  "Sedentary",
+  "Light",
+  "Moderate",
+  "Active",
+  "Very Active",
+]);
 
 export async function GET(req: Request) {
   try {
@@ -23,7 +32,15 @@ export async function GET(req: Request) {
       .sort({ date: 1 })
       .lean();
 
-    return NextResponse.json({ logs });
+    const user = await User.findOne({ firebaseId: decoded.uid })
+      .select("activity")
+      .lean();
+
+    return NextResponse.json({
+      logs,
+      activityLevel:
+        user && typeof user.activity === "string" ? user.activity : null,
+    });
   } catch (error) {
     console.error("Health log fetch error:", error);
     const status =
@@ -46,11 +63,23 @@ export async function POST(req: Request) {
     const decoded = await verifyRequestToken(req);
 
     const body = await req.json();
-    const { date, ...data } = body;
+    const { date, activityLevel, ...data } = body;
 
     if (!date) {
       return NextResponse.json(
         { error: "Missing date" },
+        { status: 400 }
+      );
+    }
+
+    if (
+      activityLevel !== undefined &&
+      (typeof activityLevel !== "string" ||
+        (activityLevel.trim() !== "" &&
+          !ACTIVITY_OPTIONS.has(activityLevel.trim())))
+    ) {
+      return NextResponse.json(
+        { error: "Invalid activity value." },
         { status: 400 }
       );
     }
@@ -65,6 +94,17 @@ export async function POST(req: Request) {
     // 2. Data Cleaning: Ensure workout is formatted correctly if sent empty
     if (!data.workout || !data.workout.type) {
       data.workout = { type: "Rest", duration: 0, notes: "" };
+    }
+
+    if (activityLevel !== undefined) {
+      const trimmedActivityLevel = activityLevel.trim();
+      await User.updateOne(
+        { firebaseId: decoded.uid },
+        trimmedActivityLevel
+          ? { $set: { activity: trimmedActivityLevel } }
+          : { $unset: { activity: "" } },
+        { runValidators: true }
+      );
     }
 
     // 3. The Upsert: Using $set ensures we overwrite only the fields sent,

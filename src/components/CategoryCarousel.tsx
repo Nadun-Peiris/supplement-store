@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { getShopCategoryHref } from "@/lib/shopRoutes";
 import { useEffect, useRef, useState } from "react";
 
 interface Category {
@@ -124,7 +125,7 @@ export default function CategoryCarousel() {
           >
             {categories.map((cat) => (
               <Link
-                href={`/shop/${cat.slug}`}
+                href={getShopCategoryHref(cat.slug)}
                 key={cat._id}
                 className="group flex flex-none snap-center flex-col items-center min-w-[150px] text-black md:min-w-[170px]"
               >

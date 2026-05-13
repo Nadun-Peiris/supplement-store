@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { getShopCategoryHref } from "@/lib/shopRoutes";
 import { useEffect, useState } from "react";
 import { absoluteUrl } from "@/lib/absoluteUrl";
 
@@ -113,7 +114,7 @@ export default function PromoSection() {
             return (
               <Link
                 key={promo._id}
-                href={`/shop/${promo.category.slug}`}
+                href={getShopCategoryHref(promo.category.slug)}
                 className="group relative block h-[380px] w-full max-w-[560px] flex-none snap-center overflow-hidden rounded-[22px] bg-black text-white no-underline max-[900px]:w-[420px] max-[900px]:max-w-none max-sm:h-[320px] max-sm:w-[calc(100%-2rem)] max-sm:rounded-[20px]"
               >
                 {/* GLOW */}

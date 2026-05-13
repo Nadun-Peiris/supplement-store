@@ -1,4 +1,5 @@
 import HeroSlider from "@/components/HeroSlider";
+import AIConciergeSpotlight from "@/components/AIConciergeSpotlight";
 import ProductCarousel from "@/components/ProductCarousel";
 import BrandLogoSlider from "@/components/BrandLogoSlider";
 import CategoryCarousel from "@/components/CategoryCarousel";
@@ -18,9 +19,9 @@ export default function HomePage() {
 
       <BrandLogoSlider />
 
-      <HeroSlider autoPlayMs={5000} />
+      <AIConciergeSpotlight />
 
-      <ProductCarousel category="Protein" />
+      <ProductCarousel category="Health and Beauty" />
 
       <FeaturesSection />
     </main>

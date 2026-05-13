@@ -6,6 +6,7 @@ import { useState } from "react";
 import ProductCarousel from "@/components/ProductCarousel";
 import FeaturesSection from "@/components/FeaturesSection";
 import { useCart } from "@/context/CartContext";
+import { getShopBrandHref, getShopCategoryHref } from "@/lib/shopRoutes";
 import type { ProductDTO } from "@/types/product";
 import { ChevronRight, Minus, Plus, ShieldCheck, CheckCircle2, FileText } from "lucide-react";
 import Link from "next/link";
@@ -119,7 +120,7 @@ export default function SingleProductPage({ product }: { product: ProductDTO }) 
         <nav className="mb-8 flex items-center text-sm font-medium text-gray-500">
           <Link href="/" className="hover:text-[#03C7FE] transition-colors">Home</Link>
           <ChevronRight className="mx-2 h-4 w-4" />
-          <Link href={categorySlug ? `/shop/${categorySlug}` : "/shop"} className="hover:text-[#03C7FE] transition-colors">{categoryName}</Link>
+          <Link href={getShopCategoryHref(categorySlug)} className="hover:text-[#03C7FE] transition-colors">{categoryName}</Link>
           <ChevronRight className="mx-2 h-4 w-4" />
           <span className="text-gray-900 truncate">{product.name}</span>
         </nav>
@@ -175,7 +176,7 @@ export default function SingleProductPage({ product }: { product: ProductDTO }) 
 
             <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-gray-600 sm:text-base">
               {hasKnownBrand ? (
-                <Link href={`/shop/brand/${encodeURIComponent(brandSlug)}`} className="inline-flex items-center gap-1">
+                <Link href={getShopBrandHref(brandSlug)} className="inline-flex items-center gap-1">
                   <span className="font-bold text-gray-900">Brand:</span>
                   <span className="text-[#03C7FE] hover:text-[#03a9d9] hover:underline transition-colors">{brandName}</span>
                 </Link>
@@ -186,7 +187,7 @@ export default function SingleProductPage({ product }: { product: ProductDTO }) 
                 </span>
               )}
               <span className="text-gray-300">|</span>
-              <Link href={categorySlug ? `/shop/${encodeURIComponent(categorySlug)}` : "/shop"} className="inline-flex items-center gap-1">
+              <Link href={getShopCategoryHref(categorySlug)} className="inline-flex items-center gap-1">
                 <span className="font-bold text-gray-900">Category:</span>
                 <span className="text-[#03C7FE] hover:text-[#03a9d9] hover:underline transition-colors">{categoryName}</span>
               </Link>
